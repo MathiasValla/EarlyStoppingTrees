@@ -1,0 +1,16 @@
+task,method,median_speedup,median_loss_%,p90_loss_%,P(loss≤5%),P(speedup≥20%)
+Classification (Gini),best,1,0,0,1,0
+Classification (Gini),block_rank,1.855,5.163,24.7,0.5,0.9576
+Classification (Gini),double_secretary (0.1n),2.007,17.65,55.25,0.3148,0.8889
+Classification (Gini),double_secretary (1overe),1.668,12.59,52.94,0.3426,0.8333
+Classification (Gini),double_secretary (ln_n),1.961,16.6,55.47,0.3148,0.8704
+Classification (Gini),double_secretary (sqrt_n),2.056,17.65,56.73,0.2963,0.8796
+Classification (Gini),prophet_1sample,1.122,7.541,26.33,0.4237,0.2881
+Classification (Gini),secretary (0.1n),2.285,16.33,51.17,0.3136,0.9576
+Classification (Gini),secretary (1overe),1.884,11.3,47.74,0.3814,0.8729
+Classification (Gini),secretary (ln_n),2.263,15.51,50.87,0.339,0.9576
+Classification (Gini),secretary (sqrt_n),2.212,16.78,51.29,0.3136,0.9407
+Classification (Gini),secretary_all (0.1n),1.857,10.82,38.03,0.3611,0.8519
+Classification (Gini),secretary_all (1overe),1.403,3.779,23.5,0.5926,0.6204
+Classification (Gini),secretary_all (ln_n),1.776,7.521,35.12,0.3981,0.8241
+Classification (Gini),secretary_all (sqrt_n),1.873,12.15,55.05,0.3056,0.8333

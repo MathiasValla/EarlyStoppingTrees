@@ -7,7 +7,7 @@ from scipy.sparse import issparse
 from sklearn.base import ClusterMixin, TransformerMixin
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.utils import check_random_state
-from sklearn.utils._param_validation import Interval
+from sklearn.utils._param_validation import Interval, StrOptions
 from sklearn.utils.validation import check_is_fitted, validate_data
 
 from .._lib.sklearn.tree import (
@@ -18,8 +18,8 @@ from .._lib.sklearn.tree import (
 )
 from .._lib.sklearn.tree import _tree as _sklearn_tree
 from .._lib.sklearn.tree._criterion import BaseCriterion
-from .._lib.sklearn.tree._tree import BestFirstTreeBuilder, DepthFirstTreeBuilder
-from . import _oblique_splitter
+from .._lib.sklearn.tree._tree import BestFirstTreeBuilder, DepthFirstTreeBuilder, Tree
+from . import _early_stop_splitter, _oblique_splitter
 from ._neighbors import SimMatrixMixin
 from ._oblique_splitter import ObliqueSplitter
 from ._oblique_tree import ObliqueTree
@@ -67,6 +67,21 @@ UNSUPERVISED_SPLITTERS = {
 }
 
 UNSUPERVISED_OBLIQUE_SPLITTERS = {"best": _unsup_oblique_splitter.BestObliqueUnsupervisedSplitter}
+
+# Early-stop splitters (axis-aligned, dense only). Optional split_search dict can pass e.g. alpha for parametric methods.
+EARLY_STOP_DENSE_SPLITTERS = {
+    "secretary": _early_stop_splitter.SecretarySplitter,
+    "secretary_par": _early_stop_splitter.SecretaryParamSplitter,
+    "secretary_all": _early_stop_splitter.CovariateSecretaryAllSplitter,
+    "double_secretary": _early_stop_splitter.DoubleSecretarySplitter,
+    "prophet": _early_stop_splitter.ProphetSamplesSplitter,
+    "prophet_1sample": _early_stop_splitter.ProphetOneSampleSplitter,
+    "prophet_par": _early_stop_splitter.ProphetParamSplitter,
+    "block_rank": _early_stop_splitter.BlockRankSplitter,
+    "mab_all": _early_stop_splitter.MABAllSplitter,
+    "mab_secretary": _early_stop_splitter.MABSecretarySplitter,
+    "mab_par": _early_stop_splitter.MABParamSplitter,
+}
 
 
 class UnsupervisedDecisionTree(SimMatrixMixin, TransformerMixin, ClusterMixin, BaseDecisionTree):
@@ -590,6 +605,397 @@ class UnsupervisedObliqueDecisionTree(UnsupervisedDecisionTree):
         tags = super().__sklearn_tags__()
         tags.input_tags.allow_nan = False
         return tags
+
+
+class EarlyStopDecisionTreeRegressor(SimMatrixMixin, DecisionTreeRegressor):
+    """Axis-aligned decision tree regressor with early-stopping split strategies.
+
+    Supports secretary, prophet inequality, and MAB-based split selection
+    (dense data only). Use ``splitter`` to choose the strategy and optional
+    ``split_search`` for parameters (e.g. ``alpha`` for parametric methods).
+    """
+
+    _parameter_constraints = {
+        **DecisionTreeRegressor._parameter_constraints,
+        "splitter": [
+            StrOptions(
+                {
+                    "best",
+                    "random",
+                    "secretary",
+                    "secretary_par",
+                    "secretary_all",
+                    "double_secretary",
+                    "prophet",
+                    "prophet_1sample",
+                    "prophet_par",
+                    "block_rank",
+                    "mab_all",
+                    "mab_secretary",
+                    "mab_par",
+                }
+            )
+        ],
+        "split_search": [dict, None],
+    }
+
+    def __init__(
+        self,
+        *,
+        criterion="squared_error",
+        splitter="secretary",
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        min_weight_fraction_leaf=0.0,
+        max_features=None,
+        random_state=None,
+        max_leaf_nodes=None,
+        min_impurity_decrease=0.0,
+        ccp_alpha=0.0,
+        store_leaf_values=False,
+        monotonic_cst=None,
+        split_search=None,
+    ):
+        super().__init__(
+            criterion=criterion,
+            splitter=splitter,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            min_weight_fraction_leaf=min_weight_fraction_leaf,
+            max_features=max_features,
+            max_leaf_nodes=max_leaf_nodes,
+            random_state=random_state,
+            min_impurity_decrease=min_impurity_decrease,
+            ccp_alpha=ccp_alpha,
+            store_leaf_values=store_leaf_values,
+            monotonic_cst=monotonic_cst,
+        )
+        self.split_search = split_search if split_search is not None else {}
+
+    def _build_tree(
+        self,
+        X,
+        y,
+        sample_weight,
+        missing_values_in_feature_mask,
+        min_samples_leaf,
+        min_weight_leaf,
+        max_leaf_nodes,
+        min_samples_split,
+        max_depth,
+        random_state,
+    ):
+        if self.splitter not in EARLY_STOP_DENSE_SPLITTERS:
+            return super()._build_tree(
+                X, y, sample_weight, missing_values_in_feature_mask,
+                min_samples_leaf, min_weight_leaf, max_leaf_nodes,
+                min_samples_split, max_depth, random_state,
+            )
+        if issparse(X):
+            raise ValueError(
+                "Early-stop splitters only support dense data. Use a dense array."
+            )
+        n_samples, _ = X.shape
+        criterion = self.criterion
+        if not isinstance(criterion, BaseCriterion):
+            criterion = CRITERIA_REG[self.criterion](self.n_outputs_, n_samples)
+        else:
+            criterion = copy.deepcopy(criterion)
+        monotonic_cst = (
+            np.asarray(self.monotonic_cst, dtype=np.int8)
+            if self.monotonic_cst is not None
+            else None
+        )
+        split_search = self.split_search or {}
+        alpha = split_search.get("alpha", 0.5)
+        p_thr_par = split_search.get("p_thr_par", 0.1)
+        q_thr_par = split_search.get("q_thr_par", 0.9)
+        n_gain_samples_par = split_search.get("n_gain_samples_par", 256)
+        threshold_rule = split_search.get("secretary_threshold", "1/e")
+        if threshold_rule == "sqrt_n":
+            use_sqrt_n = True
+            explore_frac = -1.0
+        elif isinstance(threshold_rule, (int, float)):
+            use_sqrt_n = False
+            explore_frac = float(threshold_rule)
+        else:
+            use_sqrt_n = False
+            explore_frac = 0.36787944117144233  # 1/e
+        secretary_kw = {"explore_frac": explore_frac, "use_sqrt_n": use_sqrt_n}
+        criterion_kind = "regression"
+        Klass = EARLY_STOP_DENSE_SPLITTERS[self.splitter]
+        if self.splitter == "secretary_par":
+            splitter = Klass(
+                criterion,
+                self.max_features_,
+                min_samples_leaf,
+                min_weight_leaf,
+                random_state,
+                monotonic_cst,
+                alpha=alpha,
+                criterion_kind=criterion_kind,
+                p_thr_par=p_thr_par,
+                q_thr_par=q_thr_par,
+                n_gain_samples_par=n_gain_samples_par,
+                **secretary_kw,
+            )
+        elif self.splitter in ("prophet_par", "mab_par"):
+            splitter = Klass(
+                criterion,
+                self.max_features_,
+                min_samples_leaf,
+                min_weight_leaf,
+                random_state,
+                monotonic_cst,
+                alpha=alpha,
+                criterion_kind=criterion_kind,
+            )
+        elif self.splitter in ("secretary", "secretary_all", "double_secretary", "block_rank"):
+            splitter = Klass(
+                criterion,
+                self.max_features_,
+                min_samples_leaf,
+                min_weight_leaf,
+                random_state,
+                monotonic_cst,
+                **secretary_kw,
+            )
+        else:
+            splitter = Klass(
+                criterion,
+                self.max_features_,
+                min_samples_leaf,
+                min_weight_leaf,
+                random_state,
+                monotonic_cst,
+            )
+        self.tree_ = Tree(
+            self.n_features_in_,
+            np.array([1] * self.n_outputs_, dtype=np.intp),
+            self.n_outputs_,
+        )
+        if max_leaf_nodes < 0:
+            builder = DepthFirstTreeBuilder(
+                splitter,
+                min_samples_split,
+                min_samples_leaf,
+                min_weight_leaf,
+                max_depth,
+                self.min_impurity_decrease,
+                self.store_leaf_values,
+            )
+        else:
+            builder = BestFirstTreeBuilder(
+                splitter,
+                min_samples_split,
+                min_samples_leaf,
+                min_weight_leaf,
+                max_depth,
+                max_leaf_nodes,
+                self.min_impurity_decrease,
+                self.store_leaf_values,
+            )
+        builder.build(self.tree_, X, y, sample_weight, missing_values_in_feature_mask)
+        return self
+
+
+class EarlyStopDecisionTreeClassifier(SimMatrixMixin, DecisionTreeClassifier):
+    """Axis-aligned decision tree classifier with early-stopping split strategies.
+
+    Supports the same secretary, prophet inequality, and MAB-based split
+    selection as :class:`EarlyStopDecisionTreeRegressor` (dense data only).
+    Use ``splitter`` to choose the strategy and optional ``split_search``
+    for parameters (e.g. ``alpha`` for parametric methods).
+    """
+
+    _parameter_constraints = {
+        **DecisionTreeClassifier._parameter_constraints,
+        "splitter": [
+            StrOptions(
+                {
+                    "best",
+                    "random",
+                    "secretary",
+                    "secretary_par",
+                    "secretary_all",
+                    "double_secretary",
+                    "prophet",
+                    "prophet_1sample",
+                    "prophet_par",
+                    "block_rank",
+                    "mab_all",
+                    "mab_secretary",
+                    "mab_par",
+                }
+            )
+        ],
+        "split_search": [dict, None],
+    }
+
+    def __init__(
+        self,
+        *,
+        criterion="gini",
+        splitter="secretary",
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        min_weight_fraction_leaf=0.0,
+        max_features=None,
+        random_state=None,
+        max_leaf_nodes=None,
+        min_impurity_decrease=0.0,
+        class_weight=None,
+        ccp_alpha=0.0,
+        store_leaf_values=False,
+        monotonic_cst=None,
+        split_search=None,
+    ):
+        super().__init__(
+            criterion=criterion,
+            splitter=splitter,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            min_weight_fraction_leaf=min_weight_fraction_leaf,
+            max_features=max_features,
+            max_leaf_nodes=max_leaf_nodes,
+            class_weight=class_weight,
+            random_state=random_state,
+            min_impurity_decrease=min_impurity_decrease,
+            ccp_alpha=ccp_alpha,
+            store_leaf_values=store_leaf_values,
+            monotonic_cst=monotonic_cst,
+        )
+        self.split_search = split_search if split_search is not None else {}
+
+    def _build_tree(
+        self,
+        X,
+        y,
+        sample_weight,
+        missing_values_in_feature_mask,
+        min_samples_leaf,
+        min_weight_leaf,
+        max_leaf_nodes,
+        min_samples_split,
+        max_depth,
+        random_state,
+    ):
+        if self.splitter not in EARLY_STOP_DENSE_SPLITTERS:
+            return super()._build_tree(
+                X, y, sample_weight, missing_values_in_feature_mask,
+                min_samples_leaf, min_weight_leaf, max_leaf_nodes,
+                min_samples_split, max_depth, random_state,
+            )
+        if issparse(X):
+            raise ValueError(
+                "Early-stop splitters only support dense data. Use a dense array."
+            )
+        criterion = self.criterion
+        if not isinstance(criterion, BaseCriterion):
+            criterion = CRITERIA_CLF[self.criterion](self.n_outputs_, self.n_classes_)
+        else:
+            criterion = copy.deepcopy(criterion)
+        monotonic_cst = (
+            np.asarray(self.monotonic_cst, dtype=np.int8)
+            if self.monotonic_cst is not None
+            else None
+        )
+        split_search = self.split_search or {}
+        alpha = split_search.get("alpha", 0.5)
+        p_thr_par = split_search.get("p_thr_par", 0.1)
+        q_thr_par = split_search.get("q_thr_par", 0.9)
+        n_gain_samples_par = split_search.get("n_gain_samples_par", 256)
+        threshold_rule = split_search.get("secretary_threshold", "1/e")
+        if threshold_rule == "sqrt_n":
+            use_sqrt_n = True
+            explore_frac = -1.0
+        elif isinstance(threshold_rule, (int, float)):
+            use_sqrt_n = False
+            explore_frac = float(threshold_rule)
+        else:
+            use_sqrt_n = False
+            explore_frac = 0.36787944117144233  # 1/e
+        secretary_kw = {"explore_frac": explore_frac, "use_sqrt_n": use_sqrt_n}
+        criterion_kind = "classification"
+        Klass = EARLY_STOP_DENSE_SPLITTERS[self.splitter]
+        if self.splitter == "secretary_par":
+            splitter = Klass(
+                criterion,
+                self.max_features_,
+                min_samples_leaf,
+                min_weight_leaf,
+                random_state,
+                monotonic_cst,
+                alpha=alpha,
+                criterion_kind=criterion_kind,
+                p_thr_par=p_thr_par,
+                q_thr_par=q_thr_par,
+                n_gain_samples_par=n_gain_samples_par,
+                **secretary_kw,
+            )
+        elif self.splitter in ("prophet_par", "mab_par"):
+            splitter = Klass(
+                criterion,
+                self.max_features_,
+                min_samples_leaf,
+                min_weight_leaf,
+                random_state,
+                monotonic_cst,
+                alpha=alpha,
+                criterion_kind=criterion_kind,
+            )
+        elif self.splitter in ("secretary", "secretary_all", "double_secretary", "block_rank"):
+            splitter = Klass(
+                criterion,
+                self.max_features_,
+                min_samples_leaf,
+                min_weight_leaf,
+                random_state,
+                monotonic_cst,
+                **secretary_kw,
+            )
+        else:
+            splitter = Klass(
+                criterion,
+                self.max_features_,
+                min_samples_leaf,
+                min_weight_leaf,
+                random_state,
+                monotonic_cst,
+            )
+        self.tree_ = Tree(
+            self.n_features_in_,
+            self.n_classes_,
+            self.n_outputs_,
+        )
+        if max_leaf_nodes < 0:
+            builder = DepthFirstTreeBuilder(
+                splitter,
+                min_samples_split,
+                min_samples_leaf,
+                min_weight_leaf,
+                max_depth,
+                self.min_impurity_decrease,
+            )
+        else:
+            builder = BestFirstTreeBuilder(
+                splitter,
+                min_samples_split,
+                min_samples_leaf,
+                min_weight_leaf,
+                max_depth,
+                max_leaf_nodes,
+                self.min_impurity_decrease,
+            )
+        builder.build(self.tree_, X, y, sample_weight, missing_values_in_feature_mask)
+        if self.n_outputs_ == 1:
+            self.n_classes_ = self.n_classes_[0]
+            self.classes_ = self.classes_[0]
+        return self
 
 
 class ObliqueDecisionTreeClassifier(SimMatrixMixin, DecisionTreeClassifier):

@@ -1,0 +1,4 @@
+task,n_datasets,median_n,median_p,min_n,max_n,min_p,max_p
+Regression,107,500.0,10.0,47.0,40768.0,2.0,124.0
+Classification (Gini),120,736.0,13.0,32.0,58000.0,2.0,240.0
+Classification (Entropy),119,675.0,13.0,32.0,58000.0,2.0,216.0

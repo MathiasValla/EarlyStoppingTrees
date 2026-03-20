@@ -2,6 +2,9 @@ tree_extension_metadata = {
   '_sklearn_splitter':
     {'sources': ['_sklearn_splitter.pyx'],
      'override_options': ['cython_language=cpp', 'optimization=3']},
+  '_early_stop_splitter':
+    {'sources': ['_early_stop_splitter.pyx'],
+     'override_options': ['cython_language=cpp', 'optimization=3']},
   '_oblique_splitter':
     {'sources': ['_oblique_splitter.pyx'],
      'override_options': ['cython_language=cpp', 'optimization=3']},

@@ -1,0 +1,16 @@
+task,method,median_speedup,median_loss_%,p90_loss_%,P(loss≤5%),P(speedup≥20%)
+Regression,best,1,0,0,1,0
+Regression,block_rank,3.303,38.65,56.27,0.04762,1
+Regression,double_secretary (0.1n),3.272,40.28,59.35,0.06796,1
+Regression,double_secretary (1overe),2.646,42.17,59.75,0.06796,0.9903
+Regression,double_secretary (ln_n),3.139,40.51,59.25,0.07767,1
+Regression,double_secretary (sqrt_n),3.334,39.99,59.39,0.07767,1
+Regression,prophet_1sample,1.265,23.88,57.06,0.09524,0.7238
+Regression,secretary (0.1n),3.562,40.26,58.79,0.08571,1
+Regression,secretary (1overe),3.417,41.95,58.02,0.08571,1
+Regression,secretary (ln_n),3.52,40.57,58.98,0.09524,1
+Regression,secretary (sqrt_n),3.464,39.64,58.94,0.09524,1
+Regression,secretary_all (0.1n),2.88,34.46,52.86,0.08738,1
+Regression,secretary_all (1overe),1.797,22.63,43.53,0.1845,0.8544
+Regression,secretary_all (ln_n),2.588,31.42,50.12,0.09709,0.9903
+Regression,secretary_all (sqrt_n),3.145,37.78,56.89,0.09709,0.9903

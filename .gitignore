@@ -7,11 +7,20 @@ build-install/
 coverage
 *.xml
 .venv
+.venv_early_stop/
+
+# Local symlink to vendored sklearn (dev convenience; not part of treeple source)
+treeple/_lib/sklearn
+
+# Early-stopping benchmark example: large/generated artifacts
+examples/early_stop_trees/benchmark_results/
+examples/early_stop_trees/figures/
+examples/early_stop_trees/analysis_additional/
+examples/early_stop_trees/__pycache__/
 .pymon
 .coverage.*
 
 commit.txt
-treeple/_lib/sklearn/
 
 *.png
 _data

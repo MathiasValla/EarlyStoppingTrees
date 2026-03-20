@@ -1,0 +1,16 @@
+task,method,median_speedup,median_loss_%,p90_loss_%,P(loss≤5%),P(speedup≥20%)
+Classification (Entropy),best,1,0,0,1,0
+Classification (Entropy),block_rank,1.833,5.02,25.85,0.5,0.9661
+Classification (Entropy),double_secretary (0.1n),1.95,16.42,54.66,0.3028,0.945
+Classification (Entropy),double_secretary (1overe),1.719,12.7,53.3,0.3394,0.8532
+Classification (Entropy),double_secretary (ln_n),1.897,15.79,54.83,0.3303,0.8899
+Classification (Entropy),double_secretary (sqrt_n),1.948,18,56.61,0.2936,0.8807
+Classification (Entropy),prophet_1sample,1.091,5.983,24.26,0.4746,0.2712
+Classification (Entropy),secretary (0.1n),2.062,16.07,51.61,0.3305,0.9661
+Classification (Entropy),secretary (1overe),1.874,11.21,48.31,0.3729,0.8898
+Classification (Entropy),secretary (ln_n),2.053,13.72,51.61,0.3475,0.9576
+Classification (Entropy),secretary (sqrt_n),2.02,15.86,51.67,0.322,0.9576
+Classification (Entropy),secretary_all (0.1n),1.898,10.8,36.71,0.3578,0.8716
+Classification (Entropy),secretary_all (1overe),1.407,4.874,25.27,0.5229,0.633
+Classification (Entropy),secretary_all (ln_n),1.786,8.205,35.14,0.4037,0.844
+Classification (Entropy),secretary_all (sqrt_n),1.782,11.99,55.45,0.3303,0.844
