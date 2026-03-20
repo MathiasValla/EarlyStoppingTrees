@@ -16,6 +16,8 @@ ln -s sklearn_fork/sklearn sklearn
 cd ../..
 ```
 
+The submodule points at a commit **on top of** `neurodata/scikit-learn`’s `submodulev3` branch with one extra change: `Splitter.__cinit__` accepts `**kwargs` so treeple’s early-stop splitters can pass `explore_frac` / `use_sqrt_n`. Branch name in the fork: `treeple/early-stop-splitter-kwargs`. After changing the submodule locally, push that branch to your remote (or a fork) so collaborators can `git submodule update --init` successfully.
+
 ## 2. Build and install
 
 ```bash
