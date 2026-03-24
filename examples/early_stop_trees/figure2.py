@@ -12,6 +12,7 @@ Three separate figures (each 1×2, A4 height):
   - figure2_ridgelines_classification_gini: time saved | loss (F1)
   - figure2_ridgelines_classification_entropy: time saved | loss (F1)
 """
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +37,7 @@ A4_INCHES = (8.27, 11.69)
 SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_DIR = SCRIPT_DIR / "benchmark_results"
 OUT_DIR = SCRIPT_DIR / "figures"
+SUPP_DIR = SCRIPT_DIR / "SUPP_FIGURES"
 
 
 def _time_saved_pct(speedup: np.ndarray) -> np.ndarray:
@@ -69,7 +71,6 @@ def _ridgeline_panel(
     ax,
     run_df: pd.DataFrame,
     value_col: str,
-    title: str,
     xlabel: str,
     method_order: list,
     method_colors: dict,
@@ -88,13 +89,11 @@ def _ridgeline_panel(
     datasets = _dataset_order_by_size(run_df)
     if not datasets:
         ax.set_axis_off()
-        ax.set_title(title)
         return
 
     all_vals = run_df[value_col].dropna().values
     if all_vals.size == 0:
         ax.set_axis_off()
-        ax.set_title(title)
         return
 
     if x_min is None:
@@ -156,12 +155,19 @@ def _ridgeline_panel(
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(-0.2, (N - 1) * ridge_step + ridge_height + 0.2)
     ax.set_yticks([])
-    ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.grid(axis="x", alpha=0.25)
 
 
 def main():
+    ap = argparse.ArgumentParser(description="Figure 2: ridgeline plots of per-dataset distributions.")
+    ap.add_argument(
+        "--no-supp",
+        action="store_true",
+        help="Do not write supplementary PNG copies to SUPP_FIGURES/ (supp_figure_03–05).",
+    )
+    args = ap.parse_args()
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     data = load_all(BENCHMARK_DIR, exclude_secretary_par=True)
 
@@ -202,7 +208,7 @@ def main():
     if entropy_raw is not None:
         figures_config.append(("classification_entropy", _prepare_run_df(entropy_raw, "loss_f1"), "Classification (Entropy)", "% loss vs best (F1)"))
 
-    for tag, run_df, task_label, loss_xlabel in figures_config:
+    for tag, run_df, _, loss_xlabel in figures_config:
         if run_df is None:
             continue
         fig, axes = plt.subplots(1, 2, figsize=A4_INCHES, sharey=False)
@@ -210,7 +216,6 @@ def main():
             axes[0],
             run_df,
             "ts_pct",
-            title=f"{task_label} – % time saved vs best (100 runs per method)",
             xlabel="% time saved vs best",
             method_order=method_order,
             method_colors=method_colors,
@@ -220,7 +225,6 @@ def main():
             axes[1],
             run_df,
             "loss_pct",
-            title=f"{task_label} – % loss vs best (100 runs per method)",
             xlabel=loss_xlabel,
             method_order=method_order,
             method_colors=method_colors,
@@ -232,6 +236,17 @@ def main():
         for ext in ("pdf", "png"):
             out = OUT_DIR / f"figure2_ridgelines_{tag}.{ext}"
             fig.savefig(out, bbox_inches="tight", dpi=(150 if ext == "png" else None))
+        if not args.no_supp:
+            SUPP_DIR.mkdir(parents=True, exist_ok=True)
+            supp_names = {
+                "regression": "supp_figure_03_ridgelines_regression.png",
+                "classification_gini": "supp_figure_04_ridgelines_classification_gini.png",
+                "classification_entropy": "supp_figure_05_ridgelines_classification_entropy.png",
+            }
+            if tag in supp_names:
+                supp_path = SUPP_DIR / supp_names[tag]
+                fig.savefig(supp_path, bbox_inches="tight", dpi=200)
+                print(f"Saved {supp_path.name}")
         plt.close(fig)
         print(f"Saved figure2_ridgelines_{tag}.pdf and figure2_ridgelines_{tag}.png")
 

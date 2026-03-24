@@ -31,6 +31,15 @@ import matplotlib.pyplot as plt
 
 from analysis_utils import TASKS, load_task, method_sort_key
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+SUPP_DIR = SCRIPT_DIR / "SUPP_FIGURES"
+
+SUPP_WHISKER_PNG = {
+    "regression": "supp_figure_09_within_whiskers_loss_speedup.png",
+    "classification_entropy": "supp_figure_10_within_whiskers_loss_speedup.png",
+    "classification_gini": "supp_figure_11_within_whiskers_loss_speedup.png",
+}
+
 
 def _task_metric_cols(task: str):
     spec = TASKS[task]
@@ -102,6 +111,91 @@ def _plot_within_whiskers(
     plt.close(fig)
 
 
+def _plot_within_whiskers_merged_png(
+    ds_sum: pd.DataFrame,
+    *,
+    methods: list[str],
+    outpath: Path,
+    speed_med: str,
+    speed_iqr: str,
+    loss_med: str,
+    loss_iqr: str,
+):
+    """One figure: speedup whiskers (top) + loss whiskers (bottom), no main title."""
+    methods_sorted = sorted(methods, key=method_sort_key)
+    n = len(methods_sorted)
+    if n == 0:
+        return
+
+    h_each = max(3.5, 0.9 * n)
+    fig = plt.figure(figsize=(10, 2 * h_each + 0.6))
+    outer = fig.add_gridspec(2, 1, height_ratios=[1, 1], hspace=0.22)
+    gs0 = outer[0].subgridspec(n, 1, hspace=0.03)
+    gs1 = outer[1].subgridspec(n, 1, hspace=0.03)
+
+    def _block(gs_inner, med_col, iqr_col, baseline_x: float, block_label: str, xlabel: str):
+        df = ds_sum[["dataset", "method_key", med_col, iqr_col]].copy()
+        df = df.dropna(subset=[med_col, iqr_col])
+        df = df[df["method_key"].isin(methods)]
+        df["method_key"] = df["method_key"].astype(str)
+        axes_list = []
+        for i, mk in enumerate(methods_sorted):
+            ax = fig.add_subplot(gs_inner[i, 0])
+            axes_list.append(ax)
+            sub = df[df["method_key"] == mk].sort_values(med_col)
+            x = sub[med_col].to_numpy(dtype=float)
+            xerr = 0.5 * sub[iqr_col].to_numpy(dtype=float)
+            y = np.arange(sub.shape[0])
+            ax.errorbar(
+                x,
+                y,
+                xerr=xerr,
+                fmt="o",
+                markersize=2.5,
+                color="#1f77b4",
+                ecolor="#9ecae1",
+                elinewidth=0.8,
+                capsize=1,
+            )
+            ax.axvline(baseline_x, color="#bbbbbb", linewidth=1.0)
+            ax.set_ylabel(mk, rotation=0, ha="right", va="center", labelpad=28)
+            ax.set_yticks([])
+            ax.grid(True, axis="x", alpha=0.2)
+        axes_list[0].annotate(
+            block_label,
+            xy=(-0.14, 0.5),
+            xycoords="axes fraction",
+            ha="right",
+            va="center",
+            rotation=90,
+            fontsize=10,
+            fontweight="bold",
+        )
+        axes_list[-1].set_xlabel(xlabel)
+
+    _block(
+        gs0,
+        speed_med,
+        speed_iqr,
+        1.0,
+        "Speedup",
+        f"{speed_med} (point) with ± 0.5 IQR whiskers",
+    )
+    _block(
+        gs1,
+        loss_med,
+        loss_iqr,
+        0.0,
+        "Loss",
+        f"{loss_med} (point) with ± 0.5 IQR whiskers",
+    )
+
+    outpath.parent.mkdir(parents=True, exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(outpath, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
 def _plot_between_forest(
     forest_df: pd.DataFrame,
     *,
@@ -143,6 +237,11 @@ def main():
     ap.add_argument("--top-k", type=int, default=6, help="Keep top-k methods (by speedup win_rate vs best|)")
     ap.add_argument("--outdir", type=str, default=None, help="Output directory (default: analysis-dir/supplementary)")
     ap.add_argument("--ref", type=str, default="best|", help="Reference method_key used by paired analysis")
+    ap.add_argument(
+        "--no-supp-png",
+        action="store_true",
+        help="Do not write merged supplementary whisker PNGs to SUPP_FIGURES/ (supp_figure_09–11).",
+    )
     args = ap.parse_args()
 
     script_dir = Path(__file__).resolve().parent
@@ -201,6 +300,18 @@ def main():
         title=f"{args.task}: between-dataset variability (forest of paired delta vs best|) - loss",
         outpath=outdir / "figures" / f"{args.task}_supp_between_forest_loss.pdf",
     )
+
+    if not args.no_supp_png and args.task in SUPP_WHISKER_PNG:
+        _plot_within_whiskers_merged_png(
+            ds_sum,
+            methods=methods,
+            outpath=SUPP_DIR / SUPP_WHISKER_PNG[args.task],
+            speed_med=speed_med,
+            speed_iqr=speed_iqr,
+            loss_med=loss_med,
+            loss_iqr=loss_iqr,
+        )
+        print(f"Wrote merged supplementary whiskers: {SUPP_DIR / SUPP_WHISKER_PNG[args.task]}")
 
     print(f"Wrote supplementary variability figures to {outdir / 'figures'}")
 

@@ -10,9 +10,12 @@ Formulas:
 - Variability: IQR (or IDR) across runs for each (dataset, method).
 """
 
+from collections import defaultdict
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
+from matplotlib.patches import Circle, Rectangle
 
 
 # Methods to compare (exhaustive baseline first)
@@ -102,6 +105,156 @@ def get_variant_method_order_and_colors(*summary_dfs, include_secretary_par: boo
             mix = 0.15 + 0.45 * (idx / (n - 1))
             colors[key] = _shade_hex(base, mix)
     return keys, colors, labels
+
+
+def plot_grouped_variant_legend(
+    ax,
+    method_order,
+    method_colors,
+    method_labels,
+    *,
+    fontsize=7,
+    header_fontsize=8,
+    legend_style="patch",
+):
+    """
+    Legend layout for figures 1 / 3 / 4:
+    - One column per variant family (secretary, secretary_all, double_secretary), variants stacked.
+    - Last column: best, block_rank, prophet_1sample.
+
+    legend_style:
+    - ``"patch"``: small rectangles (matches bar / block legend; default for figure 4).
+    - ``"point"``: filled circles (matches scatter / regime maps; use for figures 1 and 3).
+    """
+    ax.set_axis_off()
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+
+    if method_labels is None:
+        method_labels = [str(m).replace("_", " ") for m in method_order]
+    pairs = list(zip(method_order, method_labels))
+
+    families = defaultdict(list)
+    last_pairs = []
+    for k, lab in pairs:
+        sp = str(k).split("|", 1)[0] if "|" in str(k) else str(k)
+        if sp in ("best", "block_rank", "prophet_1sample"):
+            last_pairs.append((k, lab))
+        elif sp in ("secretary", "secretary_all", "double_secretary"):
+            families[sp].append((k, lab))
+
+    def _var_key(key):
+        v = str(key).split("|", 1)[1] if "|" in str(key) else ""
+        if v in VARIANT_ORDER:
+            return VARIANT_ORDER.index(v)
+        return 99
+
+    family_order = [
+        s
+        for s in SPLITTERS_NO_PAR
+        if s in families and s not in ("best", "block_rank", "prophet_1sample")
+    ]
+    for sp in family_order:
+        families[sp].sort(key=lambda kv: _var_key(kv[0]))
+
+    last_sorted = []
+    seen_last = set()
+    for sp in ("best", "block_rank", "prophet_1sample"):
+        for k, lab in last_pairs:
+            sk = str(k).split("|", 1)[0] if "|" in str(k) else str(k)
+            if sk == sp and k not in seen_last:
+                last_sorted.append((k, lab))
+                seen_last.add(k)
+                break
+
+    n_fam = len(family_order)
+    if n_fam == 0:
+        n_cols = 1
+    elif not last_sorted:
+        n_cols = n_fam
+    else:
+        n_cols = n_fam + 1  # +1 for best / block_rank / prophet_1sample
+    col_w = 1.0 / n_cols
+
+    family_headers = {
+        "secretary": "Secretary",
+        "secretary_all": "S_all",
+        "double_secretary": "S²",
+    }
+
+    y_header = 0.98
+    y_top = 0.90
+    y_bot = 0.06
+
+    def _draw_column(ci, title, entries):
+        x0 = ci * col_w
+        if title:
+            xc = x0 + col_w * 0.5
+            ax.text(
+                xc,
+                y_header,
+                title,
+                ha="center",
+                va="top",
+                fontsize=header_fontsize,
+                fontweight="bold",
+                transform=ax.transAxes,
+            )
+        n = len(entries)
+        if n == 0:
+            return
+        row_h = (y_top - y_bot) / max(n, 1)
+        for ri, (key, lab) in enumerate(entries):
+            y = y_top - (ri + 0.5) * row_h
+            color = method_colors.get(key, "#888888")
+            px = x0 + col_w * 0.06
+            pw = min(col_w * 0.22, 0.12)
+            ph = 0.02
+            text_x = px + pw + 0.01
+            if legend_style == "point":
+                mr = min(0.011, pw / 2.5)
+                cx = px + mr
+                circ = Circle(
+                    (cx, y),
+                    mr,
+                    transform=ax.transAxes,
+                    facecolor=color,
+                    edgecolor="white",
+                    linewidth=0.5,
+                    clip_on=False,
+                )
+                ax.add_patch(circ)
+                text_x = px + 2.2 * mr + 0.008
+            else:
+                rect = Rectangle(
+                    (px, y - ph / 2),
+                    pw,
+                    ph,
+                    transform=ax.transAxes,
+                    facecolor=color,
+                    edgecolor="white",
+                    linewidth=0.5,
+                    clip_on=False,
+                )
+                ax.add_patch(rect)
+                text_x = px + pw + 0.01
+            ax.text(
+                text_x,
+                y,
+                lab,
+                ha="left",
+                va="center",
+                fontsize=fontsize,
+                transform=ax.transAxes,
+            )
+
+    if n_fam == 0:
+        _draw_column(0, "", last_sorted)
+    else:
+        for ci, sp in enumerate(family_order):
+            _draw_column(ci, family_headers.get(sp, sp.replace("_", " ")), families[sp])
+        if last_sorted:
+            _draw_column(n_fam, "", last_sorted)
 
 
 def _load_run_files(indir: Path, prefix: str, run_pattern: str = "run*.csv"):

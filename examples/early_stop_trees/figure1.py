@@ -16,7 +16,8 @@ import matplotlib
 matplotlib.use("Agg")  # headless
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgba, LinearSegmentedColormap
-from matplotlib.patches import Patch
+from matplotlib.gridspec import GridSpec
+from matplotlib.lines import Line2D
 from scipy.stats import gaussian_kde
 
 # Allow running from project root or from this directory
@@ -27,13 +28,14 @@ from benchmark_results_utils import (
     load_all,
     SECRETARY_SPLITTERS,
     SECRETARY_SPLITTERS_NO_PAR,
-    BASE_COLOR_SECRETARY_PAR,
     per_dataset_median_iqr,
     get_variant_method_order_and_colors,
+    plot_grouped_variant_legend,
 )
 
 BENCHMARK_DIR = _SCRIPT_DIR / "benchmark_results"
 OUT_DIR = _SCRIPT_DIR / "figures"
+SUPP_DIR = _SCRIPT_DIR / "SUPP_FIGURES"
 
 # Method labels and colors (best = baseline, others distinct)
 METHOD_COLORS = {
@@ -61,10 +63,8 @@ FIG1_DEFAULT_FAMILY_KEYS = frozenset(
 
 
 def _pareto_visual_tier(method_key: str) -> str:
-    """Return 'emph' (default representatives), 'par' (secretary_par, screened), or 'other' (other variants)."""
+    """Return 'emph' (default 1/e representatives) or 'other' (other variants)."""
     mk = str(method_key)
-    if mk.startswith("secretary_par|"):
-        return "par"
     if mk in FIG1_DEFAULT_FAMILY_KEYS:
         return "emph"
     return "other"
@@ -325,6 +325,7 @@ def _plot_pareto_panel_centroids(
     method_colors=None,
     *,
     flagship_style: bool = False,
+    show_title: bool = True,
 ):
     """
     One panel: centroid per method + 2D density (KDE) with opacity fading; individual points on top.
@@ -381,9 +382,7 @@ def _plot_pareto_panel_centroids(
         w = sub["w"].values
         tier = _pareto_visual_tier(method) if flagship_style else "emph"
         if flagship_style:
-            if tier == "par":
-                dens_scale, pt_alpha, cent_alpha, cent_lw = 0.35, 0.12, 0.38, 0.5
-            elif tier == "emph":
+            if tier == "emph":
                 dens_scale, pt_alpha, cent_alpha, cent_lw = 1.0, 0.25, 1.0, 0.8
             else:
                 dens_scale, pt_alpha, cent_alpha, cent_lw = 0.55, 0.18, 0.78, 0.65
@@ -403,7 +402,7 @@ def _plot_pareto_panel_centroids(
             w_safe = np.ones_like(w_safe)
         cx = np.average(x, weights=w_safe)
         cy = np.average(y, weights=w_safe)
-        cent_s = 68 if (flagship_style and tier == "par") else 80
+        cent_s = 80
         ax.scatter(
             cx,
             cy,
@@ -420,7 +419,8 @@ def _plot_pareto_panel_centroids(
 
     ax.set_xlabel("Median % time saved vs best")
     ax.set_ylabel("Median % loss vs best")
-    ax.set_title(title)
+    if show_title and title:
+        ax.set_title(title)
     ax.grid(True, alpha=0.3)
     ax.set_xlim(left=left, right=right_border)
     ax.set_ylim(bottom=bottom, top=top)
@@ -432,58 +432,24 @@ def _plot_legend_panel(ax):
 
 
 def _plot_legend_panel_custom(ax, method_order, method_colors, method_labels=None):
-    """Legend panel for an arbitrary set of methods. method_labels: optional list parallel to method_order."""
+    """Legend panel for an arbitrary set of methods. Uses colored markers (not line swatches)."""
     ax.set_axis_off()
     labels = method_labels if method_labels is not None else [str(m).replace("_", " ") for m in method_order]
     handles = [
-        Patch(facecolor=method_colors.get(m, "gray"), edgecolor="white", label=labels[i])
+        Line2D(
+            [0],
+            [0],
+            linestyle="none",
+            marker="o",
+            markersize=9,
+            markerfacecolor=method_colors.get(m, "gray"),
+            markeredgecolor="white",
+            markeredgewidth=0.5,
+            label=labels[i],
+        )
         for i, m in enumerate(method_order)
     ]
     ax.legend(handles=handles, loc="center", fontsize=9, frameon=True)
-
-
-def _plot_legend_flagship_compact(ax, method_colors: dict):
-    """
-    Main-text legend: emphasize default 1/e family representatives; show S_par as a faded screened-out method.
-
-    Does not list every variant — only the methods referenced in the paper's main comparison.
-    """
-    ax.set_axis_off()
-    entries = [
-        ("best|", "Exhaustive (best)"),
-        ("secretary|1overe", "S (n/e)"),
-        ("double_secretary|1overe", "S² (n/e)"),
-        ("secretary_all|1overe", "S_all (n/e)"),
-        ("block_rank|", "block-rank"),
-        ("prophet_1sample|", "1-sample Prophet"),
-    ]
-    handles = []
-    for key, label in entries:
-        fc = method_colors.get(key, "#888888")
-        handles.append(
-            Patch(
-                facecolor=fc,
-                edgecolor="black",
-                linewidth=1.6,
-                label=label,
-            )
-        )
-    # Parametric secretary: screened out — faded swatch (family color, not a single variant)
-    handles.append(
-        Patch(
-            facecolor=to_rgba(BASE_COLOR_SECRETARY_PAR, 0.32),
-            edgecolor=to_rgba(BASE_COLOR_SECRETARY_PAR, 0.55),
-            linewidth=0.9,
-            label="S_par (screened)",
-        )
-    )
-    leg = ax.legend(handles=handles, loc="center", fontsize=9, frameon=True, handlelength=1.8)
-    for t in leg.get_texts():
-        if "S_par" in t.get_text():
-            t.set_fontweight("normal")
-            t.set_color("0.35")
-        else:
-            t.set_fontweight("bold")
 
 
 def _variant_summaries(data: dict, target_splitter: str):
@@ -522,6 +488,200 @@ def _variant_summaries(data: dict, target_splitter: str):
     return reg, gini, ent
 
 
+def _save_supp_figure1_pareto_large_small(
+    reg_l,
+    clf_g_l,
+    clf_e_l,
+    reg_s,
+    clf_g_s,
+    clf_e_s,
+    method_order,
+    method_colors,
+    method_labels,
+    *,
+    flagship_style: bool,
+):
+    """SUPP fig 1: two rows (large | small) × three tasks + one grouped legend. PNG only."""
+    if any(
+        x is None or (getattr(x, "empty", False))
+        for x in (reg_l, clf_g_l, clf_e_l, reg_s, clf_g_s, clf_e_s)
+    ):
+        return
+    SUPP_DIR.mkdir(parents=True, exist_ok=True)
+    fig = plt.figure(figsize=(14, 10.5), layout="constrained")
+    gs = GridSpec(3, 3, figure=fig, height_ratios=[1, 1, 0.48], hspace=0.12, wspace=0.06)
+    row_labels = ("Large ($n \\times p \\geq 25000$)", "Small ($n \\times p \\leq 2500$)")
+    rows_data = [
+        (reg_l, clf_g_l, clf_e_l, row_labels[0]),
+        (reg_s, clf_g_s, clf_e_s, row_labels[1]),
+    ]
+    for row, (reg_sub, g_sub, e_sub, rlab) in enumerate(rows_data):
+        ax_r = fig.add_subplot(gs[row, 0])
+        ax_g = fig.add_subplot(gs[row, 1])
+        ax_e = fig.add_subplot(gs[row, 2])
+        for ax, sub, lc, lq in (
+            (ax_r, reg_sub, "loss_rmse_bounded_median", "loss_rmse_bounded_iqr"),
+            (ax_g, g_sub, "loss_f1_median", "loss_f1_iqr"),
+            (ax_e, e_sub, "loss_f1_median", "loss_f1_iqr"),
+        ):
+            _plot_pareto_panel_centroids(
+                ax,
+                sub,
+                loss_col=lc,
+                loss_iqr_col=lq,
+                title="",
+                use_size_weights=False,
+                plot_envelope=True,
+                method_order=method_order,
+                method_colors=method_colors,
+                flagship_style=flagship_style,
+                show_title=False,
+            )
+        if row == 0:
+            for ax, ct in zip((ax_r, ax_g, ax_e), ("Regression", "Gini", "Entropy")):
+                ax.set_title(ct, fontsize=10, fontweight="bold", pad=5)
+        ax_r.annotate(
+            rlab,
+            xy=(-0.18, 0.5),
+            xycoords="axes fraction",
+            ha="right",
+            va="center",
+            rotation=90,
+            fontsize=9,
+            fontweight="bold",
+        )
+    leg_ax = fig.add_subplot(gs[2, :])
+    plot_grouped_variant_legend(
+        leg_ax, method_order, method_colors, method_labels, fontsize=7, legend_style="point"
+    )
+    out = SUPP_DIR / "supp_figure_01_pareto_large_small.png"
+    fig.savefig(out, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved {out}")
+
+
+def _save_supp_figure1_secretary_par_triple(indir: Path):
+    """SUPP fig 2: rows all | large | small (secretary_par variants) + one legend. PNG only."""
+    data = load_all(indir, exclude_secretary_par=False, by_variant=True)
+    reg_summary = data.get("regression_summary")
+    clf_g = data.get("classification_gini_summary")
+    clf_e = data.get("classification_entropy_summary")
+    if reg_summary is None or clf_g is None or clf_e is None:
+        return
+
+    def _prep(df):
+        if df is None or df.empty:
+            return None
+        df = df.copy()
+        df = df[(df["splitter"] == "best") | (df["splitter"] == "secretary_par")].copy()
+        if df.empty:
+            return None
+        v = df.get("variant", pd.Series([""] * len(df)))
+        df["method_key"] = df["splitter"].astype(str) + "|" + v.fillna("").astype(str)
+        return df
+
+    reg_summary = _prep(reg_summary)
+    clf_g = _prep(clf_g)
+    clf_e = _prep(clf_e)
+    if reg_summary is None or clf_g is None or clf_e is None:
+        return
+
+    reg_summary = _add_dataset_info(reg_summary, data["regression_run"])
+    clf_g = _add_dataset_info(clf_g, data["classification_gini_run"])
+    clf_e = _add_dataset_info(clf_e, data["classification_entropy_run"])
+
+    method_order, method_colors, method_labels = get_variant_method_order_and_colors(
+        reg_summary, clf_g, clf_e, include_secretary_par=True
+    )
+
+    def _fs(df, min_size=None, max_size=None):
+        if df is None:
+            return None
+        if min_size is None and max_size is None:
+            return df.copy()
+        return _filter_by_size_for_supp(df, min_size=min_size, max_size=max_size)
+
+    reg_a, g_a, e_a = _fs(reg_summary), _fs(clf_g), _fs(clf_e)
+    reg_l, g_l, e_l = (
+        _fs(reg_summary, min_size=25000, max_size=None),
+        _fs(clf_g, min_size=25000, max_size=None),
+        _fs(clf_e, min_size=25000, max_size=None),
+    )
+    reg_s, g_s, e_s = (
+        _fs(reg_summary, min_size=None, max_size=2501),
+        _fs(clf_g, min_size=None, max_size=2501),
+        _fs(clf_e, min_size=None, max_size=2501),
+    )
+
+    if any(x is None or x.empty for x in (reg_a, g_a, e_a, reg_l, g_l, e_l, reg_s, g_s, e_s)):
+        return
+
+    SUPP_DIR.mkdir(parents=True, exist_ok=True)
+    fig = plt.figure(figsize=(14, 13), layout="constrained")
+    gs = GridSpec(4, 3, figure=fig, height_ratios=[1, 1, 1, 0.48], hspace=0.12, wspace=0.06)
+    rows = (
+        ("All datasets", reg_a, g_a, e_a),
+        ("Large", reg_l, g_l, e_l),
+        ("Small", reg_s, g_s, e_s),
+    )
+    for row, (rlab, reg_sub, g_sub, e_sub) in enumerate(rows):
+        ax_r = fig.add_subplot(gs[row, 0])
+        ax_g = fig.add_subplot(gs[row, 1])
+        ax_e = fig.add_subplot(gs[row, 2])
+        for ax, sub, lc, lq in (
+            (ax_r, reg_sub, "loss_rmse_bounded_median", "loss_rmse_bounded_iqr"),
+            (ax_g, g_sub, "loss_f1_median", "loss_f1_iqr"),
+            (ax_e, e_sub, "loss_f1_median", "loss_f1_iqr"),
+        ):
+            _plot_pareto_panel_centroids(
+                ax,
+                sub,
+                loss_col=lc,
+                loss_iqr_col=lq,
+                title="",
+                use_size_weights=False,
+                plot_envelope=True,
+                method_order=method_order,
+                method_colors=method_colors,
+                flagship_style=False,
+                show_title=False,
+            )
+        if row == 0:
+            for ax, ct in zip((ax_r, ax_g, ax_e), ("Regression", "Gini", "Entropy")):
+                ax.set_title(ct, fontsize=10, fontweight="bold", pad=5)
+        ax_r.annotate(
+            rlab,
+            xy=(-0.18, 0.5),
+            xycoords="axes fraction",
+            ha="right",
+            va="center",
+            rotation=90,
+            fontsize=9,
+            fontweight="bold",
+        )
+    leg_ax = fig.add_subplot(gs[3, :])
+    plot_grouped_variant_legend(
+        leg_ax, method_order, method_colors, method_labels, fontsize=7, legend_style="point"
+    )
+    out = SUPP_DIR / "supp_figure_02_secretary_par_all_large_small.png"
+    fig.savefig(out, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved {out}")
+
+
+def _filter_by_size_for_supp(df: pd.DataFrame, min_size=None, max_size=None) -> pd.DataFrame:
+    """Same as main _filter_by_size (dataset size n*p)."""
+    if df is None or "n_samples" not in df.columns or "n_features" not in df.columns:
+        return df
+    out = df.copy()
+    out["_size"] = out["n_samples"].fillna(1).astype(float) * out["n_features"].fillna(1).astype(float)
+    if min_size is not None:
+        out = out[out["_size"] >= min_size]
+    if max_size is not None:
+        out = out[out["_size"] < max_size]
+    return out.drop(columns=["_size"], errors="ignore")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Figure 1: Pareto scatter plots from benchmark results.")
     parser.add_argument(
@@ -537,6 +697,11 @@ def main():
         choices=["secretary", "double_secretary", "secretary_all", "secretary_par"],
         help="If set, plot best + all variants of this splitter (one color per variant).",
     )
+    parser.add_argument(
+        "--no-supp",
+        action="store_true",
+        help="Do not write merged supplementary PNGs to SUPP_FIGURES/ (supp_figure_01, supp_figure_02).",
+    )
     args = parser.parse_args()
 
     indir = Path(args.indir) if args.indir is not None else BENCHMARK_DIR
@@ -545,8 +710,8 @@ def main():
 
     flagship_style = False
     if args.variants_of is None:
-        # Include secretary_par in data; flagship figure fades S_par and emphasizes default 1/e representatives.
-        data = load_all(indir, exclude_secretary_par=False, by_variant=True)
+        # Flagship figure: all splitter variants except secretary_par (S_par).
+        data = load_all(indir, exclude_secretary_par=True, by_variant=True)
         reg_summary = data["regression_summary"]
         clf_gini_summary = data["classification_gini_summary"]
         clf_entropy_summary = data["classification_entropy_summary"]
@@ -566,10 +731,9 @@ def main():
             summ["method_key"] = summ["splitter"].astype(str) + "|" + v.fillna("").astype(str)
 
         method_order, method_colors, method_labels = get_variant_method_order_and_colors(
-            reg_summary, clf_gini_summary, clf_entropy_summary, include_secretary_par=True
+            reg_summary, clf_gini_summary, clf_entropy_summary, include_secretary_par=False
         )
         out_prefix = "figure1_pareto"
-        legend_fn = lambda ax: _plot_legend_flagship_compact(ax, method_colors)
         flagship_style = True
     else:
         data = load_all(indir)
@@ -610,54 +774,138 @@ def main():
     for tag, reg_sub, clf_gini_sub, clf_entropy_sub in configs:
         if reg_sub is None or reg_sub.empty or clf_gini_sub is None or clf_gini_sub.empty or clf_entropy_sub is None or clf_entropy_sub.empty:
             continue
-        fig, axes = plt.subplots(2, 2, figsize=(10, 10), sharex=False, sharey=False)
-        # Top left: regression
-        _plot_pareto_panel_centroids(
-            axes[0, 0],
-            reg_sub,
-            loss_col="loss_rmse_bounded_median",
-            loss_iqr_col="loss_rmse_bounded_iqr",
-            title="Regression (RMSE loss, bounded %)",
-            use_size_weights=False,
-            plot_envelope=True,
-            method_order=method_order,
-            method_colors=method_colors,
-            flagship_style=flagship_style,
-        )
-        # Top right: classification (Gini)
-        _plot_pareto_panel_centroids(
-            axes[0, 1],
-            clf_gini_sub,
-            loss_col="loss_f1_median",
-            loss_iqr_col="loss_f1_iqr",
-            title="Classification (F1 loss, Gini)",
-            use_size_weights=False,
-            plot_envelope=True,
-            method_order=method_order,
-            method_colors=method_colors,
-            flagship_style=flagship_style,
-        )
-        # Bottom left: legend
-        legend_fn(axes[1, 0])
-        # Bottom right: classification (entropy)
-        _plot_pareto_panel_centroids(
-            axes[1, 1],
-            clf_entropy_sub,
-            loss_col="loss_f1_median",
-            loss_iqr_col="loss_f1_iqr",
-            title="Classification (F1 loss, Entropy)",
-            use_size_weights=False,
-            plot_envelope=True,
-            method_order=method_order,
-            method_colors=method_colors,
-            flagship_style=flagship_style,
-        )
-        plt.tight_layout()
+        if flagship_style:
+            # One row of three panels + full-width variant legend below; short column titles
+            fig = plt.figure(figsize=(14, 5.6), layout="constrained")
+            gs = GridSpec(
+                2,
+                3,
+                figure=fig,
+                height_ratios=[1, 0.52],
+                width_ratios=[1, 1, 1],
+                hspace=0.11,
+                wspace=0.06,
+            )
+            ax_r = fig.add_subplot(gs[0, 0])
+            ax_g = fig.add_subplot(gs[0, 1])
+            ax_e = fig.add_subplot(gs[0, 2])
+            ax_leg = fig.add_subplot(gs[1, :])
+            _plot_pareto_panel_centroids(
+                ax_r,
+                reg_sub,
+                loss_col="loss_rmse_bounded_median",
+                loss_iqr_col="loss_rmse_bounded_iqr",
+                title="",
+                use_size_weights=False,
+                plot_envelope=True,
+                method_order=method_order,
+                method_colors=method_colors,
+                flagship_style=flagship_style,
+                show_title=False,
+            )
+            _plot_pareto_panel_centroids(
+                ax_g,
+                clf_gini_sub,
+                loss_col="loss_f1_median",
+                loss_iqr_col="loss_f1_iqr",
+                title="",
+                use_size_weights=False,
+                plot_envelope=True,
+                method_order=method_order,
+                method_colors=method_colors,
+                flagship_style=flagship_style,
+                show_title=False,
+            )
+            _plot_pareto_panel_centroids(
+                ax_e,
+                clf_entropy_sub,
+                loss_col="loss_f1_median",
+                loss_iqr_col="loss_f1_iqr",
+                title="",
+                use_size_weights=False,
+                plot_envelope=True,
+                method_order=method_order,
+                method_colors=method_colors,
+                flagship_style=flagship_style,
+                show_title=False,
+            )
+            for ax, col_title in zip(
+                (ax_r, ax_g, ax_e),
+                ("Regression", "Gini", "Entropy"),
+            ):
+                ax.set_title(col_title, fontsize=10, fontweight="bold", pad=5)
+            plot_grouped_variant_legend(
+                ax_leg, method_order, method_colors, method_labels, fontsize=7, legend_style="point"
+            )
+        else:
+            fig, axes = plt.subplots(2, 2, figsize=(10, 10), sharex=False, sharey=False)
+            _plot_pareto_panel_centroids(
+                axes[0, 0],
+                reg_sub,
+                loss_col="loss_rmse_bounded_median",
+                loss_iqr_col="loss_rmse_bounded_iqr",
+                title="Regression (RMSE loss, bounded %)",
+                use_size_weights=False,
+                plot_envelope=True,
+                method_order=method_order,
+                method_colors=method_colors,
+                flagship_style=flagship_style,
+            )
+            _plot_pareto_panel_centroids(
+                axes[0, 1],
+                clf_gini_sub,
+                loss_col="loss_f1_median",
+                loss_iqr_col="loss_f1_iqr",
+                title="Classification (F1 loss, Gini)",
+                use_size_weights=False,
+                plot_envelope=True,
+                method_order=method_order,
+                method_colors=method_colors,
+                flagship_style=flagship_style,
+            )
+            _plot_legend_panel_custom(axes[1, 0], method_order, method_colors)
+            _plot_pareto_panel_centroids(
+                axes[1, 1],
+                clf_entropy_sub,
+                loss_col="loss_f1_median",
+                loss_iqr_col="loss_f1_iqr",
+                title="Classification (F1 loss, Entropy)",
+                use_size_weights=False,
+                plot_envelope=True,
+                method_order=method_order,
+                method_colors=method_colors,
+                flagship_style=flagship_style,
+            )
+            plt.tight_layout()
         for ext in ("pdf", "png"):
             out = OUT_DIR / f"{out_prefix}_{tag}.{ext}"
             fig.savefig(out, bbox_inches="tight", dpi=(150 if ext == "png" else None))
         plt.close()
         print(f"Saved {out_prefix}_{tag}.pdf and {out_prefix}_{tag}.png")
+
+    if flagship_style and not args.no_supp:
+
+        def _get_cfg(tag):
+            for t, a, b, c in configs:
+                if t == tag:
+                    return a, b, c
+            return None, None, None
+
+        reg_l, g_l, e_l = _get_cfg("large")
+        reg_s, g_s, e_s = _get_cfg("small")
+        _save_supp_figure1_pareto_large_small(
+            reg_l,
+            g_l,
+            e_l,
+            reg_s,
+            g_s,
+            e_s,
+            method_order,
+            method_colors,
+            method_labels,
+            flagship_style=flagship_style,
+        )
+        _save_supp_figure1_secretary_par_triple(indir)
 
 
 if __name__ == "__main__":

@@ -9,8 +9,8 @@ If no non-best method satisfies loss ≤ τ, the dataset is assigned to **best**
 for the background / scatter, instead of a separate "none" class.
 
 Layout options:
-- **Combined (flagship):** 3×3 grid — rows = Regression, Classification (Gini), Classification (Entropy);
-  columns = τ ∈ {5%, 10%, 20%}. Shared legend column. Saves ``figure3_regime_combined``.
+- **Combined (flagship):** 3×3 grid — **columns** = Regression, Gini, Entropy; **rows** =
+  τ ∈ {5%, 10%, 20%}; full-width legend below. Saves ``figure3_regime_combined``.
 - **Per task:** 2×2 — three τ panels + one legend panel. Saves ``figure3_regime_{regression|...}``.
 
 x-axis: log10(n), y-axis: log10(p). Each point = one dataset, colored by winner.
@@ -29,9 +29,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from matplotlib.gridspec import GridSpec
-from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 
-from benchmark_results_utils import load_all, get_variant_method_order_and_colors
+from benchmark_results_utils import load_all, get_variant_method_order_and_colors, plot_grouped_variant_legend
 
 # KNN for dominant-region shading (pure NumPy, no sklearn)
 KNN_NEIGHBORS = 7
@@ -98,18 +98,21 @@ def _regime_map_panel(
     method_colors: dict,
     *,
     region_alpha: float,
+    show_title: bool = True,
 ):
     """Scatter log10(n) vs log10(p), color by winner (method_key); KNN-derived regime shading behind."""
     summary = summary.dropna(subset=["n_samples", "n_features", "speedup_median", loss_col])
     if summary.empty:
         ax.set_axis_off()
-        ax.set_title(title)
+        if show_title and title:
+            ax.set_title(title)
         return
 
     winners = _winners_per_tau(summary, loss_col, tau)
     if winners.empty:
         ax.set_axis_off()
-        ax.set_title(title)
+        if show_title and title:
+            ax.set_title(title)
         return
 
     meta = summary[["dataset", "n_samples", "n_features"]].drop_duplicates("dataset")
@@ -127,14 +130,14 @@ def _regime_map_panel(
     meta = meta.dropna(subset=["class_idx"]).astype({"class_idx": int})
 
     if meta.empty or meta["class_idx"].nunique() < 2:
-        _scatter_only(ax, meta, class_order, title, method_colors)
+        _scatter_only(ax, meta, class_order, title, method_colors, show_title=show_title)
         return
 
     X = meta[["log10_n", "log10_p"]].values
     y = meta["class_idx"].values
     k = min(KNN_NEIGHBORS, len(meta) - 1)
     if k < 1:
-        _scatter_only(ax, meta, class_order, title, method_colors)
+        _scatter_only(ax, meta, class_order, title, method_colors, show_title=show_title)
         return
 
     # Grid over data range + padding
@@ -186,14 +189,15 @@ def _regime_map_panel(
 
     ax.set_xlabel(r"$\log_{10}(n)$")
     ax.set_ylabel(r"$\log_{10}(p)$")
-    ax.set_title(title)
+    if show_title and title:
+        ax.set_title(title)
     ax.grid(True, alpha=0.3)
     ax.set_aspect("equal", adjustable="box")
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(y_min, y_max)
 
 
-def _scatter_only(ax, meta: pd.DataFrame, class_order: list, title: str, method_colors: dict):
+def _scatter_only(ax, meta: pd.DataFrame, class_order: list, title: str, method_colors: dict, *, show_title: bool = True):
     """No KNN regions; just scatter points."""
     for method in class_order:
         m = meta[meta["winner"] == method]
@@ -206,33 +210,52 @@ def _scatter_only(ax, meta: pd.DataFrame, class_order: list, title: str, method_
         )
     ax.set_xlabel(r"$\log_{10}(n)$")
     ax.set_ylabel(r"$\log_{10}(p)$")
-    ax.set_title(title)
+    if show_title and title:
+        ax.set_title(title)
     ax.grid(True, alpha=0.3)
     ax.set_aspect("equal", adjustable="box")
 
 
 def _legend_handles(method_order: list, method_colors: dict, method_labels: list):
-    """Patches + labels for regime-map legend (non-best winners + exhaustive baseline)."""
+    """Colored markers + labels for regime-map legend (non-best winners + exhaustive baseline)."""
     order_no_best = [m for m in method_order if m != "best" and not str(m).startswith("best|")]
     labels_no_best = [method_labels[method_order.index(m)] for m in order_no_best] if method_labels else None
+
+    def _dot_handle(color: str, lab: str):
+        return Line2D(
+            [0],
+            [0],
+            linestyle="none",
+            marker="o",
+            markersize=9,
+            markerfacecolor=color,
+            markeredgecolor="white",
+            markeredgewidth=0.5,
+            label=lab,
+        )
+
     handles = [
-        Patch(facecolor=method_colors.get(m, "#888888"), edgecolor="white", label=labels_no_best[i] if labels_no_best and i < len(labels_no_best) else str(m).replace("_", " "))
+        _dot_handle(
+            method_colors.get(m, "#888888"),
+            labels_no_best[i] if labels_no_best and i < len(labels_no_best) else str(m).replace("_", " "),
+        )
         for i, m in enumerate(order_no_best)
     ]
     best_label = "best"
     if method_labels and BEST_METHOD_KEY in method_order:
         best_label = method_labels[method_order.index(BEST_METHOD_KEY)]
-    handles.append(
-        Patch(facecolor=method_colors.get(BEST_METHOD_KEY, "#333333"), edgecolor="white", label=best_label)
-    )
+    handles.append(_dot_handle(method_colors.get(BEST_METHOD_KEY, "#333333"), best_label))
     return handles
 
 
-def _legend_panel(ax, method_order: list, method_colors: dict, method_labels: list):
+def _legend_panel(ax, method_order: list, method_colors: dict, method_labels: list, ncol=None):
     """Shared legend: non-best methods (potential winners) + best (fallback / background)."""
     ax.set_axis_off()
     handles = _legend_handles(method_order, method_colors, method_labels)
-    ax.legend(handles=handles, loc="center", fontsize=8, frameon=True)
+    n = len(handles)
+    if ncol is None:
+        ncol = min(12, max(6, int(np.ceil(n / 3))))
+    ax.legend(handles=handles, loc="center", ncol=ncol, fontsize=8, frameon=True, columnspacing=0.85, handlelength=1.1)
 
 
 def main():
@@ -289,30 +312,65 @@ def main():
             summary["method_key"] = summary["splitter"].astype(str) + "|" + summary["variant"].fillna("").astype(str)
         prepared.append((tag, summary, loss_col, task_label))
 
-    # Combined flagship: 3 rows (Regression, Gini, Entropy) × 3 columns (τ = 5%, 10%, 20%) + legend column
+    # Combined flagship: columns = task (Reg | Gini | Entropy), rows = τ; legend row below
     if len(prepared) == 3:
-        fig = plt.figure(figsize=(14, 11), constrained_layout=True)
-        gs = GridSpec(3, 4, figure=fig, width_ratios=[1, 1, 1, 0.42])
+        fig = plt.figure(figsize=(12.5, 11), layout="constrained")
+        gs = GridSpec(4, 3, figure=fig, height_ratios=[1, 1, 1, 0.55], hspace=0.11, wspace=0.06)
         axes_grid = [[None] * 3 for _ in range(3)]
-        for row in range(3):
-            _tag, summary, loss_col, task_label = prepared[row]
-            for col in range(3):
-                tau = TAU_VALUES[col]
-                if col == 0:
-                    ax = fig.add_subplot(gs[row, col])
-                    axes_grid[row][0] = ax
+        col_titles = ["Regression", "Gini", "Entropy"]
+        row_titles = [r"$\tau = 5\%$", r"$\tau = 10\%$", r"$\tau = 20\%$"]
+        # prepared order matches configs: [regression, gini, entropy]
+        for r in range(3):
+            tau = TAU_VALUES[r]
+            for c in range(3):
+                _tag, summary, loss_col, task_label = prepared[c]
+                if r == 0 and c == 0:
+                    ax = fig.add_subplot(gs[r, c])
+                elif r == 0:
+                    ax = fig.add_subplot(gs[r, c], sharey=axes_grid[0][0])
+                elif c == 0:
+                    ax = fig.add_subplot(gs[r, c], sharex=axes_grid[0][0])
                 else:
-                    ax = fig.add_subplot(gs[row, col], sharex=axes_grid[row][0], sharey=axes_grid[row][0])
-                    axes_grid[row][col] = ax
-                title = f"{task_label}\nτ = {int(tau * 100)}% (loss ≤ {int(tau * 100)}%)"
+                    ax = fig.add_subplot(gs[r, c], sharex=axes_grid[0][c], sharey=axes_grid[r][0])
+                axes_grid[r][c] = ax
+                panel_title = f"{task_label}\nτ = {int(tau * 100)}% (loss ≤ {int(tau * 100)}%)"
                 _regime_map_panel(
-                    ax, summary, loss_col, tau, title, method_order, method_colors, region_alpha=region_alpha
+                    ax,
+                    summary,
+                    loss_col,
+                    tau,
+                    panel_title,
+                    method_order,
+                    method_colors,
+                    region_alpha=region_alpha,
+                    show_title=False,
                 )
-        leg_ax = fig.add_subplot(gs[:, 3])
-        _legend_panel(leg_ax, method_order, method_colors, method_labels)
-        fig.suptitle(
-            "Usefulness depends on dataset structure: winner in the (n, p) plane under loss tolerance τ",
-            fontsize=11,
+        # Short column headers (top row)
+        for c in range(3):
+            axes_grid[0][c].set_title(col_titles[c], fontsize=10, fontweight="bold", pad=10)
+        # Row labels (left of first column)
+        for r in range(3):
+            axes_grid[r][0].annotate(
+                row_titles[r],
+                xy=(-0.14, 0.5),
+                xycoords="axes fraction",
+                ha="right",
+                va="center",
+                rotation=90,
+                fontsize=10,
+                fontweight="bold",
+            )
+        # Outer axis labels only (bottom row + left column)
+        for r in range(3):
+            for c in range(3):
+                ax = axes_grid[r][c]
+                if r != 2:
+                    ax.set_xlabel("")
+                if c != 0:
+                    ax.set_ylabel("")
+        leg_ax = fig.add_subplot(gs[3, :])
+        plot_grouped_variant_legend(
+            leg_ax, method_order, method_colors, method_labels, fontsize=7, legend_style="point"
         )
         for ext in ("pdf", "png"):
             out = OUT_DIR / f"figure3_regime_combined.{ext}"
