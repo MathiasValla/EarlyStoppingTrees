@@ -18,6 +18,9 @@ python supp_plot_within_between_variability.py --task classification_gini
 python supp_plot_within_between_variability.py --task classification_entropy
 # (add --no-supp-png to skip supp 09–11 merged PNGs)
 
+python analysis_gain_landscape.py
+python supp_plot_gain_landscape.py          # supp 13
+
 python export_paper_figures.py
 ```
 
@@ -43,6 +46,7 @@ Optional: `python figure1.py --variants-of secretary_par` for standalone per-siz
 | `supp_figure_08_*.png` | Predicted regime maps: 3 tasks × 2 metrics, one legend |
 | `supp_figure_09` … `11` | Within whiskers: speedup + loss stacked per task |
 | `supp_figure_12_*.png` | Joint success bar grid (all datasets), standalone |
+| `supp_figure_13_*.png` | Exhaustive gain-landscape diagnostics for regression vs classification |
 
 **MAIN** `figure4_success_combined` matches the loss-CDF row of `figure4_success_loss_only` (same panel titles) with a **single bottom legend** using **marker swatches** (not line handles). The joint 4×3 bar grid is exported separately as `supp_figure_12_success_joint_all.png`.
 

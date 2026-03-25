@@ -17,6 +17,11 @@ cdef class BaseEarlyStopSplitter(Splitter):
     cdef const float32_t[:, ::1] X  # Dense feature matrix (set in init)
     cdef float64_t explore_frac      # Secretary exploration prob: (0,1]=use it; <0=1/e
     cdef bint use_sqrt_n            # If True, explore_frac = 1/sqrt(n_node)
+    cdef intp_t n_split_calls
+    cdef intp_t n_threshold_candidates
+    cdef intp_t n_gain_evaluations
+    cdef intp_t n_parametric_gain_samples
+    cdef intp_t n_parametric_quantile_fits
 
     cdef int init(
         self,

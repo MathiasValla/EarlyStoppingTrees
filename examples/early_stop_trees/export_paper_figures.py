@@ -14,6 +14,8 @@ Prerequisites (from ``examples/early_stop_trees/``):
   python supp_plot_within_between_variability.py --task regression
   python supp_plot_within_between_variability.py --task classification_gini
   python supp_plot_within_between_variability.py --task classification_entropy
+  python analysis_gain_landscape.py
+  python supp_plot_gain_landscape.py   # supp 13
 
   python figure3.py              # main text figure (not supp)
 
@@ -63,6 +65,7 @@ def main() -> int:
         "supp_figure_10_within_whiskers_loss_speedup.png",
         "supp_figure_11_within_whiskers_loss_speedup.png",
         "supp_figure_12_success_joint_all.png",
+        "supp_figure_13_gain_landscape.png",
     ]
     print("--- SUPP_FIGURES/ (expected supplementary PNGs) ---")
     n_ok = 0

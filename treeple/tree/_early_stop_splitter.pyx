@@ -162,6 +162,25 @@ cdef inline void _init_split_record(SplitRecord* s, intp_t start_pos) noexcept n
     s.missing_go_to_left = 0
 
 
+cdef inline void _sync_constant_features(
+    intp_t[::1] features,
+    intp_t[::1] constant_features,
+    intp_t n_known_constants,
+    intp_t n_found_constants,
+) noexcept nogil:
+    """Mirror sklearn's constant-feature bookkeeping for sibling/child nodes."""
+    cdef intp_t n_total_constants = n_known_constants + n_found_constants
+
+    if n_found_constants > 0:
+        memcpy(
+            &constant_features[n_known_constants],
+            &features[n_known_constants],
+            sizeof(intp_t) * n_found_constants,
+        )
+    if n_total_constants > 0:
+        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_total_constants)
+
+
 # ---------------------------------------------------------------------------
 # Base
 # ---------------------------------------------------------------------------
@@ -201,8 +220,14 @@ cdef class BaseEarlyStopSplitter(Splitter):
         self.min_weight_leaf = min_weight_leaf
         self.random_state = random_state
         self.monotonic_cst = monotonic_cst
+        self.with_monotonic_cst = monotonic_cst is not None
         self.explore_frac = float(kwargs.get("explore_frac", -1.0))
         self.use_sqrt_n = bool(kwargs.get("use_sqrt_n", False))
+        self.n_split_calls = 0
+        self.n_threshold_candidates = 0
+        self.n_gain_evaluations = 0
+        self.n_parametric_gain_samples = 0
+        self.n_parametric_quantile_fits = 0
 
     cdef int init(
         self,
@@ -214,7 +239,29 @@ cdef class BaseEarlyStopSplitter(Splitter):
         Splitter.init(self, X, y, sample_weight, missing_values_in_feature_mask)
         X_arr = np.ascontiguousarray(X, dtype=np.float32)
         self.X = X_arr
+        self.n_split_calls = 0
+        self.n_threshold_candidates = 0
+        self.n_gain_evaluations = 0
+        self.n_parametric_gain_samples = 0
+        self.n_parametric_quantile_fits = 0
         return 0
+
+    def get_stats(self):
+        split_calls = int(self.n_split_calls)
+        threshold_candidates = int(self.n_threshold_candidates)
+        gain_evaluations = int(self.n_gain_evaluations)
+        parametric_gain_samples = int(self.n_parametric_gain_samples)
+        parametric_quantile_fits = int(self.n_parametric_quantile_fits)
+        denom = split_calls if split_calls > 0 else 1
+        return {
+            "split_calls": split_calls,
+            "threshold_candidates": threshold_candidates,
+            "gain_evaluations": gain_evaluations,
+            "threshold_candidates_per_split": threshold_candidates / denom,
+            "gain_evaluations_per_split": gain_evaluations / denom,
+            "parametric_gain_samples": parametric_gain_samples,
+            "parametric_quantile_fits": parametric_quantile_fits,
+        }
 
     def __reduce__(self):
         return (type(self), (
@@ -241,12 +288,14 @@ cdef inline float64_t _eval_split(
     SplitRecord* out,
 ) noexcept nogil:
     """Evaluate split at (feat, pos). Fill out and return proxy_impurity_improvement or -INFINITY if invalid."""
+    splitter.n_threshold_candidates += 1
     if (pos - start) < splitter.min_samples_leaf or (end - pos) < splitter.min_samples_leaf:
         return -INFINITY
     splitter.criterion.update(pos)
     if splitter.criterion.weighted_n_left < min_weight_leaf or splitter.criterion.weighted_n_right < min_weight_leaf:
         return -INFINITY
     cdef float64_t imp = splitter.criterion.proxy_impurity_improvement()
+    splitter.n_gain_evaluations += 1
     if imp <= -INFINITY:
         return -INFINITY
     out.feature = feat
@@ -571,6 +620,7 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         cdef intp_t start = self.start
         cdef intp_t end = self.end
         cdef intp_t n_features = self.n_features
@@ -603,7 +653,7 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
         if n_avail <= 0:
             split.pos = end
             parent.n_constant_features = n_known_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, 0)
             return 0
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
@@ -655,7 +705,7 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
         if best_split.pos >= end:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         cdef intp_t partition_end = end
         p = start
@@ -672,7 +722,7 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
             impurity, best_split.impurity_left, best_split.impurity_right)
         split[0] = best_split
         parent.n_constant_features = n_total_constants
-        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+        _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
         return 0
 
 
@@ -719,6 +769,7 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         cdef intp_t start = self.start
         cdef intp_t end = self.end
         cdef intp_t n_features = self.n_features
@@ -757,7 +808,7 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
         if n_avail <= 0:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
@@ -788,6 +839,8 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
                     self, feat_best.feature, start, end, min_weight_leaf,
                     &feat_buf[0], self.n_gain_samples_par, random_state, self.p_thr_par)
                 if n_feat_gains > 0:
+                    self.n_parametric_gain_samples += n_feat_gains
+                    self.n_parametric_quantile_fits += 1
                     empirical_idx = min(n_feat_gains - 1, <intp_t>(self.q_thr_par * n_feat_gains))
                     if self.criterion_kind == 0:
                         qsort(&feat_buf[0], n_feat_gains, sizeof(float64_t), _cmp_float64)
@@ -822,7 +875,7 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
         if best_split.pos >= end:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         partition_end = end
         p = start
@@ -839,7 +892,7 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
             impurity, best_split.impurity_left, best_split.impurity_right)
         split[0] = best_split
         parent.n_constant_features = n_total_constants
-        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+        _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
         return 0
 
 
@@ -855,6 +908,7 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         cdef intp_t start = self.start
         cdef intp_t end = self.end
         cdef intp_t n_features = self.n_features
@@ -886,7 +940,7 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
         if n_avail <= 0:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
@@ -918,8 +972,8 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
                     max_explore = reward
                     best_split = feat_best
             else:
-                # Selection: first (feature, threshold) with gain > max_explore; no need to scan all thresholds
-                if _first_split_strictly_above(self, feat_best.feature, start, end, min_weight_leaf, max_explore, &feat_best):
+                reward = _best_gain_one_feature(self, feat_best.feature, start, end, min_weight_leaf, &feat_best)
+                if reward > -INFINITY and reward > max_explore:
                     best_split = feat_best
                     found = 1
                     break
@@ -927,7 +981,7 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
         if best_split.pos >= end:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         partition_end = end
         p = start
@@ -944,7 +998,7 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
             impurity, best_split.impurity_left, best_split.impurity_right)
         split[0] = best_split
         parent.n_constant_features = n_total_constants
-        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+        _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
         return 0
 
 
@@ -960,6 +1014,7 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         cdef intp_t start = self.start
         cdef intp_t end = self.end
         cdef intp_t n_features = self.n_features
@@ -991,7 +1046,7 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
         if n_avail <= 0:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
@@ -1024,8 +1079,9 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
                     max_explore = reward
                     best_split = feat_best
             else:
-                # Selection: first (feature, threshold) with gain > max_explore; no inner secretary
-                if _first_split_strictly_above(self, feat_best.feature, start, end, min_weight_leaf, max_explore, &feat_best):
+                reward = _secretary_gain_one_feature_random_explore(
+                    self, feat_best.feature, start, end, min_weight_leaf, random_state, &feat_best)
+                if reward > -INFINITY and reward > max_explore:
                     best_split = feat_best
                     found = 1
                     break
@@ -1033,7 +1089,7 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
         if best_split.pos >= end:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         partition_end = end
         p = start
@@ -1050,7 +1106,7 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
             impurity, best_split.impurity_left, best_split.impurity_right)
         split[0] = best_split
         parent.n_constant_features = n_total_constants
-        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+        _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
         return 0
 
 
@@ -1066,6 +1122,7 @@ cdef class ProphetSamplesSplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         cdef intp_t start = self.start
         cdef intp_t end = self.end
         cdef intp_t n_features = self.n_features
@@ -1096,7 +1153,7 @@ cdef class ProphetSamplesSplitter(BaseEarlyStopSplitter):
         if n_avail <= 0:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
 
         # Pass 1: random feature order; for each split with prob 1/e add gain to buffer
@@ -1150,7 +1207,7 @@ cdef class ProphetSamplesSplitter(BaseEarlyStopSplitter):
         if best_split.pos >= end:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         partition_end = end
         p = start
@@ -1167,7 +1224,7 @@ cdef class ProphetSamplesSplitter(BaseEarlyStopSplitter):
             impurity, best_split.impurity_left, best_split.impurity_right)
         split[0] = best_split
         parent.n_constant_features = n_total_constants
-        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+        _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
         return 0
 
 
@@ -1253,6 +1310,7 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         cdef intp_t start = self.start
         cdef intp_t end = self.end
         cdef intp_t n_features = self.n_features
@@ -1327,7 +1385,7 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
         if tau <= -INFINITY:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         # Selection: one sort per feature (same as best/secretary). For each feature with exploration
         # result, sort(f), collect valid positions excluding exploration pos, shuffle, first >= τ wins.
@@ -1371,7 +1429,7 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
         if best_split.pos >= end:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         partition_end = end
         p = start
@@ -1388,7 +1446,7 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
             impurity, best_split.impurity_left, best_split.impurity_right)
         split[0] = best_split
         parent.n_constant_features = n_total_constants
-        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+        _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
         return 0
 
 
@@ -1404,6 +1462,7 @@ cdef class BlockRankSplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         cdef intp_t start = self.start
         cdef intp_t end = self.end
         cdef intp_t n_features = self.n_features
@@ -1436,7 +1495,7 @@ cdef class BlockRankSplitter(BaseEarlyStopSplitter):
         if n_avail <= 0:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
@@ -1501,7 +1560,7 @@ cdef class BlockRankSplitter(BaseEarlyStopSplitter):
         if best_split.pos >= end:
             split.pos = end
             parent.n_constant_features = n_total_constants
-            memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+            _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
         partition_end = end
         p = start
@@ -1518,7 +1577,7 @@ cdef class BlockRankSplitter(BaseEarlyStopSplitter):
             impurity, best_split.impurity_left, best_split.impurity_right)
         split[0] = best_split
         parent.n_constant_features = n_total_constants
-        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+        _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
         return 0
 
 
@@ -1539,6 +1598,7 @@ cdef class ProphetParamSplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         return _node_split_best_fallback(self, parent, split)
 
 
@@ -1554,6 +1614,7 @@ cdef class MABAllSplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         return _node_split_best_fallback(self, parent, split)
 
 
@@ -1565,6 +1626,7 @@ cdef class MABSecretarySplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         return _node_split_best_fallback(self, parent, split)
 
 
@@ -1581,6 +1643,7 @@ cdef class MABParamSplitter(BaseEarlyStopSplitter):
         ParentInfo* parent,
         SplitRecord* split,
     ) except -1 nogil:
+        self.n_split_calls += 1
         return _node_split_best_fallback(self, parent, split)
 
 
@@ -1653,7 +1716,7 @@ cdef int _node_split_best_fallback(
     if best_split.pos >= end:
         split.pos = end
         parent.n_constant_features = n_total_constants
-        memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+        _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
         return 0
 
     partition_end = end
@@ -1671,5 +1734,5 @@ cdef int _node_split_best_fallback(
         impurity, best_split.impurity_left, best_split.impurity_right)
     split[0] = best_split
     parent.n_constant_features = n_total_constants
-    memcpy(&features[0], &constant_features[0], sizeof(intp_t) * n_known_constants)
+    _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
     return 0

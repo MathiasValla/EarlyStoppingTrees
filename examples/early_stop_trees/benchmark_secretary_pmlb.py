@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 """
-Benchmark all secretary splitters on PMLB datasets.
+Benchmark secretary-style and ExtraTree splitters on PMLB datasets.
 
-Regression: RMSE and fit time (5-fold CV).
-Classification: accuracy, F1-score (weighted), and fit time for Gini and Entropy (5-fold CV).
+Regression: RMSE and fit time (5-fold cross-validation).
+Classification: accuracy, F1-score (weighted), and fit time for Gini and entropy
+(5-fold cross-validation).
 
-Secretary procedures depend on randomness; it is controlled by the estimator's
-random_state hyperparameter (and by --random-state in this script).
+Cross-validation uses ``cv=N_FOLDS`` with scikit-learn defaults, i.e. no shuffling,
+so the fold partition is fixed across methods and repeated runs for a given dataset.
+Secretary procedures and ExtraTrees depend on randomness; it is controlled by the
+estimator's ``random_state`` hyperparameter (and by ``--random-state`` in this script).
+When both classification criteria are benchmarked together, the final Gini and
+entropy CSVs are restricted to the common set of datasets that succeeded under
+both criteria, so downstream comparisons use matched dataset sets.
 
 Usage:
   pip install pmlb
@@ -15,17 +21,25 @@ Usage:
   python examples/early_stop_trees/benchmark_secretary_pmlb.py --isolate-datasets  # run each dataset in a subprocess; SIGSEGV skips that dataset automatically
 
 Output: CSV files in outdir (default: examples/early_stop_trees/benchmark_results).
+Each result row also reports effort metrics derived from fitted early-stop splitters
+(split calls, threshold candidates, gain evaluations, and S_par sampling counts),
+and the script writes a benchmark_metadata.json file describing the timing protocol
+and hardware/software environment.
 """
 import argparse
 import csv
+import json
 import math
+import os
 import pickle
+import platform
 import subprocess
 import sys
 import time
 from pathlib import Path
 
 import numpy as np
+import sklearn
 
 try:
     from pmlb import (
@@ -40,19 +54,163 @@ except ImportError:
 from sklearn.model_selection import cross_validate
 from sklearn.metrics import mean_squared_error, f1_score, make_scorer
 
-from treeple.tree import EarlyStopDecisionTreeRegressor, EarlyStopDecisionTreeClassifier
+import treeple
+from treeple.tree import (
+    EarlyStopDecisionTreeClassifier,
+    EarlyStopDecisionTreeRegressor,
+    ExtraTreeClassifier,
+    ExtraTreeRegressor,
+)
 
 
 RANDOM_STATE = 42
 N_FOLDS = 5
-# Base splitter families; secretary_par will be expanded into multiple parameter variants.
-SPLITTERS = ("best", "secretary", "secretary_par", "secretary_all", "double_secretary", "block_rank", "prophet_1sample")
+# Base splitter families; secretary_par and extra_tree are expanded into parameter variants.
+SPLITTERS = (
+    "best",
+    "secretary",
+    "secretary_par",
+    "secretary_all",
+    "double_secretary",
+    "block_rank",
+    "prophet_1sample",
+    "extra_tree",
+)
 CRITERIA_CLF = ("gini", "entropy")
 # Datasets to skip by default (e.g. known to segfault or raise in C extension)
 SKIP_DATASETS = ("192_vineyard", "687_sleuth_ex1605")
 
 # Exit code when child process is killed by SIGSEGV (128 + 11)
 SIGSEGV_EXIT = 139
+EFFORT_KEYS = (
+    "split_calls",
+    "threshold_candidates",
+    "gain_evaluations",
+    "threshold_candidates_per_split",
+    "gain_evaluations_per_split",
+    "parametric_gain_samples",
+    "parametric_quantile_fits",
+)
+
+
+def _collect_effort_summary(estimators):
+    summary = {}
+    estimators = estimators or []
+    for key in EFFORT_KEYS:
+        values = []
+        for est in estimators:
+            stats = getattr(est, "splitter_stats_", None)
+            if not stats:
+                continue
+            value = stats.get(key)
+            if value is None:
+                continue
+            values.append(float(value))
+        summary[f"{key}_mean"] = float(np.mean(values)) if values else float("nan")
+    return summary
+
+
+def _benchmark_metadata(splitters, n_runs, random_state):
+    return {
+        "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "python": sys.version,
+        "platform": platform.platform(),
+        "machine": platform.machine(),
+        "processor": platform.processor(),
+        "cpu_count": os.cpu_count(),
+        "numpy_version": np.__version__,
+        "scikit_learn_version": sklearn.__version__,
+        "treeple_version": treeple.__version__,
+        "n_folds": N_FOLDS,
+        "splitters": list(splitters),
+        "n_runs": int(n_runs),
+        "random_state_start": int(random_state),
+        "timing_protocol": {
+            "fit_time_source": "sklearn.model_selection.cross_validate",
+            "fit_time_scope": "Estimator fit only; dataset fetch, subsampling, CSV writing, and scoring happen outside the reported fit_time.",
+            "cv_splitter": "Integer cv=N_FOLDS, so sklearn uses deterministic KFold / StratifiedKFold with shuffle=False.",
+        },
+    }
+
+
+def _write_benchmark_metadata(outdir, splitters, n_runs, random_state):
+    path = Path(outdir) / "benchmark_metadata.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(_benchmark_metadata(splitters, n_runs, random_state), f, indent=2, sort_keys=True)
+    print(f"Wrote {path}")
+
+
+def _cross_validate_with_effort(estimator, X, y, *, cv, scoring, return_train_score=False):
+    cv_result = cross_validate(
+        estimator,
+        X,
+        y,
+        cv=cv,
+        scoring=scoring,
+        return_train_score=return_train_score,
+        return_estimator=True,
+    )
+    return cv_result, _collect_effort_summary(cv_result.get("estimator"))
+
+
+def _write_rows_csv(path, rows, fieldnames=None):
+    """Write row dicts to CSV."""
+    if not rows and not fieldnames:
+        return
+    if fieldnames is None:
+        fieldnames = list(rows[0].keys())
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fieldnames)
+        w.writeheader()
+        if rows:
+            w.writerows(rows)
+
+
+def _dataset_names_from_rows(rows):
+    """Unique dataset names present in a row list."""
+    return {str(r["dataset"]) for r in rows if "dataset" in r}
+
+
+def _enforce_common_classification_datasets(gini_rows, entropy_rows, *, label):
+    """
+    Restrict Gini and entropy rows to datasets present in both result sets.
+
+    This guarantees matched dataset sets across criteria when a dataset fails for
+    one impurity but not the other.
+    """
+    gini_names = _dataset_names_from_rows(gini_rows)
+    entropy_names = _dataset_names_from_rows(entropy_rows)
+    common_names = gini_names & entropy_names
+    if gini_names == entropy_names:
+        print(
+            f"[classification] {label}: kept {len(common_names)} common datasets across "
+            "gini and entropy",
+            flush=True,
+        )
+        return gini_rows, entropy_rows, common_names
+
+    dropped_gini_only = sorted(gini_names - common_names)
+    dropped_entropy_only = sorted(entropy_names - common_names)
+    if dropped_gini_only:
+        print(
+            f"[classification] {label}: dropping {len(dropped_gini_only)} dataset(s) "
+            f"present only in gini: {', '.join(dropped_gini_only)}",
+            file=sys.stderr,
+        )
+    if dropped_entropy_only:
+        print(
+            f"[classification] {label}: dropping {len(dropped_entropy_only)} dataset(s) "
+            f"present only in entropy: {', '.join(dropped_entropy_only)}",
+            file=sys.stderr,
+        )
+    print(
+        f"[classification] {label}: using {len(common_names)} common datasets across "
+        "gini and entropy",
+        flush=True,
+    )
+    gini_rows = [r for r in gini_rows if r.get("dataset") in common_names]
+    entropy_rows = [r for r in entropy_rows if r.get("dataset") in common_names]
+    return gini_rows, entropy_rows, common_names
 
 
 def _secretary_par_grid(n_samples: int):
@@ -93,6 +251,203 @@ def _secretary_variants(n_samples: int):
     return out
 
 
+def _extra_tree_variants():
+    """Return list of (max_features, variant_label) for ExtraTree baselines."""
+    return (
+        (1, "max_features=1"),
+        (1.0 / 3.0, "max_features=1over3"),
+        (2.0 / 3.0, "max_features=2over3"),
+        (None, "max_features=all"),
+    )
+
+
+def _iter_regression_estimators(n_samples: int, random_state: int, splitters=None):
+    """Yield (splitter, variant, estimator) for one regression dataset."""
+    splitters = splitters if splitters is not None else SPLITTERS
+    for splitter in splitters:
+        if splitter == "secretary_par":
+            for p_thr_par, n_gain_samples_par, sample_mode in _secretary_par_grid(n_samples):
+                for q_thr_par in (0.5, 0.75, 0.9, 0.95):
+                    yield (
+                        "secretary_par",
+                        f"samples={sample_mode},q={q_thr_par}",
+                        EarlyStopDecisionTreeRegressor(
+                            splitter="secretary_par",
+                            random_state=random_state,
+                            max_depth=20,
+                            split_search={
+                                "p_thr_par": p_thr_par,
+                                "q_thr_par": q_thr_par,
+                                "n_gain_samples_par": int(n_gain_samples_par),
+                            },
+                        ),
+                    )
+        elif splitter in ("secretary", "secretary_all", "double_secretary"):
+            for split_search, variant_label in _secretary_variants(n_samples):
+                yield (
+                    splitter,
+                    variant_label,
+                    EarlyStopDecisionTreeRegressor(
+                        splitter=splitter,
+                        random_state=random_state,
+                        max_depth=20,
+                        split_search=split_search,
+                    ),
+                )
+        elif splitter == "extra_tree":
+            for max_features, variant_label in _extra_tree_variants():
+                yield (
+                    "extra_tree",
+                    variant_label,
+                    ExtraTreeRegressor(
+                        random_state=random_state,
+                        max_depth=20,
+                        max_features=max_features,
+                    ),
+                )
+        else:
+            yield (
+                splitter,
+                "",
+                EarlyStopDecisionTreeRegressor(
+                    splitter=splitter,
+                    random_state=random_state,
+                    max_depth=20,
+                ),
+            )
+
+
+def _iter_classification_estimators(n_samples: int, criterion: str, random_state: int, splitters=None):
+    """Yield (splitter, variant, estimator) for one classification dataset."""
+    splitters = splitters if splitters is not None else SPLITTERS
+    for splitter in splitters:
+        if splitter == "secretary_par":
+            for p_thr_par, n_gain_samples_par, sample_mode in _secretary_par_grid(n_samples):
+                for q_thr_par in (0.5, 0.75, 0.9, 0.95):
+                    yield (
+                        "secretary_par",
+                        f"samples={sample_mode},q={q_thr_par}",
+                        EarlyStopDecisionTreeClassifier(
+                            splitter="secretary_par",
+                            criterion=criterion,
+                            random_state=random_state,
+                            max_depth=20,
+                            split_search={
+                                "p_thr_par": p_thr_par,
+                                "q_thr_par": q_thr_par,
+                                "n_gain_samples_par": int(n_gain_samples_par),
+                            },
+                        ),
+                    )
+        elif splitter in ("secretary", "secretary_all", "double_secretary"):
+            for split_search, variant_label in _secretary_variants(n_samples):
+                yield (
+                    splitter,
+                    variant_label,
+                    EarlyStopDecisionTreeClassifier(
+                        splitter=splitter,
+                        criterion=criterion,
+                        random_state=random_state,
+                        max_depth=20,
+                        split_search=split_search,
+                    ),
+                )
+        elif splitter == "extra_tree":
+            for max_features, variant_label in _extra_tree_variants():
+                yield (
+                    "extra_tree",
+                    variant_label,
+                    ExtraTreeClassifier(
+                        criterion=criterion,
+                        random_state=random_state,
+                        max_depth=20,
+                        max_features=max_features,
+                    ),
+                )
+        else:
+            yield (
+                splitter,
+                "",
+                EarlyStopDecisionTreeClassifier(
+                    splitter=splitter,
+                    criterion=criterion,
+                    random_state=random_state,
+                    max_depth=20,
+                ),
+            )
+
+
+def _evaluate_regression_dataset(name, X, y, random_state, splitters=None):
+    """Run the full regression estimator grid on one dataset and return CSV rows."""
+    n_samples, n_features = X.shape
+    rmse_scorer = make_scorer(
+        lambda y_true, y_pred: -np.sqrt(mean_squared_error(y_true, y_pred)),
+        greater_is_better=True,
+    )
+    dataset_rows = []
+    for splitter, variant, est in _iter_regression_estimators(n_samples, random_state, splitters=splitters):
+        cv, effort = _cross_validate_with_effort(
+            est,
+            X,
+            y,
+            cv=N_FOLDS,
+            scoring={"neg_rmse": rmse_scorer},
+            return_train_score=False,
+        )
+        dataset_rows.append(
+            {
+                "dataset": name,
+                "n_samples": n_samples,
+                "n_features": n_features,
+                "splitter": splitter,
+                "variant": variant,
+                "rmse_mean": -float(np.mean(cv["test_neg_rmse"])),
+                "rmse_std": float(np.std(cv["test_neg_rmse"])),
+                "fit_time_mean": float(np.mean(cv["fit_time"])),
+                **effort,
+            }
+        )
+    return dataset_rows
+
+
+def _evaluate_classification_dataset(name, X, y, criterion, random_state, splitters=None):
+    """Run the full classification estimator grid on one dataset and return CSV rows."""
+    n_samples, n_features = X.shape
+    scoring = {
+        "accuracy": "accuracy",
+        "f1_weighted": make_scorer(f1_score, average="weighted", zero_division=0),
+    }
+    dataset_rows = []
+    for splitter, variant, est in _iter_classification_estimators(
+        n_samples, criterion, random_state, splitters=splitters
+    ):
+        cv, effort = _cross_validate_with_effort(
+            est,
+            X,
+            y,
+            cv=N_FOLDS,
+            scoring=scoring,
+            return_train_score=False,
+        )
+        dataset_rows.append(
+            {
+                "dataset": name,
+                "n_samples": n_samples,
+                "n_features": n_features,
+                "criterion": criterion,
+                "splitter": splitter,
+                "variant": variant,
+                "accuracy_mean": float(np.mean(cv["test_accuracy"])),
+                "accuracy_std": float(np.std(cv["test_accuracy"])),
+                "f1_weighted_mean": float(np.mean(cv["test_f1_weighted"])),
+                "f1_weighted_std": float(np.std(cv["test_f1_weighted"])),
+                "fit_time_mean": float(np.mean(cv["fit_time"])),
+                **effort,
+            }
+        )
+    return dataset_rows
+
+
 def _run_single_dataset_regression(
     name,
     outdir,
@@ -125,111 +480,7 @@ def _run_single_dataset_regression(
     n_samples, n_features = X.shape
     if max_product is not None and n_samples * n_features > max_product:
         return []
-    rmse_scorer = make_scorer(
-        lambda y_true, y_pred: -np.sqrt(mean_squared_error(y_true, y_pred)),
-        greater_is_better=True,
-    )
-    dataset_rows = []
-    for splitter in splitters:
-        if splitter == "secretary_par":
-            # SecretaryParam grid over (samples, quantile)
-            for p_thr_par, n_gain_samples_par, sample_mode in _secretary_par_grid(n_samples):
-                for q_thr_par in (0.5, 0.75, 0.9, 0.95):
-                    est = EarlyStopDecisionTreeRegressor(
-                        splitter="secretary_par",
-                        random_state=random_state,
-                        max_depth=20,
-                        split_search={
-                            "p_thr_par": p_thr_par,
-                            "q_thr_par": q_thr_par,
-                            "n_gain_samples_par": int(n_gain_samples_par),
-                        },
-                    )
-                    cv = cross_validate(
-                        est,
-                        X,
-                        y,
-                        cv=N_FOLDS,
-                        scoring={"neg_rmse": rmse_scorer},
-                        return_train_score=False,
-                    )
-                    rmse_mean = -float(np.mean(cv["test_neg_rmse"]))
-                    rmse_std = float(np.std(cv["test_neg_rmse"]))
-                    fit_time_mean = float(np.mean(cv["fit_time"]))
-                    dataset_rows.append(
-                        {
-                            "dataset": name,
-                            "n_samples": n_samples,
-                            "n_features": n_features,
-                            "splitter": "secretary_par",
-                            "variant": f"samples={sample_mode},q={q_thr_par}",
-                            "rmse_mean": rmse_mean,
-                            "rmse_std": rmse_std,
-                            "fit_time_mean": fit_time_mean,
-                        }
-                    )
-        elif splitter in ("secretary", "secretary_all", "double_secretary"):
-            for split_search, variant_label in _secretary_variants(n_samples):
-                est = EarlyStopDecisionTreeRegressor(
-                    splitter=splitter,
-                    random_state=random_state,
-                    max_depth=20,
-                    split_search=split_search,
-                )
-                cv = cross_validate(
-                    est,
-                    X,
-                    y,
-                    cv=N_FOLDS,
-                    scoring={"neg_rmse": rmse_scorer},
-                    return_train_score=False,
-                )
-                rmse_mean = -float(np.mean(cv["test_neg_rmse"]))
-                rmse_std = float(np.std(cv["test_neg_rmse"]))
-                fit_time_mean = float(np.mean(cv["fit_time"]))
-                dataset_rows.append(
-                    {
-                        "dataset": name,
-                        "n_samples": n_samples,
-                        "n_features": n_features,
-                        "splitter": splitter,
-                        "variant": variant_label,
-                        "rmse_mean": rmse_mean,
-                        "rmse_std": rmse_std,
-                        "fit_time_mean": fit_time_mean,
-                    }
-                )
-        else:
-            # best, block_rank, prophet_1sample
-            est = EarlyStopDecisionTreeRegressor(
-                splitter=splitter,
-                random_state=random_state,
-                max_depth=20,
-            )
-            cv = cross_validate(
-                est,
-                X,
-                y,
-                cv=N_FOLDS,
-                scoring={"neg_rmse": rmse_scorer},
-                return_train_score=False,
-            )
-            rmse_mean = -float(np.mean(cv["test_neg_rmse"]))
-            rmse_std = float(np.std(cv["test_neg_rmse"]))
-            fit_time_mean = float(np.mean(cv["fit_time"]))
-            dataset_rows.append(
-                {
-                    "dataset": name,
-                    "n_samples": n_samples,
-                    "n_features": n_features,
-                    "splitter": splitter,
-                    "variant": "",
-                    "rmse_mean": rmse_mean,
-                    "rmse_std": rmse_std,
-                    "fit_time_mean": fit_time_mean,
-                }
-            )
-    return dataset_rows
+    return _evaluate_regression_dataset(name, X, y, random_state, splitters=splitters)
 
 
 def _run_single_dataset_classification(
@@ -265,127 +516,14 @@ def _run_single_dataset_classification(
     n_samples, n_features = X.shape
     if max_product is not None and n_samples * n_features > max_product:
         return []
-    scoring = {
-        "accuracy": "accuracy",
-        "f1_weighted": make_scorer(f1_score, average="weighted", zero_division=0),
-    }
-    dataset_rows = []
-    for splitter in splitters:
-        if splitter == "secretary_par":
-            for p_thr_par, n_gain_samples_par, sample_mode in _secretary_par_grid(n_samples):
-                for q_thr_par in (0.5, 0.75, 0.9, 0.95):
-                    est = EarlyStopDecisionTreeClassifier(
-                        splitter="secretary_par",
-                        criterion=criterion,
-                        random_state=random_state,
-                        max_depth=20,
-                        split_search={
-                            "p_thr_par": p_thr_par,
-                            "q_thr_par": q_thr_par,
-                            "n_gain_samples_par": int(n_gain_samples_par),
-                        },
-                    )
-                    cv = cross_validate(
-                        est,
-                        X,
-                        y,
-                        cv=N_FOLDS,
-                        scoring=scoring,
-                        return_train_score=False,
-                    )
-                    acc_mean = float(np.mean(cv["test_accuracy"]))
-                    acc_std = float(np.std(cv["test_accuracy"]))
-                    f1_mean = float(np.mean(cv["test_f1_weighted"]))
-                    f1_std = float(np.std(cv["test_f1_weighted"]))
-                    fit_time_mean = float(np.mean(cv["fit_time"]))
-                    dataset_rows.append(
-                        {
-                            "dataset": name,
-                            "n_samples": n_samples,
-                            "n_features": n_features,
-                            "criterion": criterion,
-                            "splitter": "secretary_par",
-                            "variant": f"samples={sample_mode},q={q_thr_par}",
-                            "accuracy_mean": acc_mean,
-                            "accuracy_std": acc_std,
-                            "f1_weighted_mean": f1_mean,
-                            "f1_weighted_std": f1_std,
-                            "fit_time_mean": fit_time_mean,
-                        }
-                    )
-        elif splitter in ("secretary", "secretary_all", "double_secretary"):
-            for split_search, variant_label in _secretary_variants(n_samples):
-                est = EarlyStopDecisionTreeClassifier(
-                    splitter=splitter,
-                    criterion=criterion,
-                    random_state=random_state,
-                    max_depth=20,
-                    split_search=split_search,
-                )
-                cv = cross_validate(
-                    est,
-                    X,
-                    y,
-                    cv=N_FOLDS,
-                    scoring=scoring,
-                    return_train_score=False,
-                )
-                acc_mean = float(np.mean(cv["test_accuracy"]))
-                acc_std = float(np.std(cv["test_accuracy"]))
-                f1_mean = float(np.mean(cv["test_f1_weighted"]))
-                f1_std = float(np.std(cv["test_f1_weighted"]))
-                fit_time_mean = float(np.mean(cv["fit_time"]))
-                dataset_rows.append(
-                    {
-                        "dataset": name,
-                        "n_samples": n_samples,
-                        "n_features": n_features,
-                        "criterion": criterion,
-                        "splitter": splitter,
-                        "variant": variant_label,
-                        "accuracy_mean": acc_mean,
-                        "accuracy_std": acc_std,
-                        "f1_weighted_mean": f1_mean,
-                        "f1_weighted_std": f1_std,
-                        "fit_time_mean": fit_time_mean,
-                    }
-                )
-        else:
-            est = EarlyStopDecisionTreeClassifier(
-                splitter=splitter,
-                criterion=criterion,
-                random_state=random_state,
-                max_depth=20,
-            )
-            cv = cross_validate(
-                est,
-                X,
-                y,
-                cv=N_FOLDS,
-                scoring=scoring,
-                return_train_score=False,
-            )
-            acc_mean = float(np.mean(cv["test_accuracy"]))
-            acc_std = float(np.std(cv["test_accuracy"]))
-            f1_mean = float(np.mean(cv["test_f1_weighted"]))
-            f1_std = float(np.std(cv["test_f1_weighted"]))
-            fit_time_mean = float(np.mean(cv["fit_time"]))
-            dataset_rows.append(
-                {
-                    "dataset": name,
-                    "n_samples": n_samples,
-                    "n_features": n_features,
-                    "criterion": criterion,
-                    "splitter": splitter,
-                    "variant": "",
-                    "accuracy_mean": acc_mean,
-                    "accuracy_std": acc_std,
-                    "f1_weighted_mean": f1_mean,
-                    "f1_weighted_std": f1_std,
-                    "fit_time_mean": fit_time_mean,
-                }
-            )
-    return dataset_rows
+    return _evaluate_classification_dataset(
+        name,
+        X,
+        y,
+        criterion,
+        random_state,
+        splitters=splitters,
+    )
 
 
 def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_features=None, max_product=None, outdir=None, dataset=None, exclude=None, random_state=None, isolate_datasets=False, per_run_path=None, splitters=None):
@@ -451,10 +589,6 @@ def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_featu
                 print(f"[regression] {i+1}/{len(datasets)} {name} (n={n_s}, p={n_f})", flush=True)
                 rows.extend(dataset_rows)
     else:
-        rmse_scorer = make_scorer(
-            lambda y_true, y_pred: -np.sqrt(mean_squared_error(y_true, y_pred)),
-            greater_is_better=True,
-        )
         for i, name in enumerate(datasets):
             try:
                 X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(outdir / "pmlb_cache"))
@@ -490,37 +624,7 @@ def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_featu
             print(f"[regression] {i+1}/{len(datasets)} {name} (n={n_samples}, p={n_features})", flush=True)
 
             try:
-                dataset_rows = []
-                for splitter in splitters:
-                    try:
-                        est = EarlyStopDecisionTreeRegressor(
-                            splitter=splitter,
-                            random_state=random_state,
-                            max_depth=20,
-                        )
-                        cv = cross_validate(
-                            est,
-                            X,
-                            y,
-                            cv=N_FOLDS,
-                            scoring={"neg_rmse": rmse_scorer},
-                            return_train_score=False,
-                        )
-                        rmse_mean = -float(np.mean(cv["test_neg_rmse"]))
-                        rmse_std = float(np.std(cv["test_neg_rmse"]))
-                        fit_time_mean = float(np.mean(cv["fit_time"]))
-                    except Exception as e:
-                        print(f"  {splitter}: {e}", file=sys.stderr)
-                        raise
-                    dataset_rows.append({
-                        "dataset": name,
-                        "n_samples": n_samples,
-                        "n_features": n_features,
-                        "splitter": splitter,
-                        "rmse_mean": rmse_mean,
-                        "rmse_std": rmse_std,
-                        "fit_time_mean": fit_time_mean,
-                    })
+                dataset_rows = _evaluate_regression_dataset(name, X, y, random_state, splitters=splitters)
                 rows.extend(dataset_rows)
             except Exception as e:
                 print(f"[regression] skip {name}: fit error ({e})", file=sys.stderr)
@@ -540,7 +644,8 @@ def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_featu
 def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_features=None, max_product=None, criterion="gini", outdir=None, dataset=None, exclude=None, random_state=None, isolate_datasets=False, per_run_path=None, splitters=None):
     """Run classification benchmark once. Returns (rows, path). random_state controls estimator and subsampling RNG.
     If isolate_datasets=True, each dataset runs in a subprocess; SIGSEGV (or any non-zero exit) skips that dataset automatically.
-    If per_run_path is set (e.g. by run_benchmark_n_times), results are written there instead of classification_{criterion}_results.csv (so each run gets its own file)."""
+    If per_run_path is set (e.g. by run_benchmark_n_times), results are written there instead of classification_{criterion}_results.csv (so each run gets its own file).
+    When both criteria are run from the main driver, their final CSVs are post-filtered to the common successful dataset set."""
     splitters = splitters if splitters is not None else SPLITTERS
     random_state = random_state if random_state is not None else RANDOM_STATE
     outdir = Path(outdir or ".")
@@ -600,10 +705,6 @@ def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_f
                 print(f"[classification {criterion}] {i+1}/{len(datasets)} {name} (n={n_s}, p={n_f})", flush=True)
                 rows.extend(dataset_rows)
     else:
-        scoring = {
-            "accuracy": "accuracy",
-            "f1_weighted": make_scorer(f1_score, average="weighted", zero_division=0),
-        }
         for i, name in enumerate(datasets):
             try:
                 X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(outdir / "pmlb_cache"))
@@ -639,43 +740,14 @@ def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_f
             print(f"[classification {criterion}] {i+1}/{len(datasets)} {name} (n={n_samples}, p={n_features})", flush=True)
 
             try:
-                dataset_rows = []
-                for splitter in splitters:
-                    try:
-                        est = EarlyStopDecisionTreeClassifier(
-                            splitter=splitter,
-                            criterion=criterion,
-                            random_state=random_state,
-                            max_depth=20,
-                        )
-                        cv = cross_validate(
-                            est,
-                            X,
-                            y,
-                            cv=N_FOLDS,
-                            scoring=scoring,
-                            return_train_score=False,
-                        )
-                        acc_mean = float(np.mean(cv["test_accuracy"]))
-                        acc_std = float(np.std(cv["test_accuracy"]))
-                        f1_mean = float(np.mean(cv["test_f1_weighted"]))
-                        f1_std = float(np.std(cv["test_f1_weighted"]))
-                        fit_time_mean = float(np.mean(cv["fit_time"]))
-                    except Exception as e:
-                        print(f"  {splitter}: {e}", file=sys.stderr)
-                        raise
-                    dataset_rows.append({
-                        "dataset": name,
-                        "n_samples": n_samples,
-                        "n_features": n_features,
-                        "criterion": criterion,
-                        "splitter": splitter,
-                        "accuracy_mean": acc_mean,
-                        "accuracy_std": acc_std,
-                        "f1_weighted_mean": f1_mean,
-                        "f1_weighted_std": f1_std,
-                        "fit_time_mean": fit_time_mean,
-                    })
+                dataset_rows = _evaluate_classification_dataset(
+                    name,
+                    X,
+                    y,
+                    criterion,
+                    random_state,
+                    splitters=splitters,
+                )
                 rows.extend(dataset_rows)
             except Exception as e:
                 print(f"[classification {criterion}] skip {name}: fit error ({e})", file=sys.stderr)
@@ -711,7 +783,7 @@ def _aggregate_regression_rows(all_rows):
         rmse_means = [x["rmse_mean"] for x in run_list]
         rmse_stds = [x["rmse_std"] for x in run_list]
         fit_means = [x["fit_time_mean"] for x in run_list]
-        out.append({
+        row = {
             "dataset": dataset,
             "n_samples": n_s,
             "n_features": n_f,
@@ -722,7 +794,12 @@ def _aggregate_regression_rows(all_rows):
             "fit_time_mean": float(np.mean(fit_means)),
             "fit_time_std": float(np.std(fit_means)) if len(fit_means) > 1 else 0.0,
             "n_runs": len(run_list),
-        })
+        }
+        for key in EFFORT_KEYS:
+            metric_key = f"{key}_mean"
+            values = [float(x[metric_key]) for x in run_list if metric_key in x and not np.isnan(x[metric_key])]
+            row[metric_key] = float(np.mean(values)) if values else float("nan")
+        out.append(row)
     return out
 
 
@@ -746,7 +823,7 @@ def _aggregate_classification_rows(all_rows):
         acc_means = [x["accuracy_mean"] for x in run_list]
         f1_means = [x["f1_weighted_mean"] for x in run_list]
         fit_means = [x["fit_time_mean"] for x in run_list]
-        out.append({
+        row = {
             "dataset": dataset,
             "n_samples": n_s,
             "n_features": n_f,
@@ -760,7 +837,12 @@ def _aggregate_classification_rows(all_rows):
             "fit_time_mean": float(np.mean(fit_means)),
             "fit_time_std": float(np.std(fit_means)) if len(fit_means) > 1 else 0.0,
             "n_runs": len(run_list),
-        })
+        }
+        for key in EFFORT_KEYS:
+            metric_key = f"{key}_mean"
+            values = [float(x[metric_key]) for x in run_list if metric_key in x and not np.isnan(x[metric_key])]
+            row[metric_key] = float(np.mean(values)) if values else float("nan")
+        out.append(row)
     return out
 
 
@@ -783,6 +865,7 @@ def run_benchmark_n_times(
     """
     Run the full benchmark N times (each with a different seed: random_state, random_state+1, ...),
     then aggregate results so that each (dataset, splitter) has mean and std of metrics across the N runs.
+    CV folds are otherwise unchanged across runs because cross_validate uses fixed, unshuffled folds.
     Each run is written to a separate file (regression_run001.csv, ..., regression_run{N}.csv, and
     classification_{criterion}_run001.csv etc.) so no run is overwritten. The aggregated summary
     is written to regression_results.csv and classification_*_results.csv.
@@ -818,7 +901,11 @@ def run_benchmark_n_times(
             )
             all_regression.append(rows_reg)
         if not regression_only:
+            rows_by_criterion = {}
+            per_run_paths = {}
+            fieldnames_by_criterion = {}
             for criterion in CRITERIA_CLF:
+                per_run_path = outdir / f"classification_{criterion}{run_suffix}"
                 rows_clf, _ = run_classification(
                     max_datasets=max_datasets,
                     max_samples=max_samples,
@@ -831,13 +918,34 @@ def run_benchmark_n_times(
                     exclude=exclude,
                     random_state=seed,
                     isolate_datasets=isolate_datasets,
-                    per_run_path=outdir / f"classification_{criterion}{run_suffix}",
+                    per_run_path=per_run_path,
                     splitters=splitters,
                 )
-                if criterion == "gini":
-                    all_classification_gini.append(rows_clf)
-                else:
-                    all_classification_entropy.append(rows_clf)
+                rows_by_criterion[criterion] = rows_clf
+                per_run_paths[criterion] = per_run_path
+                fieldnames_by_criterion[criterion] = list(rows_clf[0].keys()) if rows_clf else None
+
+            if set(CRITERIA_CLF).issubset(rows_by_criterion):
+                rows_gini, rows_entropy, _ = _enforce_common_classification_datasets(
+                    rows_by_criterion["gini"],
+                    rows_by_criterion["entropy"],
+                    label=f"run {run_idx + 1}/{n_runs}",
+                )
+                rows_by_criterion["gini"] = rows_gini
+                rows_by_criterion["entropy"] = rows_entropy
+                _write_rows_csv(
+                    per_run_paths["gini"],
+                    rows_gini,
+                    fieldnames=fieldnames_by_criterion.get("gini") or fieldnames_by_criterion.get("entropy"),
+                )
+                _write_rows_csv(
+                    per_run_paths["entropy"],
+                    rows_entropy,
+                    fieldnames=fieldnames_by_criterion.get("entropy") or fieldnames_by_criterion.get("gini"),
+                )
+
+            all_classification_gini.append(rows_by_criterion.get("gini", []))
+            all_classification_entropy.append(rows_by_criterion.get("entropy", []))
 
         elapsed = time.perf_counter() - t0
         run_times.append(elapsed)
@@ -896,12 +1004,17 @@ def main():
     p.add_argument("--exclude-datasets", type=str, default=None, help="Comma-separated dataset names to skip (e.g. 192_vineyard)")
     p.add_argument("--regression-only", action="store_true", help="Run only regression")
     p.add_argument("--classification-only", action="store_true", help="Run only classification")
-    p.add_argument("--random-state", type=int, default=None, help="Random seed for estimators and subsampling (default: 42). Controls all secretary randomness.")
-    p.add_argument("--n-runs", type=int, default=1, help="Run full benchmark N times and aggregate mean (and std) of metrics across runs (default: 1)")
+    p.add_argument("--random-state", type=int, default=None, help="Random seed for estimators and subsampling (default: 42). Repeated runs increment this seed while keeping the CV folds fixed.")
+    p.add_argument("--n-runs", type=int, default=1, help="Run full benchmark N times and aggregate mean (and std) of metrics across runs (default: 1). Repeated runs vary estimator randomness, not the CV folds.")
     p.add_argument("--isolate-datasets", action="store_true", help="Run each dataset in a subprocess; if one crashes (e.g. SIGSEGV), skip it and continue.")
     p.add_argument("--run-single-dataset", type=str, default=None, help="(Internal) Run only this dataset and print pickle of rows to stdout.")
     p.add_argument("--task", type=str, default=None, help="(Internal) With --run-single-dataset: regression, classification_gini, or classification_entropy")
-    p.add_argument("--splitters", type=str, default=None, help="Comma-separated splitter names (default: all). E.g. best,secretary,prophet_1sample")
+    p.add_argument(
+        "--splitters",
+        type=str,
+        default=None,
+        help="Comma-separated splitter names (default: all). E.g. best,secretary,prophet_1sample,extra_tree",
+    )
     args = p.parse_args()
 
     script_dir = Path(__file__).resolve().parent
@@ -946,6 +1059,8 @@ def main():
             sys.exit(1)
 
     isolate = args.isolate_datasets
+    outdir.mkdir(parents=True, exist_ok=True)
+    _write_benchmark_metadata(outdir, splitters or SPLITTERS, args.n_runs, random_state)
 
     if args.n_runs > 1:
         run_benchmark_n_times(
@@ -980,8 +1095,11 @@ def main():
                 splitters=splitters,
             )
         if not args.regression_only:
+            rows_by_criterion = {}
+            path_by_criterion = {}
+            fieldnames_by_criterion = {}
             for criterion in CRITERIA_CLF:
-                run_classification(
+                rows_clf, path_clf = run_classification(
                     max_datasets=args.max_datasets,
                     max_samples=args.max_samples,
                     max_rows=args.max_rows,
@@ -994,6 +1112,26 @@ def main():
                     random_state=random_state,
                     isolate_datasets=isolate,
                     splitters=splitters,
+                )
+                rows_by_criterion[criterion] = rows_clf
+                path_by_criterion[criterion] = path_clf
+                fieldnames_by_criterion[criterion] = list(rows_clf[0].keys()) if rows_clf else None
+
+            if set(CRITERIA_CLF).issubset(rows_by_criterion):
+                rows_gini, rows_entropy, _ = _enforce_common_classification_datasets(
+                    rows_by_criterion["gini"],
+                    rows_by_criterion["entropy"],
+                    label="single run",
+                )
+                _write_rows_csv(
+                    path_by_criterion["gini"],
+                    rows_gini,
+                    fieldnames=fieldnames_by_criterion.get("gini") or fieldnames_by_criterion.get("entropy"),
+                )
+                _write_rows_csv(
+                    path_by_criterion["entropy"],
+                    rows_entropy,
+                    fieldnames=fieldnames_by_criterion.get("entropy") or fieldnames_by_criterion.get("gini"),
                 )
     print("Done.")
 

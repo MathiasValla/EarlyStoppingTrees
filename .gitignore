@@ -8,6 +8,7 @@ coverage
 *.xml
 .venv
 .venv_early_stop/
+.venv_codex/
 
 # Local symlink to vendored sklearn (dev convenience; not part of treeple source)
 treeple/_lib/sklearn
@@ -16,6 +17,7 @@ treeple/_lib/sklearn
 examples/early_stop_trees/benchmark_results/
 examples/early_stop_trees/figures/
 examples/early_stop_trees/analysis_additional/
+examples/early_stop_trees/analysis_gain_landscape/
 examples/early_stop_trees/__pycache__/
 .pymon
 .coverage.*

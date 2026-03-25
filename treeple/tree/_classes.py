@@ -798,6 +798,7 @@ class EarlyStopDecisionTreeRegressor(SimMatrixMixin, DecisionTreeRegressor):
                 self.store_leaf_values,
             )
         builder.build(self.tree_, X, y, sample_weight, missing_values_in_feature_mask)
+        self.splitter_stats_ = splitter.get_stats()
         return self
 
 
@@ -992,6 +993,7 @@ class EarlyStopDecisionTreeClassifier(SimMatrixMixin, DecisionTreeClassifier):
                 self.min_impurity_decrease,
             )
         builder.build(self.tree_, X, y, sample_weight, missing_values_in_feature_mask)
+        self.splitter_stats_ = splitter.get_stats()
         if self.n_outputs_ == 1:
             self.n_classes_ = self.n_classes_[0]
             self.classes_ = self.classes_[0]

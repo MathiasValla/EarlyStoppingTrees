@@ -8,8 +8,11 @@ Reads from benchmark_results/ (or --indir):
   - classification_entropy_results.csv
 
 Writes to the same directory:
-  - regression_aggregated.csv   (splitter, rmse_mean, rmse_std, fit_time_mean, fit_time_std, n_datasets)
-  - classification_aggregated.csv (criterion, splitter, accuracy_mean, accuracy_std, f1_weighted_mean, f1_weighted_std, fit_time_mean, fit_time_std, n_datasets)
+  - regression_aggregated.csv   (splitter, rmse_mean, rmse_std, fit_time_mean, fit_time_std,
+    effort metrics, n_datasets)
+  - classification_aggregated.csv (criterion, splitter, accuracy_mean, accuracy_std,
+    f1_weighted_mean, f1_weighted_std, fit_time_mean, fit_time_std, effort metrics,
+    n_datasets)
 
 Usage:
   python examples/early_stop_trees/aggregate_benchmark_results.py [--indir DIR]
@@ -21,6 +24,16 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+EFFORT_FIELDS = [
+    "split_calls_mean",
+    "threshold_candidates_mean",
+    "gain_evaluations_mean",
+    "threshold_candidates_per_split_mean",
+    "gain_evaluations_per_split_mean",
+    "parametric_gain_samples_mean",
+    "parametric_quantile_fits_mean",
+]
 
 
 def _mean(values: List[float]) -> float:
@@ -43,7 +56,9 @@ def aggregate_regression(indir: Path) -> Optional[Path]:
         print(f"Skip regression: {path} not found.", file=sys.stderr)
         return None
     # key = (splitter, variant)
-    by_key: Dict[tuple, Dict[str, Any]] = defaultdict(lambda: {"rmse": [], "time": [], "datasets": set()})
+    by_key: Dict[tuple, Dict[str, Any]] = defaultdict(
+        lambda: {"rmse": [], "time": [], "datasets": set(), **{field: [] for field in EFFORT_FIELDS}}
+    )
     with open(path, newline="") as f:
         r = csv.DictReader(f)
         for row in r:
@@ -56,13 +71,17 @@ def aggregate_regression(indir: Path) -> Optional[Path]:
                 by_key[key]["rmse"].append(float(row["rmse_mean"]))
                 by_key[key]["time"].append(float(row["fit_time_mean"]))
                 by_key[key]["datasets"].add(row["dataset"])
+                for field in EFFORT_FIELDS:
+                    value = row.get(field, "")
+                    if value not in ("", None):
+                        by_key[key][field].append(float(value))
             except (KeyError, ValueError):
                 continue
     rows = []
     for splitter, variant in sorted(by_key.keys()):
         d = by_key[(splitter, variant)]
         n = len(d["datasets"])
-        rows.append({
+        row = {
             "splitter": splitter,
             "variant": variant,
             "rmse_mean": _mean(d["rmse"]),
@@ -70,9 +89,21 @@ def aggregate_regression(indir: Path) -> Optional[Path]:
             "fit_time_mean": _mean(d["time"]),
             "fit_time_std": _std(d["time"]),
             "n_datasets": n,
-        })
+        }
+        for field in EFFORT_FIELDS:
+            row[field] = _mean(d[field])
+        rows.append(row)
     out = indir / "regression_aggregated.csv"
-    fieldnames = ["splitter", "variant", "rmse_mean", "rmse_std", "fit_time_mean", "fit_time_std", "n_datasets"]
+    fieldnames = [
+        "splitter",
+        "variant",
+        "rmse_mean",
+        "rmse_std",
+        "fit_time_mean",
+        "fit_time_std",
+        *EFFORT_FIELDS,
+        "n_datasets",
+    ]
     with open(out, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
@@ -89,7 +120,7 @@ def aggregate_classification(indir: Path) -> Optional[Path]:
         return None
     # key = (criterion, splitter, variant)
     by_key: Dict[tuple, Dict[str, Any]] = defaultdict(
-        lambda: {"accuracy": [], "f1": [], "time": [], "datasets": set()}
+        lambda: {"accuracy": [], "f1": [], "time": [], "datasets": set(), **{field: [] for field in EFFORT_FIELDS}}
     )
     for path in (gini_path, entropy_path):
         if not path.exists():
@@ -119,13 +150,17 @@ def aggregate_classification(indir: Path) -> Optional[Path]:
                     by_key[key]["f1"].append(float(row["f1_weighted_mean"]))
                     by_key[key]["time"].append(float(row["fit_time_mean"]))
                     by_key[key]["datasets"].add(row["dataset"])
+                    for field in EFFORT_FIELDS:
+                        value = row.get(field, "")
+                        if value not in ("", None):
+                            by_key[key][field].append(float(value))
                 except (KeyError, ValueError):
                     continue
     rows = []
     for (criterion, splitter, variant) in sorted(by_key.keys()):
         d = by_key[(criterion, splitter, variant)]
         n = len(d["datasets"])
-        rows.append({
+        row = {
             "criterion": criterion,
             "splitter": splitter,
             "variant": variant,
@@ -136,12 +171,15 @@ def aggregate_classification(indir: Path) -> Optional[Path]:
             "fit_time_mean": _mean(d["time"]),
             "fit_time_std": _std(d["time"]),
             "n_datasets": n,
-        })
+        }
+        for field in EFFORT_FIELDS:
+            row[field] = _mean(d[field])
+        rows.append(row)
     out = indir / "classification_aggregated.csv"
     fieldnames = [
         "criterion", "splitter", "variant",
         "accuracy_mean", "accuracy_std", "f1_weighted_mean", "f1_weighted_std",
-        "fit_time_mean", "fit_time_std", "n_datasets",
+        "fit_time_mean", "fit_time_std", *EFFORT_FIELDS, "n_datasets",
     ]
     with open(out, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)

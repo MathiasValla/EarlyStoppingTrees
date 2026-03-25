@@ -13,6 +13,7 @@ from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from treeple._lib.sklearn.tree import DecisionTreeClassifier
 from treeple.tree import (
+    EarlyStopDecisionTreeClassifier,
     ExtraObliqueDecisionTreeClassifier,
     ExtraObliqueDecisionTreeRegressor,
     ObliqueDecisionTreeClassifier,
@@ -146,6 +147,17 @@ digits.data = digits.data[perm]
 digits.target = digits.target[perm]
 
 
+EXPECTED_EARLY_STOP_STATS = {
+    "split_calls",
+    "threshold_candidates",
+    "gain_evaluations",
+    "threshold_candidates_per_split",
+    "gain_evaluations_per_split",
+    "parametric_gain_samples",
+    "parametric_quantile_fits",
+}
+
+
 def test_pickle_splitters():
     """Test that splitters are picklable."""
     import tempfile
@@ -181,6 +193,42 @@ def test_pickle_splitters():
     )
     with tempfile.TemporaryFile() as f:
         joblib.dump(splitter, f)
+
+
+def test_early_stop_splitter_stats_are_recorded():
+    clf = EarlyStopDecisionTreeClassifier(
+        criterion="gini",
+        splitter="secretary_all",
+        max_depth=3,
+        random_state=0,
+    )
+    clf.fit(iris.data, iris.target)
+
+    stats = clf.splitter_stats_
+    assert EXPECTED_EARLY_STOP_STATS.issubset(stats)
+    assert stats["split_calls"] >= np.sum(clf.tree_.feature >= 0)
+    assert stats["threshold_candidates"] >= stats["gain_evaluations"] >= 0
+    assert stats["threshold_candidates_per_split"] >= 0
+    assert stats["gain_evaluations_per_split"] >= 0
+
+
+def test_early_stop_parametric_stats_capture_sampling():
+    clf = EarlyStopDecisionTreeClassifier(
+        criterion="gini",
+        splitter="secretary_par",
+        max_depth=3,
+        random_state=0,
+        split_search={
+            "n_gain_samples_par": 8,
+            "q_thr_par": 0.8,
+        },
+    )
+    clf.fit(iris.data, iris.target)
+
+    stats = clf.splitter_stats_
+    assert stats["split_calls"] > 0
+    assert stats["parametric_gain_samples"] > 0
+    assert stats["parametric_quantile_fits"] > 0
 
     splitter = RandomObliqueSplitter(
         criterion,

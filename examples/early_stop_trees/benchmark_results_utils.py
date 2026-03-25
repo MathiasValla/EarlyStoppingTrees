@@ -19,10 +19,28 @@ from matplotlib.patches import Circle, Rectangle
 
 
 # Methods to compare (exhaustive baseline first)
-SPLITTERS = ("best", "secretary", "secretary_par", "secretary_all", "double_secretary", "block_rank", "prophet_1sample")
+SPLITTERS = (
+    "best",
+    "secretary",
+    "secretary_par",
+    "secretary_all",
+    "double_secretary",
+    "block_rank",
+    "prophet_1sample",
+    "extra_tree",
+)
+# Historical name kept for compatibility; this is the list of all non-best families.
 SECRETARY_SPLITTERS = [s for s in SPLITTERS if s != "best"]
 # For figures/tables that exclude secretary_par and show variants
-SPLITTERS_NO_PAR = ("best", "secretary", "secretary_all", "double_secretary", "block_rank", "prophet_1sample")
+SPLITTERS_NO_PAR = (
+    "best",
+    "secretary",
+    "secretary_all",
+    "double_secretary",
+    "block_rank",
+    "prophet_1sample",
+    "extra_tree",
+)
 SECRETARY_SPLITTERS_NO_PAR = [s for s in SPLITTERS_NO_PAR if s != "best"]
 
 # Distinct base colors per method (no secretary_par); variants get shades of these
@@ -33,8 +51,15 @@ BASE_COLORS_NO_PAR = {
     "double_secretary": "#d62728",
     "block_rank": "#9467bd",
     "prophet_1sample": "#8c564b",
+    "extra_tree": "#17becf",
 }
 VARIANT_ORDER = ("1overe", "sqrt_n", "ln_n", "0.1n")  # canonical order for shading
+EXTRA_TREE_VARIANT_ORDER = (
+    "max_features=1",
+    "max_features=1over3",
+    "max_features=2over3",
+    "max_features=all",
+)
 
 # secretary_par (parametric) — base color when include_secretary_par=True
 BASE_COLOR_SECRETARY_PAR = "#ff7f0e"
@@ -72,8 +97,20 @@ def get_variant_method_order_and_colors(*summary_dfs, include_secretary_par: boo
             seen.add((s, v))
     # Build ordered list: best first, then SPLITTERS_NO_PAR order, then variant order
     method_order = []
+    def _variant_sort_key(splitter: str, variant: str):
+        if splitter == "extra_tree":
+            if variant in EXTRA_TREE_VARIANT_ORDER:
+                return (0, EXTRA_TREE_VARIANT_ORDER.index(variant), variant)
+            return (1, 999, variant)
+        if variant in VARIANT_ORDER:
+            return (0, VARIANT_ORDER.index(variant), variant)
+        return (1, 999, variant)
+
     for splitter in SPLITTERS_NO_PAR:
-        variants_here = sorted([v for (s, v) in seen if s == splitter], key=lambda x: (VARIANT_ORDER.index(x) if x in VARIANT_ORDER else 99, x))
+        variants_here = sorted(
+            [v for (s, v) in seen if s == splitter],
+            key=lambda x: _variant_sort_key(splitter, x),
+        )
         for v in variants_here:
             method_order.append((splitter, v))
     if include_secretary_par:
@@ -120,7 +157,7 @@ def plot_grouped_variant_legend(
     """
     Legend layout for figures 1 / 3 / 4:
     - One column per variant family (secretary, secretary_all, double_secretary), variants stacked.
-    - Last column: best, block_rank, prophet_1sample.
+    - Last column: best, block-rank, prophet_1sample, ExtraTrees baselines.
 
     legend_style:
     - ``"patch"``: small rectangles (matches bar / block legend; default for figure 4).
@@ -138,21 +175,26 @@ def plot_grouped_variant_legend(
     last_pairs = []
     for k, lab in pairs:
         sp = str(k).split("|", 1)[0] if "|" in str(k) else str(k)
-        if sp in ("best", "block_rank", "prophet_1sample"):
+        if sp in ("best", "block_rank", "prophet_1sample", "extra_tree"):
             last_pairs.append((k, lab))
         elif sp in ("secretary", "secretary_all", "double_secretary"):
             families[sp].append((k, lab))
 
     def _var_key(key):
+        splitter = str(key).split("|", 1)[0] if "|" in str(key) else str(key)
         v = str(key).split("|", 1)[1] if "|" in str(key) else ""
+        if splitter == "extra_tree":
+            if v in EXTRA_TREE_VARIANT_ORDER:
+                return (0, EXTRA_TREE_VARIANT_ORDER.index(v), v)
+            return (1, 999, v)
         if v in VARIANT_ORDER:
-            return VARIANT_ORDER.index(v)
-        return 99
+            return (0, VARIANT_ORDER.index(v), v)
+        return (1, 999, v)
 
     family_order = [
         s
         for s in SPLITTERS_NO_PAR
-        if s in families and s not in ("best", "block_rank", "prophet_1sample")
+        if s in families and s not in ("best", "block_rank", "prophet_1sample", "extra_tree")
     ]
     for sp in family_order:
         families[sp].sort(key=lambda kv: _var_key(kv[0]))
@@ -166,6 +208,12 @@ def plot_grouped_variant_legend(
                 last_sorted.append((k, lab))
                 seen_last.add(k)
                 break
+    extra_pairs = [(k, lab) for (k, lab) in last_pairs if (str(k).split("|", 1)[0] if "|" in str(k) else str(k)) == "extra_tree"]
+    extra_pairs.sort(key=lambda kv: _var_key(kv[0]))
+    for k, lab in extra_pairs:
+        if k not in seen_last:
+            last_sorted.append((k, lab))
+            seen_last.add(k)
 
     n_fam = len(family_order)
     if n_fam == 0:
@@ -173,7 +221,7 @@ def plot_grouped_variant_legend(
     elif not last_sorted:
         n_cols = n_fam
     else:
-        n_cols = n_fam + 1  # +1 for best / block_rank / prophet_1sample
+        n_cols = n_fam + 1  # +1 for best / block_rank / prophet / extra_tree baselines
     col_w = 1.0 / n_cols
 
     family_headers = {

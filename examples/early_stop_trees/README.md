@@ -70,10 +70,21 @@ Optional arguments:
 
 Outputs (in `benchmark_results/`):
 
-- **Regression**: `regression_results.csv` — columns `dataset`, `n_samples`, `n_features`, `splitter`, `rmse_mean`, `rmse_std`, `fit_time_mean` for splitters `best`, `secretary`, `secretary_par`, `secretary_all`, `double_secretary`.
-- **Classification**: `classification_gini_results.csv` and `classification_entropy_results.csv` — columns `dataset`, `n_samples`, `n_features`, `criterion`, `splitter`, `accuracy_mean`, `accuracy_std`, `f1_weighted_mean`, `f1_weighted_std`, `fit_time_mean`.
+- **Regression**: `regression_results.csv` — columns `dataset`, `n_samples`, `n_features`, `splitter`, `variant`, `rmse_mean`, `rmse_std`, `fit_time_mean`, plus effort summaries such as `split_calls_mean`, `threshold_candidates_mean`, and `gain_evaluations_mean` when available.
+- **Classification**: `classification_gini_results.csv` and `classification_entropy_results.csv` — columns `dataset`, `n_samples`, `n_features`, `criterion`, `splitter`, `variant`, `accuracy_mean`, `accuracy_std`, `f1_weighted_mean`, `f1_weighted_std`, `fit_time_mean`, plus the same effort summaries when available.
+- **Metadata**: `benchmark_metadata.json` — hardware/software environment, timing protocol, fold strategy, and run configuration for the benchmark archive.
 
-All metrics are from 5-fold cross-validation.
+Benchmark families now include:
+
+- `best` — exhaustive CART splitter.
+- `secretary`, `secretary_all`, `double_secretary`, `block_rank`, `prophet_1sample`.
+- `secretary_par` — expanded into multiple `variant` settings.
+- `extra_tree` — practical random-threshold baseline expanded into four `variant` settings:
+  `max_features=1`, `max_features=1over3`, `max_features=2over3`, `max_features=all`.
+
+The `extra_tree` rows use `treeple.tree.ExtraTreeClassifier` / `ExtraTreeRegressor`, so they serve as external practical baselines rather than secretary-family ablations.
+
+All metrics are from 5-fold cross-validation. When both classification criteria are run together, the final Gini and entropy summaries are restricted to their common set of successful datasets so the two impurity criteria remain directly comparable.
 
 ### Aggregate results per splitter
 
@@ -87,5 +98,5 @@ Optional: `--indir DIR` to point to a directory other than `examples/early_stop_
 
 This writes in the same directory:
 
-- **regression_aggregated.csv** — columns `splitter`, `rmse_mean`, `rmse_std`, `fit_time_mean`, `fit_time_std`, `n_datasets`.
-- **classification_aggregated.csv** — columns `criterion`, `splitter`, `accuracy_mean`, `accuracy_std`, `f1_weighted_mean`, `f1_weighted_std`, `fit_time_mean`, `fit_time_std`, `n_datasets`.
+- **regression_aggregated.csv** — columns `splitter`, `variant`, `rmse_mean`, `rmse_std`, `fit_time_mean`, `fit_time_std`, `n_datasets`.
+- **classification_aggregated.csv** — columns `criterion`, `splitter`, `variant`, `accuracy_mean`, `accuracy_std`, `f1_weighted_mean`, `f1_weighted_std`, `fit_time_mean`, `fit_time_std`, `n_datasets`.

@@ -46,8 +46,18 @@ METHOD_COLORS = {
     "double_secretary": "#d62728",
     "block_rank": "#9467bd",
     "prophet_1sample": "#8c564b",
+    "extra_tree": "#17becf",
 }
-METHOD_ORDER = ["best", "secretary", "secretary_par", "secretary_all", "double_secretary", "block_rank", "prophet_1sample"]
+METHOD_ORDER = [
+    "best",
+    "secretary",
+    "secretary_par",
+    "secretary_all",
+    "double_secretary",
+    "block_rank",
+    "prophet_1sample",
+    "extra_tree",
+]
 
 # Figure 1 flagship: one “default” representative per family (1/e style), for emphasis vs other variants.
 FIG1_DEFAULT_FAMILY_KEYS = frozenset(
@@ -58,6 +68,7 @@ FIG1_DEFAULT_FAMILY_KEYS = frozenset(
         "secretary_all|1overe",
         "block_rank|",
         "prophet_1sample|",
+        "extra_tree|max_features=all",
     }
 )
 
