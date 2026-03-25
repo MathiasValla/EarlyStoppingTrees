@@ -169,12 +169,12 @@ def main() -> int:
     parser.add_argument(
         "--base-splitters",
         type=str,
-        default="best,secretary,secretary_par,block_rank,prophet_1sample",
+        default="secretary,secretary_par,block_rank,prophet_1sample",
     )
     parser.add_argument(
         "--refreshed-splitters",
         type=str,
-        default="secretary_all,double_secretary,extra_tree",
+        default="best,secretary_all,double_secretary,extra_tree",
     )
     args = parser.parse_args()
 

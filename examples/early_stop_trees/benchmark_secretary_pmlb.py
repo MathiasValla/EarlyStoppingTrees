@@ -21,10 +21,11 @@ Usage:
   python examples/early_stop_trees/benchmark_secretary_pmlb.py --isolate-datasets  # run each dataset in a subprocess; SIGSEGV skips that dataset automatically
 
 Output: CSV files in outdir (default: examples/early_stop_trees/benchmark_results).
-Each result row also reports effort metrics derived from fitted early-stop splitters
-(split calls, threshold candidates, gain evaluations, and S_par sampling counts),
-and the script writes a benchmark_metadata.json file describing the timing protocol
-and hardware/software environment.
+Each result row also reports effort metrics: direct splitter counters for the
+early-stop families, exact post-fit counts for the exhaustive `best` splitter,
+and derived post-fit counts for `extra_tree`. The script also writes a
+benchmark_metadata.json file describing the timing protocol and hardware/software
+environment.
 """
 import argparse
 import csv
@@ -51,7 +52,9 @@ except ImportError:
     print("Install pmlb: pip install pmlb", file=sys.stderr)
     sys.exit(1)
 
+from sklearn.base import is_classifier
 from sklearn.model_selection import cross_validate
+from sklearn.model_selection._split import check_cv
 from sklearn.metrics import mean_squared_error, f1_score, make_scorer
 
 import treeple
@@ -91,17 +94,148 @@ EFFORT_KEYS = (
     "parametric_gain_samples",
     "parametric_quantile_fits",
 )
+FEATURE_THRESHOLD = 1e-7
 
 
-def _collect_effort_summary(estimators):
-    summary = {}
+def _finalize_effort_stats(
+    split_calls,
+    threshold_candidates,
+    gain_evaluations,
+    *,
+    parametric_gain_samples=0.0,
+    parametric_quantile_fits=0.0,
+):
+    split_calls = float(split_calls)
+    threshold_candidates = float(threshold_candidates)
+    gain_evaluations = float(gain_evaluations)
+    parametric_gain_samples = float(parametric_gain_samples)
+    parametric_quantile_fits = float(parametric_quantile_fits)
+    denom = split_calls if split_calls > 0 else 1.0
+    return {
+        "split_calls": split_calls,
+        "threshold_candidates": threshold_candidates,
+        "gain_evaluations": gain_evaluations,
+        "threshold_candidates_per_split": threshold_candidates / denom,
+        "gain_evaluations_per_split": gain_evaluations / denom,
+        "parametric_gain_samples": parametric_gain_samples,
+        "parametric_quantile_fits": parametric_quantile_fits,
+    }
+
+
+def _candidate_split_positions(values):
+    values = np.sort(np.asarray(values, dtype=np.float32))
+    if values.size <= 1:
+        return np.empty(0, dtype=np.intp)
+    return np.flatnonzero(values[1:] > values[:-1] + FEATURE_THRESHOLD) + 1
+
+
+def _count_nonconstant_features(X_node):
+    if X_node.size == 0:
+        return 0
+    mins = np.min(X_node, axis=0)
+    maxs = np.max(X_node, axis=0)
+    return int(np.sum(maxs > mins + FEATURE_THRESHOLD))
+
+
+def _iter_internal_node_samples(tree, X_train):
+    children_left = tree.children_left
+    children_right = tree.children_right
+    features = tree.feature
+    thresholds = tree.threshold
+    stack = [(0, np.arange(X_train.shape[0], dtype=np.intp))]
+    while stack:
+        node_id, sample_idx = stack.pop()
+        if sample_idx.size == 0 or features[node_id] < 0:
+            continue
+        yield node_id, sample_idx
+        feat = features[node_id]
+        thr = thresholds[node_id]
+        node_values = X_train[sample_idx, feat]
+        left_mask = node_values <= thr
+        stack.append((children_right[node_id], sample_idx[~left_mask]))
+        stack.append((children_left[node_id], sample_idx[left_mask]))
+
+
+def _derive_best_effort_stats(estimator, X_train):
+    tree = estimator.tree_
+    min_samples_leaf = int(getattr(estimator, "min_samples_leaf_", 1))
+    threshold_candidates = 0.0
+    gain_evaluations = 0.0
+    split_calls = 0.0
+    max_features = int(getattr(estimator, "max_features_", X_train.shape[1]))
+
+    for _, sample_idx in _iter_internal_node_samples(tree, X_train):
+        split_calls += 1.0
+        X_node = X_train[sample_idx]
+        n_node_features = X_node.shape[1]
+        feature_scale = 1.0
+        if max_features < n_node_features:
+            feature_scale = max_features / float(n_node_features)
+        node_thresholds = 0.0
+        node_gains = 0.0
+        for feature_idx in range(n_node_features):
+            positions = _candidate_split_positions(X_node[:, feature_idx])
+            if positions.size == 0:
+                continue
+            node_thresholds += float(positions.size)
+            valid = (positions >= min_samples_leaf) & ((sample_idx.size - positions) >= min_samples_leaf)
+            node_gains += float(np.sum(valid))
+        threshold_candidates += feature_scale * node_thresholds
+        gain_evaluations += feature_scale * node_gains
+
+    return _finalize_effort_stats(split_calls, threshold_candidates, gain_evaluations)
+
+
+def _derive_extra_tree_effort_stats(estimator, X_train):
+    tree = estimator.tree_
+    split_calls = 0.0
+    threshold_candidates = 0.0
+    gain_evaluations = 0.0
+    max_features = int(getattr(estimator, "max_features_", X_train.shape[1]))
+
+    for _, sample_idx in _iter_internal_node_samples(tree, X_train):
+        split_calls += 1.0
+        X_node = X_train[sample_idx]
+        n_nonconstant = _count_nonconstant_features(X_node)
+        # One random threshold and one gain evaluation per sampled non-constant feature.
+        evaluated = float(min(max_features, n_nonconstant))
+        threshold_candidates += evaluated
+        gain_evaluations += evaluated
+
+    return _finalize_effort_stats(split_calls, threshold_candidates, gain_evaluations)
+
+
+def _derive_effort_stats(estimator, X_train):
+    splitter_name = getattr(estimator, "splitter", None)
+    if splitter_name == "best":
+        return _derive_best_effort_stats(estimator, X_train)
+    if splitter_name == "random":
+        return _derive_extra_tree_effort_stats(estimator, X_train)
+    return None
+
+
+def _collect_effort_summary(estimators, *, estimator, X, y, cv):
     estimators = estimators or []
+    if not estimators:
+        return {f"{key}_mean": float("nan") for key in EFFORT_KEYS}
+
+    stats_by_fold = []
+    cv_splits = None
+    for fold_idx, fitted_estimator in enumerate(estimators):
+        stats = getattr(fitted_estimator, "splitter_stats_", None)
+        if not stats:
+            if cv_splits is None:
+                cv_splitter = check_cv(cv, y, classifier=is_classifier(estimator))
+                cv_splits = list(cv_splitter.split(X, y))
+            train_idx, _ = cv_splits[fold_idx]
+            stats = _derive_effort_stats(fitted_estimator, X[train_idx])
+        if stats:
+            stats_by_fold.append(stats)
+
+    summary = {}
     for key in EFFORT_KEYS:
         values = []
-        for est in estimators:
-            stats = getattr(est, "splitter_stats_", None)
-            if not stats:
-                continue
+        for stats in stats_by_fold:
             value = stats.get(key)
             if value is None:
                 continue
@@ -130,6 +264,11 @@ def _benchmark_metadata(splitters, n_runs, random_state):
             "fit_time_scope": "Estimator fit only; dataset fetch, subsampling, CSV writing, and scoring happen outside the reported fit_time.",
             "cv_splitter": "Integer cv=N_FOLDS, so sklearn uses deterministic KFold / StratifiedKFold with shuffle=False.",
         },
+        "effort_protocol": {
+            "early_stop": "Measured directly from splitter counters.",
+            "best": "Derived exactly a posteriori from fitted trees and fold-specific training data.",
+            "extra_tree": "Derived a posteriori as one random-threshold gain per sampled non-constant feature at a node.",
+        },
     }
 
 
@@ -150,7 +289,14 @@ def _cross_validate_with_effort(estimator, X, y, *, cv, scoring, return_train_sc
         return_train_score=return_train_score,
         return_estimator=True,
     )
-    return cv_result, _collect_effort_summary(cv_result.get("estimator"))
+    effort = _collect_effort_summary(
+        cv_result.get("estimator"),
+        estimator=estimator,
+        X=X,
+        y=y,
+        cv=cv,
+    )
+    return cv_result, effort
 
 
 def _write_rows_csv(path, rows, fieldnames=None):
