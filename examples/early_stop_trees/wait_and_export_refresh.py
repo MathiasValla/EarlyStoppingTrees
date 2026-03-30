@@ -176,6 +176,7 @@ def main() -> int:
 
     _call([python_executable, str(SCRIPT_DIR / "analysis_gain_landscape.py")], cwd=SCRIPT_DIR)
     _call([python_executable, str(SCRIPT_DIR / "supp_plot_gain_landscape.py")], cwd=SCRIPT_DIR)
+    _call([python_executable, str(SCRIPT_DIR / "supp_plot_effort_metrics.py")], cwd=SCRIPT_DIR)
 
     for script_name in (
         "table1.py",

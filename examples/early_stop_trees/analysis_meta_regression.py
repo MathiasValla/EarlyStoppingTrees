@@ -134,6 +134,12 @@ def main():
     ap.add_argument("--indir", type=str, default=None)
     ap.add_argument("--outdir", type=str, default=None)
     ap.add_argument("--task", type=str, default="regression", choices=sorted(TASKS.keys()))
+    ap.add_argument(
+        "--pmlb-cache-dir",
+        type=str,
+        default=None,
+        help="Optional PMLB cache directory. Falls back to indir/pmlb_cache, then known shared caches.",
+    )
     ap.add_argument("--compute-threshold-proxy", action="store_true", help="Fetch X and compute thresholds-per-feature proxy (slow)")
     ap.add_argument("--threshold-proxy-max-rows", type=int, default=2000, help="Row cap when computing thresholds proxy")
     ap.add_argument("--max-methods", type=int, default=20, help="For PD plots, keep top-K methods by dataset coverage")
@@ -166,13 +172,33 @@ def main():
 
     # Classification-only label meta
     if args.task.startswith("classification"):
-        cache_dir = (Path(indir) / "pmlb_cache")
+        cache_candidates: list[Path] = []
+        if args.pmlb_cache_dir:
+            cache_candidates.append(Path(args.pmlb_cache_dir))
+        cache_candidates.extend(
+            [
+                Path(indir) / "pmlb_cache",
+                Path("/tmp/es_full_nolimit_clf/pmlb_cache"),
+                Path("/tmp/es_full_nolimit_reg/pmlb_cache"),
+            ]
+        )
+        cache_dir = next((path for path in cache_candidates if path.exists()), cache_candidates[0])
         label_meta = compute_classification_label_meta(
             df["dataset"].unique().tolist(),
             cache_dir=cache_dir,
             compute_threshold_proxy=args.compute_threshold_proxy,
             max_rows_for_threshold_proxy=args.threshold_proxy_max_rows,
         )
+        if label_meta.empty or "dataset" not in label_meta.columns:
+            print(
+                f"[meta-regression] label metadata unavailable from cache {cache_dir}; "
+                "continuing with basic dataset covariates only.",
+                flush=True,
+            )
+            label_meta = pd.DataFrame({"dataset": df["dataset"].unique()})
+        for col in ("n_classes", "imbalance_ratio", "thresholds_per_feature_proxy_mean"):
+            if col not in label_meta.columns:
+                label_meta[col] = np.nan
         df = df.merge(label_meta, on="dataset", how="left")
     else:
         df["n_classes"] = np.nan
@@ -185,9 +211,19 @@ def main():
     # Feature set
     feat_cols = ["log_n", "log_p", "p_over_n"]
     if args.task.startswith("classification"):
-        feat_cols += ["n_classes", "imbalance_ratio"]
+        for col in ["n_classes", "imbalance_ratio"]:
+            if np.isfinite(df[col].to_numpy(dtype=float)).any():
+                feat_cols.append(col)
+            else:
+                print(f"[meta-regression] skipping feature '{col}' because it is unavailable.", flush=True)
         if args.compute_threshold_proxy:
-            feat_cols += ["thresholds_per_feature_proxy_mean"]
+            if np.isfinite(df["thresholds_per_feature_proxy_mean"].to_numpy(dtype=float)).any():
+                feat_cols += ["thresholds_per_feature_proxy_mean"]
+            else:
+                print(
+                    "[meta-regression] skipping feature 'thresholds_per_feature_proxy_mean' because it is unavailable.",
+                    flush=True,
+                )
 
     # Fit per method (paired across datasets) so coefficients/R2 are meaningful per method.
     cov = df.groupby("method_key")["dataset"].nunique().sort_values(ascending=False)
@@ -362,4 +398,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -60,6 +60,22 @@ EXTRA_TREE_VARIANT_ORDER = (
     "max_features=2over3",
     "max_features=all",
 )
+EFFORT_RUN_COLS = (
+    "split_calls_mean",
+    "threshold_candidates_mean",
+    "gain_evaluations_mean",
+    "threshold_candidates_per_split_mean",
+    "gain_evaluations_per_split_mean",
+    "parametric_gain_samples_mean",
+    "parametric_quantile_fits_mean",
+)
+EFFORT_RELATIVE_COLS = (
+    "effort_speedup_total",
+    "effort_saved_total",
+    "effort_speedup_per_split",
+    "effort_saved_per_split",
+)
+SPAR_REPRESENTATIVE_KEY = "secretary_par|samples=10,q=0.5"
 
 # secretary_par (parametric) — base color when include_secretary_par=True
 BASE_COLOR_SECRETARY_PAR = "#ff7f0e"
@@ -74,6 +90,78 @@ def _shade_hex(hex_color: str, mix_white: float) -> str:
     g = g + (1 - g) * mix_white
     b = b + (1 - b) * mix_white
     return f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
+
+
+def add_method_key(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a copy with normalized variant and method_key columns."""
+    if df is None:
+        return None
+    out = df.copy()
+    if "variant" not in out.columns:
+        out["variant"] = ""
+    out["variant"] = out["variant"].fillna("").astype(str)
+    out["method_key"] = out["splitter"].astype(str) + "|" + out["variant"]
+    return out
+
+
+def filter_method_keys(df: pd.DataFrame, allowed_method_keys=None) -> pd.DataFrame:
+    """Keep only the requested method keys (e.g. one S_par representative)."""
+    if df is None or allowed_method_keys is None:
+        return df
+    out = add_method_key(df)
+    allowed = set(str(k) for k in allowed_method_keys)
+    return out[out["method_key"].isin(allowed)].copy()
+
+
+def keep_secretary_par_representative(
+    df: pd.DataFrame,
+    representative_key: str = SPAR_REPRESENTATIVE_KEY,
+) -> pd.DataFrame:
+    """Keep all non-S_par methods plus a single selected S_par representative."""
+    if df is None:
+        return None
+    out = add_method_key(df)
+    keep = out["splitter"] != "secretary_par"
+    keep |= out["method_key"] == str(representative_key)
+    return out[keep].copy()
+
+
+def add_effort_relative_metrics(run_level: pd.DataFrame) -> pd.DataFrame:
+    """Add effort-relative metrics versus the best splitter at the same dataset/run."""
+    if run_level is None or run_level.empty or "gain_evaluations_mean" not in run_level.columns:
+        return run_level
+
+    best_cols = ["run", "dataset"]
+    for col in (
+        "gain_evaluations_mean",
+        "gain_evaluations_per_split_mean",
+        "split_calls_mean",
+    ):
+        if col in run_level.columns:
+            best_cols.append(col)
+    best = run_level[run_level["splitter"] == "best"][best_cols].copy()
+    best = best.rename(
+        columns={
+            "gain_evaluations_mean": "gain_evaluations_best",
+            "gain_evaluations_per_split_mean": "gain_evaluations_per_split_best",
+            "split_calls_mean": "split_calls_best",
+        }
+    )
+    merged = run_level.merge(best, on=["run", "dataset"], how="left")
+    if "gain_evaluations_mean" in merged.columns and "gain_evaluations_best" in merged.columns:
+        denom = merged["gain_evaluations_mean"].replace(0, np.nan)
+        merged["effort_speedup_total"] = merged["gain_evaluations_best"] / denom
+        merged["effort_saved_total"] = 1.0 - (denom / merged["gain_evaluations_best"].replace(0, np.nan))
+    if (
+        "gain_evaluations_per_split_mean" in merged.columns
+        and "gain_evaluations_per_split_best" in merged.columns
+    ):
+        denom = merged["gain_evaluations_per_split_mean"].replace(0, np.nan)
+        merged["effort_speedup_per_split"] = merged["gain_evaluations_per_split_best"] / denom
+        merged["effort_saved_per_split"] = 1.0 - (
+            denom / merged["gain_evaluations_per_split_best"].replace(0, np.nan)
+        )
+    return merged
 
 
 def get_variant_method_order_and_colors(*summary_dfs, include_secretary_par: bool = False):
@@ -177,7 +265,7 @@ def plot_grouped_variant_legend(
         sp = str(k).split("|", 1)[0] if "|" in str(k) else str(k)
         if sp in ("best", "block_rank", "prophet_1sample", "extra_tree"):
             last_pairs.append((k, lab))
-        elif sp in ("secretary", "secretary_all", "double_secretary"):
+        elif sp in ("secretary", "secretary_all", "double_secretary", "secretary_par"):
             families[sp].append((k, lab))
 
     def _var_key(key):
@@ -196,6 +284,8 @@ def plot_grouped_variant_legend(
         for s in SPLITTERS_NO_PAR
         if s in families and s not in ("best", "block_rank", "prophet_1sample", "extra_tree")
     ]
+    if "secretary_par" in families:
+        family_order.append("secretary_par")
     for sp in family_order:
         families[sp].sort(key=lambda kv: _var_key(kv[0]))
 
@@ -228,6 +318,7 @@ def plot_grouped_variant_legend(
         "secretary": "Secretary",
         "secretary_all": "S_all",
         "double_secretary": "S²",
+        "secretary_par": "S_par",
     }
 
     y_header = 0.98
@@ -352,7 +443,8 @@ def compute_regression_speedup_loss(long_df: pd.DataFrame):
     cols = ["run", "dataset", "splitter", "n_samples", "n_features", "speedup", "loss_rmse", "loss_rmse_bounded"]
     if "variant" in merged.columns:
         cols.insert(3, "variant")
-    return merged[cols]
+    cols.extend([c for c in EFFORT_RUN_COLS if c in merged.columns])
+    return add_effort_relative_metrics(merged[cols])
 
 
 def compute_classification_speedup_loss(long_df: pd.DataFrame):
@@ -377,7 +469,8 @@ def compute_classification_speedup_loss(long_df: pd.DataFrame):
     cols = ["run", "dataset", "splitter", "n_samples", "n_features", "speedup", "loss_acc", "loss_f1"]
     if "variant" in merged.columns:
         cols.insert(3, "variant")
-    return merged[cols]
+    cols.extend([c for c in EFFORT_RUN_COLS if c in merged.columns])
+    return add_effort_relative_metrics(merged[cols])
 
 
 def _iqr(x):
@@ -399,6 +492,13 @@ def per_dataset_median_iqr(run_level: pd.DataFrame, value_cols: list, group_cols
     return med.merge(iqr, on=group_cols)
 
 
+def _summary_value_cols(run_level: pd.DataFrame, base_cols: list[str]) -> list[str]:
+    """Return base summary columns plus any available relative-effort diagnostics."""
+    value_cols = list(base_cols)
+    value_cols.extend(col for col in EFFORT_RELATIVE_COLS if col in run_level.columns)
+    return value_cols
+
+
 def get_regression_run_level(indir: Path) -> pd.DataFrame:
     """Load regression runs and compute run-level speedup and loss_rmse."""
     long_df = load_regression_runs(indir)
@@ -414,12 +514,13 @@ def get_regression_dataset_summary(indir: Path, exclude_par: bool = False, by_va
         return None
     if exclude_par:
         run_level = run_level[run_level["splitter"].isin(SPLITTERS_NO_PAR)].copy()
+    value_cols = _summary_value_cols(run_level, ["speedup", "loss_rmse", "loss_rmse_bounded"])
     if by_variant:
         if "variant" not in run_level.columns:
             run_level["variant"] = ""
         run_level["variant"] = run_level["variant"].fillna("").astype(str)
-        return per_dataset_median_iqr(run_level, ["speedup", "loss_rmse", "loss_rmse_bounded"], group_cols=["dataset", "splitter", "variant"])
-    return per_dataset_median_iqr(run_level, ["speedup", "loss_rmse", "loss_rmse_bounded"])
+        return per_dataset_median_iqr(run_level, value_cols, group_cols=["dataset", "splitter", "variant"])
+    return per_dataset_median_iqr(run_level, value_cols)
 
 
 def get_classification_run_level(indir: Path, criterion: str) -> pd.DataFrame:
@@ -437,12 +538,13 @@ def get_classification_dataset_summary(indir: Path, criterion: str, exclude_par:
         return None
     if exclude_par:
         run_level = run_level[run_level["splitter"].isin(SPLITTERS_NO_PAR)].copy()
+    value_cols = _summary_value_cols(run_level, ["speedup", "loss_acc", "loss_f1"])
     if by_variant:
         if "variant" not in run_level.columns:
             run_level["variant"] = ""
         run_level["variant"] = run_level["variant"].fillna("").astype(str)
-        return per_dataset_median_iqr(run_level, ["speedup", "loss_acc", "loss_f1"], group_cols=["dataset", "splitter", "variant"])
-    return per_dataset_median_iqr(run_level, ["speedup", "loss_acc", "loss_f1"])
+        return per_dataset_median_iqr(run_level, value_cols, group_cols=["dataset", "splitter", "variant"])
+    return per_dataset_median_iqr(run_level, value_cols)
 
 
 def load_all(indir: Path, exclude_secretary_par: bool = False, by_variant: bool = False):

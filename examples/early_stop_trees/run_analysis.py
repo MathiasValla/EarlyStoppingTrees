@@ -32,6 +32,12 @@ def main():
         default="regression,classification_gini,classification_entropy",
         help="Comma-separated tasks: regression, classification_gini, classification_entropy",
     )
+    ap.add_argument(
+        "--pmlb-cache-dir",
+        type=str,
+        default=None,
+        help="Optional shared PMLB cache directory for classification meta-analysis.",
+    )
     ap.add_argument("--compute-threshold-proxy", action="store_true", help="Slow: compute thresholds-per-feature proxy via PMLB fetch")
     ap.add_argument("--threshold-proxy-max-rows", type=int, default=2000, help="Row cap for threshold-proxy proxy computation")
     ap.add_argument("--max-methods", type=int, default=20, help="Max methods for PD/regime predictions")
@@ -69,6 +75,8 @@ def main():
             "--task",
             task,
         ]
+        if args.pmlb_cache_dir:
+            meta_args += ["--pmlb-cache-dir", args.pmlb_cache_dir]
         if args.compute_threshold_proxy:
             meta_args.append("--compute-threshold-proxy")
             meta_args += ["--threshold-proxy-max-rows", str(args.threshold_proxy_max_rows)]
@@ -77,4 +85,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

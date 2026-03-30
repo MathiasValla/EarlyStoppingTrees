@@ -1,0 +1,71 @@
+\begin{thebibliography}{10}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{breiman1984cart}
+L.~Breiman, J.~H. Friedman, R.~A. Olshen, C.~J. Stone, Classification and
+  Regression Trees, Wadsworth, Belmont, CA, 1984.
+
+\bibitem{breiman2001rf}
+L.~Breiman, Random forests, Machine Learning 45~(1) (2001) 5--32.
+\newblock \href {https://doi.org/10.1023/A:1010933404324}
+  {\path{doi:10.1023/A:1010933404324}}.
+
+\bibitem{geurts2006extra}
+P.~Geurts, D.~Ernst, L.~Wehenkel, Extremely randomized trees, Machine Learning
+  63~(1) (2006) 3--42.
+\newblock \href {https://doi.org/10.1007/s10994-006-6226-1}
+  {\path{doi:10.1007/s10994-006-6226-1}}.
+
+\bibitem{gilbertmosteller1966}
+J.~P. Gilbert, F.~Mosteller, Recognizing the maximum of a sequence, Journal of
+  the American Statistical Association 61~(313) (1966) 35--73.
+\newblock \href {https://doi.org/10.1080/01621459.1966.10502008}
+  {\path{doi:10.1080/01621459.1966.10502008}}.
+
+\bibitem{ferguson1989secretary}
+T.~S. Ferguson, Who solved the secretary problem?, Statistical Science 4~(3)
+  (1989) 282--296.
+\newblock \href {https://doi.org/10.1214/ss/1177012493}
+  {\path{doi:10.1214/ss/1177012493}}.
+
+\bibitem{nuti2023single}
+P.~Nuti, J.~Vondr{\'a}k, Secretary problems: The power of a single sample, in:
+  Proceedings of the 2023 ACM-SIAM Symposium on Discrete Algorithms, SIAM,
+  2023, pp. 2015--2029.
+\newblock \href {https://doi.org/10.1137/1.9781611977554.ch77}
+  {\path{doi:10.1137/1.9781611977554.ch77}}.
+
+\bibitem{romano2022pmlb}
+J.~D. Romano, T.~T. Le, W.~L. Cava, J.~T. Gregg, D.~J. Goldberg, N.~L. Ray,
+  P.~Chakraborty, D.~Himmelstein, W.~Fu, J.~H. Moore, Pmlb v1.0: an open-source
+  dataset collection for benchmarking machine learning methods, Bioinformatics
+  38~(3) (2022) 878--880.
+\newblock \href {https://doi.org/10.1093/bioinformatics/btab665}
+  {\path{doi:10.1093/bioinformatics/btab665}}.
+
+\bibitem{rubinstein2020samples}
+A.~Rubinstein, J.~Z. Wang, S.~M. Weinberg, Optimal single-choice prophet
+  inequalities from samples, in: 11th Innovations in Theoretical Computer
+  Science Conference (ITCS 2020), Vol. 151 of LIPIcs, Schloss Dagstuhl --
+  Leibniz-Zentrum f{\"u}r Informatik, 2020, pp. 60:1--60:10.
+\newblock \href {https://doi.org/10.4230/LIPIcs.ITCS.2020.60}
+  {\path{doi:10.4230/LIPIcs.ITCS.2020.60}}.
+
+\bibitem{samuelcahn1984}
+E.~Samuel-Cahn, Comparison of threshold stop rules and maximum for independent
+  nonnegative random variables, The Annals of Probability 12~(4) (1984)
+  1213--1216.
+\newblock \href {https://doi.org/10.1214/aop/1176993150}
+  {\path{doi:10.1214/aop/1176993150}}.
+
+\bibitem{laurentmassart2000}
+B.~Laurent, P.~Massart, Adaptive estimation of a quadratic functional by model
+  selection, The Annals of Statistics 28~(5) (2000) 1302--1338.
+\newblock \href {https://doi.org/10.1214/aos/1015957395}
+  {\path{doi:10.1214/aos/1015957395}}.
+
+\end{thebibliography}

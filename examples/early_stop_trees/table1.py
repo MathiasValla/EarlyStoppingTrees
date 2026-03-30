@@ -4,6 +4,7 @@ Table 1. Global summary by method.
 
 For each method and each task (Regression, Gini, Entropy), report:
 - median speedup across datasets
+- median total effort saved across datasets (% gain evaluations saved versus best)
 - median predictive loss across datasets (%)
 - 90th percentile predictive loss (%)
 - proportion of datasets for which loss stays below a fixed tolerance
@@ -16,7 +17,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from benchmark_results_utils import load_all, SPLITTERS_NO_PAR
+from benchmark_results_utils import keep_secretary_par_representative, load_all
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_DIR = SCRIPT_DIR / "benchmark_results"
@@ -29,7 +30,7 @@ SPEEDUP_THRESHOLD = 1.0 + SPEEDUP_THRESHOLD_PCT / 100.0
 
 
 def _global_summary_one_task(summary: pd.DataFrame, loss_col: str) -> pd.DataFrame:
-    """Per (splitter, variant): median speedup, median loss (%), P90 loss (%), P(loss ≤ τ), P(speedup ≥ threshold)."""
+    """Per (splitter, variant): median speedup, effort saved, loss (%), P90 loss (%), P(loss ≤ τ), P(speedup ≥ threshold)."""
     if summary is None or summary.empty:
         return pd.DataFrame()
     summary = summary.dropna(subset=["speedup_median", loss_col]).copy()
@@ -45,15 +46,22 @@ def _global_summary_one_task(summary: pd.DataFrame, loss_col: str) -> pd.DataFra
         v = sub["variant"].iloc[0]
         if pd.isna(v):
             v = ""
-        method_label = f"{s} ({v})" if v else s
+        if s == "secretary_par" and v == "samples=10,q=0.5":
+            method_label = "secretary_par (10, q=0.5)"
+        else:
+            method_label = f"{s} ({v})" if v else s
         sp = sub["speedup_median"].values
         loss = sub[loss_col].values
         loss_pct = 100.0 * loss
+        effort_saved_total_pct = np.nan
+        if "effort_saved_total_median" in sub.columns:
+            effort_saved_total_pct = 100.0 * np.median(sub["effort_saved_total_median"].values)
         rows.append({
             "method": method_label,
             "splitter": s,
             "variant": v,
             "median_speedup": np.median(sp),
+            "median_effort_saved_total_pct": effort_saved_total_pct,
             "median_loss_pct": np.median(loss_pct),
             "p90_loss_pct": np.percentile(loss_pct, 90),
             "p_loss_below_tol": np.mean(loss <= LOSS_TOLERANCE),
@@ -64,12 +72,19 @@ def _global_summary_one_task(summary: pd.DataFrame, loss_col: str) -> pd.DataFra
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    data = load_all(BENCHMARK_DIR, exclude_secretary_par=True, by_variant=True)
+    data = load_all(BENCHMARK_DIR, exclude_secretary_par=False, by_variant=True)
+
+    regression_summary = data["regression_summary"]
+    if regression_summary is not None:
+        regression_summary = regression_summary[regression_summary["splitter"] != "secretary_par"].copy()
+
+    gini_summary = keep_secretary_par_representative(data["classification_gini_summary"])
+    entropy_summary = keep_secretary_par_representative(data["classification_entropy_summary"])
 
     configs = [
-        ("regression", data["regression_summary"], "loss_rmse_bounded_median", "Regression"),
-        ("gini", data["classification_gini_summary"], "loss_f1_median", "Classification (Gini)"),
-        ("entropy", data["classification_entropy_summary"], "loss_f1_median", "Classification (Entropy)"),
+        ("regression", regression_summary, "loss_rmse_bounded_median", "Regression"),
+        ("gini", gini_summary, "loss_f1_median", "Classification (Gini)"),
+        ("entropy", entropy_summary, "loss_f1_median", "Classification (Entropy)"),
     ]
 
     all_tables = []
@@ -81,10 +96,20 @@ def main():
             continue
         df["task"] = task_label
         # Reorder columns: task, method, then metrics
-        cols = ["task", "method", "median_speedup", "median_loss_pct", "p90_loss_pct", "p_loss_below_tol", "p_speedup_above_thr"]
+        cols = [
+            "task",
+            "method",
+            "median_speedup",
+            "median_effort_saved_total_pct",
+            "median_loss_pct",
+            "p90_loss_pct",
+            "p_loss_below_tol",
+            "p_speedup_above_thr",
+        ]
         df = df[[c for c in cols if c in df.columns]]
         df = df.rename(columns={
             "median_speedup": "median_speedup",
+            "median_effort_saved_total_pct": "median_effort_saved_%",
             "median_loss_pct": "median_loss_%",
             "p90_loss_pct": "p90_loss_%",
             "p_loss_below_tol": f"P(loss≤{int(LOSS_TOLERANCE*100)}%)",
@@ -104,7 +129,7 @@ def main():
         cols = [c for c in combined.columns if c not in ("task", "method")]
         with open(out_tex, "w") as f:
             f.write("\\begin{table}[t]\n\\centering\n")
-            f.write("\\caption{Global summary by method: median speedup, median and 90th percentile loss (\\%), ")
+            f.write("\\caption{Global summary by method: median speedup, median effort saved (\\% of gain evaluations relative to exhaustive search), median and 90th percentile loss (\\%), ")
             f.write(f"proportion of datasets with loss $\\leq$ {int(LOSS_TOLERANCE*100)}\\% and speedup $\\geq$ {SPEEDUP_THRESHOLD_PCT}\\% .}}\n")
             f.write("\\label{tab:global-summary}\n")
             f.write("\\begin{tabular}{ll" + "r" * len(cols) + "}\n\\toprule\n")

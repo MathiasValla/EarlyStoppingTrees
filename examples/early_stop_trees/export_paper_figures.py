@@ -66,6 +66,8 @@ def main() -> int:
         "supp_figure_11_within_whiskers_loss_speedup.png",
         "supp_figure_12_success_joint_all.png",
         "supp_figure_13_gain_landscape.png",
+        "supp_figure_14_effort_loss.png",
+        "supp_figure_15_time_effort_calibration.png",
     ]
     print("--- SUPP_FIGURES/ (expected supplementary PNGs) ---")
     n_ok = 0

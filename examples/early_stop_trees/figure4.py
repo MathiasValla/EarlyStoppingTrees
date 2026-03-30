@@ -32,6 +32,7 @@ from benchmark_results_utils import (
     get_regression_run_level,
     get_classification_run_level,
     get_variant_method_order_and_colors,
+    keep_secretary_par_representative,
     plot_grouped_variant_legend,
 )
 
@@ -394,20 +395,21 @@ def main():
     args = ap.parse_args()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    data = load_all(BENCHMARK_DIR, exclude_secretary_par=True, by_variant=True)
+    data = load_all(BENCHMARK_DIR, exclude_secretary_par=False, by_variant=True)
 
     reg_run = data.get("regression_run")
     if reg_run is None:
         reg_run = get_regression_run_level(BENCHMARK_DIR)
-        if reg_run is not None:
-            from benchmark_results_utils import SPLITTERS_NO_PAR
-            reg_run = reg_run[reg_run["splitter"].isin(SPLITTERS_NO_PAR)].copy()
+    if reg_run is not None:
+        reg_run = reg_run[reg_run["splitter"] != "secretary_par"].copy()
     gini_run = data.get("classification_gini_run")
     if gini_run is None:
         gini_run = get_classification_run_level(BENCHMARK_DIR, "gini")
+    gini_run = keep_secretary_par_representative(gini_run)
     entropy_run = data.get("classification_entropy_run")
     if entropy_run is None:
         entropy_run = get_classification_run_level(BENCHMARK_DIR, "entropy")
+    entropy_run = keep_secretary_par_representative(entropy_run)
 
     for df in (reg_run, gini_run, entropy_run):
         if df is not None and "variant" in df.columns:
@@ -415,7 +417,9 @@ def main():
         elif df is not None:
             df["method_key"] = df["splitter"].astype(str)
 
-    method_order, method_colors, method_labels = get_variant_method_order_and_colors(reg_run, gini_run, entropy_run)
+    method_order, method_colors, method_labels = get_variant_method_order_and_colors(
+        reg_run, gini_run, entropy_run, include_secretary_par=True
+    )
 
     task_configs = [
         (reg_run, "loss_rmse_bounded", "Regression"),

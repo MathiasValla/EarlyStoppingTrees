@@ -598,6 +598,7 @@ def _run_single_dataset_regression(
     name,
     outdir,
     random_state,
+    pmlb_cache_dir=None,
     max_samples=None,
     max_rows=None,
     max_features=None,
@@ -607,8 +608,9 @@ def _run_single_dataset_regression(
     """Run regression for one dataset; return list of row dicts or [] if skipped (fetch/size)."""
     splitters = splitters if splitters is not None else SPLITTERS
     outdir = Path(outdir or ".")
+    cache_dir = Path(pmlb_cache_dir) if pmlb_cache_dir is not None else (outdir / "pmlb_cache")
     try:
-        X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(outdir / "pmlb_cache"))
+        X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(cache_dir))
     except Exception:
         return []
     X = np.asarray(X, dtype=np.float64)
@@ -634,6 +636,7 @@ def _run_single_dataset_classification(
     criterion,
     outdir,
     random_state,
+    pmlb_cache_dir=None,
     max_samples=None,
     max_rows=None,
     max_features=None,
@@ -643,8 +646,9 @@ def _run_single_dataset_classification(
     """Run classification for one dataset; return list of row dicts or [] if skipped."""
     splitters = splitters if splitters is not None else SPLITTERS
     outdir = Path(outdir or ".")
+    cache_dir = Path(pmlb_cache_dir) if pmlb_cache_dir is not None else (outdir / "pmlb_cache")
     try:
-        X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(outdir / "pmlb_cache"))
+        X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(cache_dir))
     except Exception:
         return []
     X = np.asarray(X, dtype=np.float64)
@@ -672,7 +676,7 @@ def _run_single_dataset_classification(
     )
 
 
-def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_features=None, max_product=None, outdir=None, dataset=None, exclude=None, random_state=None, isolate_datasets=False, per_run_path=None, splitters=None):
+def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_features=None, max_product=None, outdir=None, dataset=None, datasets=None, pmlb_cache_dir=None, exclude=None, random_state=None, isolate_datasets=False, per_run_path=None, splitters=None):
     """Run regression benchmark once. Returns (rows, path). random_state controls estimator and subsampling RNG.
     If isolate_datasets=True, each dataset runs in a subprocess; SIGSEGV (or any non-zero exit) skips that dataset automatically.
     If per_run_path is set (e.g. by run_benchmark_n_times), results are written there instead of regression_results.csv (so each run gets its own file)."""
@@ -683,7 +687,15 @@ def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_featu
     path = Path(per_run_path) if per_run_path is not None else outdir / "regression_results.csv"
     exclude = set(exclude or [])
 
-    if dataset is not None:
+    if datasets is not None:
+        datasets = [
+            n
+            for n in datasets
+            if n in regression_dataset_names and not n.startswith("_deprecated_") and n not in exclude
+        ]
+        if max_datasets is not None:
+            datasets = datasets[: max_datasets]
+    elif dataset is not None:
         datasets = [dataset] if dataset in regression_dataset_names else []
     else:
         datasets = [n for n in regression_dataset_names if not n.startswith("_deprecated_") and n not in exclude]
@@ -702,6 +714,8 @@ def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_featu
                 "--random-state", str(random_state),
                 "--outdir", str(outdir),
             ]
+            if pmlb_cache_dir is not None:
+                cmd += ["--pmlb-cache-dir", str(pmlb_cache_dir)]
             if max_product is not None and max_product > 0:
                 cmd += ["--max-product", str(max_product)]
             if max_samples is not None:
@@ -737,7 +751,8 @@ def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_featu
     else:
         for i, name in enumerate(datasets):
             try:
-                X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(outdir / "pmlb_cache"))
+                cache_dir = Path(pmlb_cache_dir) if pmlb_cache_dir is not None else (outdir / "pmlb_cache")
+                X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(cache_dir))
             except Exception as e:
                 print(f"[regression] skip {name}: {e}", file=sys.stderr)
                 continue
@@ -787,7 +802,7 @@ def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_featu
     return rows, path
 
 
-def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_features=None, max_product=None, criterion="gini", outdir=None, dataset=None, exclude=None, random_state=None, isolate_datasets=False, per_run_path=None, splitters=None):
+def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_features=None, max_product=None, criterion="gini", outdir=None, dataset=None, datasets=None, pmlb_cache_dir=None, exclude=None, random_state=None, isolate_datasets=False, per_run_path=None, splitters=None):
     """Run classification benchmark once. Returns (rows, path). random_state controls estimator and subsampling RNG.
     If isolate_datasets=True, each dataset runs in a subprocess; SIGSEGV (or any non-zero exit) skips that dataset automatically.
     If per_run_path is set (e.g. by run_benchmark_n_times), results are written there instead of classification_{criterion}_results.csv (so each run gets its own file).
@@ -799,7 +814,15 @@ def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_f
     path = Path(per_run_path) if per_run_path is not None else outdir / f"classification_{criterion}_results.csv"
     exclude = set(exclude or [])
 
-    if dataset is not None:
+    if datasets is not None:
+        datasets = [
+            n
+            for n in datasets
+            if n in classification_dataset_names and not n.startswith("_deprecated_") and n not in exclude
+        ]
+        if max_datasets is not None:
+            datasets = datasets[: max_datasets]
+    elif dataset is not None:
         datasets = [dataset] if dataset in classification_dataset_names else []
     else:
         datasets = [n for n in classification_dataset_names if not n.startswith("_deprecated_") and n not in exclude]
@@ -818,6 +841,8 @@ def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_f
                 "--random-state", str(random_state),
                 "--outdir", str(outdir),
             ]
+            if pmlb_cache_dir is not None:
+                cmd += ["--pmlb-cache-dir", str(pmlb_cache_dir)]
             if max_product is not None and max_product > 0:
                 cmd += ["--max-product", str(max_product)]
             if max_samples is not None:
@@ -853,7 +878,8 @@ def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_f
     else:
         for i, name in enumerate(datasets):
             try:
-                X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(outdir / "pmlb_cache"))
+                cache_dir = Path(pmlb_cache_dir) if pmlb_cache_dir is not None else (outdir / "pmlb_cache")
+                X, y = fetch_data(name, return_X_y=True, local_cache_dir=str(cache_dir))
             except Exception as e:
                 print(f"[classification {criterion}] skip {name}: {e}", file=sys.stderr)
                 continue
@@ -1002,6 +1028,8 @@ def run_benchmark_n_times(
     max_product=None,
     outdir=None,
     dataset=None,
+    datasets=None,
+    pmlb_cache_dir=None,
     exclude=None,
     regression_only=False,
     classification_only=False,
@@ -1039,6 +1067,8 @@ def run_benchmark_n_times(
                 max_product=max_product,
                 outdir=outdir,
                 dataset=dataset,
+                datasets=datasets,
+                pmlb_cache_dir=pmlb_cache_dir,
                 exclude=exclude,
                 random_state=seed,
                 isolate_datasets=isolate_datasets,
@@ -1061,6 +1091,8 @@ def run_benchmark_n_times(
                     criterion=criterion,
                     outdir=outdir,
                     dataset=dataset,
+                    datasets=datasets,
+                    pmlb_cache_dir=pmlb_cache_dir,
                     exclude=exclude,
                     random_state=seed,
                     isolate_datasets=isolate_datasets,
@@ -1147,6 +1179,18 @@ def main():
     p.add_argument("--max-product", type=int, default=1000000, help="Skip datasets with n_samples*n_features > this (default: 1000000, use 0 for no limit)")
     p.add_argument("--outdir", type=str, default=None, help="Output directory for CSVs (default: examples/early_stop_trees/benchmark_results)")
     p.add_argument("--dataset", type=str, default=None, help="Run only this dataset (by name); must be in regression and/or classification list")
+    p.add_argument(
+        "--datasets-file",
+        type=str,
+        default=None,
+        help="Optional newline-separated dataset list. Names outside the selected task are ignored.",
+    )
+    p.add_argument(
+        "--pmlb-cache-dir",
+        type=str,
+        default=None,
+        help="Optional shared PMLB cache directory. Defaults to <outdir>/pmlb_cache.",
+    )
     p.add_argument("--exclude-datasets", type=str, default=None, help="Comma-separated dataset names to skip (e.g. 192_vineyard)")
     p.add_argument("--regression-only", action="store_true", help="Run only regression")
     p.add_argument("--classification-only", action="store_true", help="Run only classification")
@@ -1169,6 +1213,16 @@ def main():
     random_state = args.random_state if args.random_state is not None else RANDOM_STATE
     max_product = args.max_product if args.max_product > 0 else None
     splitters = tuple(s.strip() for s in (args.splitters or "").split(",") if s.strip()) if args.splitters else None
+    if args.dataset is not None and args.datasets_file is not None:
+        print("Use either --dataset or --datasets-file, not both.", file=sys.stderr)
+        sys.exit(2)
+    datasets = None
+    if args.datasets_file is not None:
+        datasets = [
+            line.strip()
+            for line in Path(args.datasets_file).read_text().splitlines()
+            if line.strip()
+        ]
 
     # Entry point for subprocess: run one dataset and output pickle to stdout
     if args.run_single_dataset is not None:
@@ -1179,6 +1233,7 @@ def main():
             if args.task == "regression":
                 rows = _run_single_dataset_regression(
                     name, outdir, random_state,
+                    pmlb_cache_dir=args.pmlb_cache_dir,
                     max_samples=args.max_samples,
                     max_rows=args.max_rows,
                     max_features=args.max_features,
@@ -1189,6 +1244,7 @@ def main():
                 criterion = "gini" if args.task == "classification_gini" else "entropy"
                 rows = _run_single_dataset_classification(
                     name, criterion, outdir, random_state,
+                    pmlb_cache_dir=args.pmlb_cache_dir,
                     max_samples=args.max_samples,
                     max_rows=args.max_rows,
                     max_features=args.max_features,
@@ -1219,6 +1275,8 @@ def main():
             max_product=max_product,
             outdir=outdir,
             dataset=args.dataset,
+            datasets=datasets,
+            pmlb_cache_dir=args.pmlb_cache_dir,
             exclude=exclude,
             regression_only=args.regression_only,
             classification_only=args.classification_only,
@@ -1235,6 +1293,8 @@ def main():
                 max_product=max_product,
                 outdir=outdir,
                 dataset=args.dataset,
+                datasets=datasets,
+                pmlb_cache_dir=args.pmlb_cache_dir,
                 exclude=exclude,
                 random_state=random_state,
                 isolate_datasets=isolate,
@@ -1254,6 +1314,8 @@ def main():
                     criterion=criterion,
                     outdir=outdir,
                     dataset=args.dataset,
+                    datasets=datasets,
+                    pmlb_cache_dir=args.pmlb_cache_dir,
                     exclude=exclude,
                     random_state=random_state,
                     isolate_datasets=isolate,

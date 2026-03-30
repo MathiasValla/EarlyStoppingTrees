@@ -30,6 +30,7 @@ from benchmark_results_utils import (
     SECRETARY_SPLITTERS_NO_PAR,
     per_dataset_median_iqr,
     get_variant_method_order_and_colors,
+    keep_secretary_par_representative,
     plot_grouped_variant_legend,
 )
 
@@ -66,6 +67,7 @@ FIG1_DEFAULT_FAMILY_KEYS = frozenset(
         "secretary|1overe",
         "double_secretary|1overe",
         "secretary_all|1overe",
+        "secretary_par|samples=10,q=0.5",
         "block_rank|",
         "prophet_1sample|",
         "extra_tree|max_features=all",
@@ -721,8 +723,8 @@ def main():
 
     flagship_style = False
     if args.variants_of is None:
-        # Flagship figure: all splitter variants except secretary_par (S_par).
-        data = load_all(indir, exclude_secretary_par=True, by_variant=True)
+        # Flagship figure: all main variants, plus one selected S_par representative in classification.
+        data = load_all(indir, exclude_secretary_par=False, by_variant=True)
         reg_summary = data["regression_summary"]
         clf_gini_summary = data["classification_gini_summary"]
         clf_entropy_summary = data["classification_entropy_summary"]
@@ -733,16 +735,22 @@ def main():
         if clf_entropy_summary is None:
             raise FileNotFoundError("No classification entropy summary (run-level CSVs missing?)")
 
-        reg_summary = _add_dataset_info(reg_summary, data["regression_run"])
-        clf_gini_summary = _add_dataset_info(clf_gini_summary, data["classification_gini_run"])
-        clf_entropy_summary = _add_dataset_info(clf_entropy_summary, data["classification_entropy_run"])
+        reg_summary = _add_dataset_info(reg_summary[reg_summary["splitter"] != "secretary_par"].copy(), data["regression_run"])
+        clf_gini_summary = _add_dataset_info(
+            keep_secretary_par_representative(clf_gini_summary),
+            data["classification_gini_run"],
+        )
+        clf_entropy_summary = _add_dataset_info(
+            keep_secretary_par_representative(clf_entropy_summary),
+            data["classification_entropy_run"],
+        )
 
         for summ in (reg_summary, clf_gini_summary, clf_entropy_summary):
             v = summ.get("variant", pd.Series([""] * len(summ)))
             summ["method_key"] = summ["splitter"].astype(str) + "|" + v.fillna("").astype(str)
 
         method_order, method_colors, method_labels = get_variant_method_order_and_colors(
-            reg_summary, clf_gini_summary, clf_entropy_summary, include_secretary_par=False
+            reg_summary, clf_gini_summary, clf_entropy_summary, include_secretary_par=True
         )
         out_prefix = "figure1_pareto"
         flagship_style = True

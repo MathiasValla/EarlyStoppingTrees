@@ -2,6 +2,7 @@
 # Dense data only (sparse mirrors can be added later).
 
 from .._lib.sklearn.tree._criterion cimport Criterion
+from .._lib.sklearn.tree._partitioner cimport DensePartitioner
 from .._lib.sklearn.tree._splitter cimport SplitRecord, Splitter
 from .._lib.sklearn.tree._tree cimport ParentInfo
 from .._lib.sklearn.utils._typedefs cimport float32_t, float64_t, int8_t, intp_t, uint8_t, uint32_t
@@ -15,6 +16,8 @@ cdef class BaseEarlyStopSplitter(Splitter):
     probability of selecting a near-best split.
     """
     cdef const float32_t[:, ::1] X  # Dense feature matrix (set in init)
+    cdef DensePartitioner partitioner
+    cdef uint32_t explore_rand_r_state
     cdef float64_t explore_frac      # Secretary exploration prob: (0,1]=use it; <0=1/e
     cdef bint use_sqrt_n            # If True, explore_frac = 1/sqrt(n_node)
     cdef intp_t n_split_calls
@@ -35,8 +38,9 @@ cdef class BaseEarlyStopSplitter(Splitter):
 # --- Secretary family ---
 
 cdef class SecretarySplitter(BaseEarlyStopSplitter):
-    """(S) Secretary on splits: explore 1/e random (covariate, threshold) pairs,
-    then select the next split with gain > max in exploration set, or best in set."""
+    """(S) Secretary on splits: explore a random fraction of continuous
+    (covariate, threshold) draws, then select the next exact split with gain
+    above the exploration maximum, or the exploration best."""
     cdef int node_split(
         self,
         ParentInfo* parent,
@@ -46,7 +50,8 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
 
 cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
     """(S+par) Secretary on covariates; per-covariate best threshold via parametric
-    (Gaussian / Gamma approximation or empirical) quantile alpha."""
+    (Gaussian / Gamma approximation or empirical) quantile alpha from continuous
+    threshold samples."""
     cdef float64_t alpha  # Quantile for threshold acceptance (e.g. 0.5)
     cdef int criterion_kind  # 0=empirical, 1=regression (Gaussian), 2=classification (Gamma approx)
     cdef float64_t p_thr_par  # Fraction of thresholds to sample for gain distribution (e.g. 0.1)
@@ -70,8 +75,9 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
 
 
 cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
-    """(S^2) Double secretary: secretary on covariates, reward = secretary gain
-    on thresholds (1/e thresholds per covariate in exploration)."""
+    """(S^2) Double secretary: secretary on covariates, reward = continuous
+    threshold-sample exploration followed by the first exact threshold above
+    the sampled maximum."""
     cdef int node_split(
         self,
         ParentInfo* parent,
@@ -91,12 +97,11 @@ cdef class ProphetSamplesSplitter(BaseEarlyStopSplitter):
 
 
 cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
-    """(PI-1) Secretary with exploration = one random split per feature; τ = max; selection = first new split with gain ≥ τ."""
+    """(PI-1) Secretary with exploration = one random continuous-threshold draw
+    per feature; τ = max; selection = the best new exact split with gain >= τ
+    on the first feature that clears the threshold."""
     cdef float64_t* explore_gains
     cdef SplitRecord* explore_splits
-    cdef intp_t* sel_f
-    cdef intp_t* sel_pos
-    cdef intp_t sel_cap
     cdef int init(
         self,
         object X,

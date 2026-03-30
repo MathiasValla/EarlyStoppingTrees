@@ -31,7 +31,12 @@ from matplotlib.colors import ListedColormap
 from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 
-from benchmark_results_utils import load_all, get_variant_method_order_and_colors, plot_grouped_variant_legend
+from benchmark_results_utils import (
+    get_variant_method_order_and_colors,
+    keep_secretary_par_representative,
+    load_all,
+    plot_grouped_variant_legend,
+)
 
 # KNN for dominant-region shading (pure NumPy, no sklearn)
 KNN_NEIGHBORS = 7
@@ -270,30 +275,40 @@ def main():
     region_alpha = float(np.clip(args.region_alpha, 0.0, 1.0))
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    data = load_all(BENCHMARK_DIR, exclude_secretary_par=True, by_variant=True)
+    data = load_all(BENCHMARK_DIR, exclude_secretary_par=False, by_variant=True)
+
+    regression_summary = data["regression_summary"]
+    if regression_summary is not None:
+        regression_summary = regression_summary[regression_summary["splitter"] != "secretary_par"].copy()
+
+    classification_gini_summary = keep_secretary_par_representative(data["classification_gini_summary"])
+    classification_entropy_summary = keep_secretary_par_representative(data["classification_entropy_summary"])
 
     method_order, method_colors, method_labels = get_variant_method_order_and_colors(
-        data["regression_summary"], data["classification_gini_summary"], data["classification_entropy_summary"]
+        regression_summary,
+        classification_gini_summary,
+        classification_entropy_summary,
+        include_secretary_par=True,
     )
 
     configs = [
         (
             "regression",
-            data["regression_summary"],
+            regression_summary,
             data["regression_run"],
             "loss_rmse_bounded_median",
             "Regression",
         ),
         (
             "classification_gini",
-            data["classification_gini_summary"],
+            classification_gini_summary,
             data["classification_gini_run"],
             "loss_f1_median",
             "Classification (Gini)",
         ),
         (
             "classification_entropy",
-            data["classification_entropy_summary"],
+            classification_entropy_summary,
             data["classification_entropy_run"],
             "loss_f1_median",
             "Classification (Entropy)",

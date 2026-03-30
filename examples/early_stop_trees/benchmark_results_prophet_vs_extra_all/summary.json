@@ -1,0 +1,52 @@
+[
+  {
+    "mean_fit_time_ratio": 5.363104212358918,
+    "mean_rmse_diff": 219.30992053776853,
+    "median_fit_time_ratio": 2.8795787330671048,
+    "median_rmse_diff": -0.04320343151690231,
+    "n_common_datasets": 113,
+    "prophet_better_rmse_frac": 0.6548672566371682,
+    "prophet_slower_frac": 0.9734513274336283,
+    "prophet_worse_rmse_frac": 0.30973451327433627,
+    "status": "ok",
+    "stump_checks": 1130,
+    "stump_violations": 5,
+    "task": "regression"
+  },
+  {
+    "mean_accuracy_diff": 0.00241290138238072,
+    "mean_f1_diff": 0.0023621172367118545,
+    "mean_fit_time_ratio": 6.545015326448107,
+    "median_accuracy_diff": 0.0,
+    "median_f1_diff": 0.0,
+    "median_fit_time_ratio": 1.9709666521428586,
+    "n_common_datasets": 122,
+    "prophet_better_accuracy_frac": 0.45081967213114754,
+    "prophet_better_f1_frac": 0.4426229508196721,
+    "prophet_slower_frac": 0.9754098360655737,
+    "prophet_worse_accuracy_frac": 0.45901639344262296,
+    "prophet_worse_f1_frac": 0.4672131147540984,
+    "status": "ok",
+    "stump_checks": 1220,
+    "stump_violations": 0,
+    "task": "classification_gini"
+  },
+  {
+    "mean_accuracy_diff": 0.0014640322853856677,
+    "mean_f1_diff": 0.0016696294544582611,
+    "mean_fit_time_ratio": 5.871013021034636,
+    "median_accuracy_diff": 0.0,
+    "median_f1_diff": 0.0,
+    "median_fit_time_ratio": 1.9260267441148435,
+    "n_common_datasets": 122,
+    "prophet_better_accuracy_frac": 0.4262295081967213,
+    "prophet_better_f1_frac": 0.4262295081967213,
+    "prophet_slower_frac": 0.9754098360655737,
+    "prophet_worse_accuracy_frac": 0.47540983606557374,
+    "prophet_worse_f1_frac": 0.47540983606557374,
+    "status": "ok",
+    "stump_checks": 1220,
+    "stump_violations": 0,
+    "task": "classification_entropy"
+  }
+]

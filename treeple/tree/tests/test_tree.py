@@ -14,6 +14,8 @@ from sklearn.utils.estimator_checks import parametrize_with_checks
 from treeple._lib.sklearn.tree import DecisionTreeClassifier
 from treeple.tree import (
     EarlyStopDecisionTreeClassifier,
+    EarlyStopDecisionTreeRegressor,
+    ExtraTreeRegressor,
     ExtraObliqueDecisionTreeClassifier,
     ExtraObliqueDecisionTreeRegressor,
     ObliqueDecisionTreeClassifier,
@@ -229,6 +231,73 @@ def test_early_stop_parametric_stats_capture_sampling():
     assert stats["split_calls"] > 0
     assert stats["parametric_gain_samples"] > 0
     assert stats["parametric_quantile_fits"] > 0
+
+
+@pytest.mark.parametrize(
+    "splitter",
+    ["secretary", "secretary_all", "double_secretary", "block_rank", "prophet_1sample"],
+)
+def test_early_stop_classification_splitters_emit_stats(splitter):
+    clf = EarlyStopDecisionTreeClassifier(
+        criterion="gini",
+        splitter=splitter,
+        max_depth=1,
+        random_state=0,
+    )
+    clf.fit(iris.data, iris.target)
+
+    stats = clf.splitter_stats_
+    assert EXPECTED_EARLY_STOP_STATS.issubset(stats)
+    assert stats["split_calls"] >= 1
+    assert stats["threshold_candidates"] >= stats["gain_evaluations"] >= 0
+
+
+@pytest.mark.parametrize("splitter", ["secretary", "secretary_all", "prophet_1sample"])
+def test_early_stop_regression_splitters_emit_stats(splitter):
+    reg = EarlyStopDecisionTreeRegressor(
+        splitter=splitter,
+        max_depth=1,
+        random_state=0,
+    )
+    reg.fit(diabetes.data, diabetes.target)
+
+    stats = reg.splitter_stats_
+    assert EXPECTED_EARLY_STOP_STATS.issubset(stats)
+    assert stats["split_calls"] >= 1
+    assert stats["threshold_candidates"] >= stats["gain_evaluations"] >= 0
+
+
+def test_prophet_one_sample_matches_extra_tree_on_binary_regression_tree():
+    X = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 1.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 0.0, 1.0],
+            [1.0, 1.0, 0.0],
+            [1.0, 1.0, 1.0],
+        ],
+        dtype=np.float64,
+    )
+    y = np.array([0.0, 1.0, 2.0, 3.0, 8.0, 9.0, 10.0, 11.0], dtype=np.float64)
+
+    prophet = EarlyStopDecisionTreeRegressor(
+        splitter="prophet_1sample",
+        max_depth=3,
+        random_state=0,
+    )
+    extra = ExtraTreeRegressor(
+        max_depth=3,
+        max_features=None,
+        random_state=0,
+    )
+
+    prophet.fit(X, y)
+    extra.fit(X, y)
+
+    assert_tree_equal(prophet.tree_, extra.tree_)
 
     splitter = RandomObliqueSplitter(
         criterion,
