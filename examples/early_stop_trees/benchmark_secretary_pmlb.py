@@ -716,7 +716,7 @@ def run_regression(max_datasets=None, max_samples=None, max_rows=None, max_featu
             ]
             if pmlb_cache_dir is not None:
                 cmd += ["--pmlb-cache-dir", str(pmlb_cache_dir)]
-            if max_product is not None and max_product > 0:
+            if max_product is not None:
                 cmd += ["--max-product", str(max_product)]
             if max_samples is not None:
                 cmd += ["--max-samples", str(max_samples)]
@@ -843,7 +843,7 @@ def run_classification(max_datasets=None, max_samples=None, max_rows=None, max_f
             ]
             if pmlb_cache_dir is not None:
                 cmd += ["--pmlb-cache-dir", str(pmlb_cache_dir)]
-            if max_product is not None and max_product > 0:
+            if max_product is not None:
                 cmd += ["--max-product", str(max_product)]
             if max_samples is not None:
                 cmd += ["--max-samples", str(max_samples)]
@@ -1143,31 +1143,40 @@ def run_benchmark_n_times(
     # Aggregate and write (aggregated summary to regression_results.csv etc.; per-run files already written above)
     if all_regression:
         agg_reg = _aggregate_regression_rows(all_regression)
-        path_reg = outdir / "regression_results.csv"
-        fieldnames = list(agg_reg[0].keys())
-        with open(path_reg, "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=fieldnames)
-            w.writeheader()
-            w.writerows(agg_reg)
-        print(f"Wrote aggregated regression ({n_runs} runs) to {path_reg}")
+        if agg_reg:
+            path_reg = outdir / "regression_results.csv"
+            fieldnames = list(agg_reg[0].keys())
+            with open(path_reg, "w", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=fieldnames)
+                w.writeheader()
+                w.writerows(agg_reg)
+            print(f"Wrote aggregated regression ({n_runs} runs) to {path_reg}")
+        else:
+            print("No aggregated regression results to write.", file=sys.stderr)
     if all_classification_gini:
         agg_gini = _aggregate_classification_rows(all_classification_gini)
-        path_gini = outdir / "classification_gini_results.csv"
-        fieldnames = list(agg_gini[0].keys())
-        with open(path_gini, "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=fieldnames)
-            w.writeheader()
-            w.writerows(agg_gini)
-        print(f"Wrote aggregated classification gini ({n_runs} runs) to {path_gini}")
+        if agg_gini:
+            path_gini = outdir / "classification_gini_results.csv"
+            fieldnames = list(agg_gini[0].keys())
+            with open(path_gini, "w", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=fieldnames)
+                w.writeheader()
+                w.writerows(agg_gini)
+            print(f"Wrote aggregated classification gini ({n_runs} runs) to {path_gini}")
+        else:
+            print("No aggregated classification gini results to write.", file=sys.stderr)
     if all_classification_entropy:
         agg_ent = _aggregate_classification_rows(all_classification_entropy)
-        path_ent = outdir / "classification_entropy_results.csv"
-        fieldnames = list(agg_ent[0].keys())
-        with open(path_ent, "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=fieldnames)
-            w.writeheader()
-            w.writerows(agg_ent)
-        print(f"Wrote aggregated classification entropy ({n_runs} runs) to {path_ent}")
+        if agg_ent:
+            path_ent = outdir / "classification_entropy_results.csv"
+            fieldnames = list(agg_ent[0].keys())
+            with open(path_ent, "w", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=fieldnames)
+                w.writeheader()
+                w.writerows(agg_ent)
+            print(f"Wrote aggregated classification entropy ({n_runs} runs) to {path_ent}")
+        else:
+            print("No aggregated classification entropy results to write.", file=sys.stderr)
 
 
 def main():
