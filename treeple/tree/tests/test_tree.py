@@ -127,6 +127,20 @@ y_small_reg = [
 ]
 
 
+def _count_root_exhaustive_candidates(X, min_samples_leaf=1):
+    total = 0
+    for feature_idx in range(X.shape[1]):
+        values = np.sort(np.asarray(X[:, feature_idx], dtype=np.float64))
+        if values.size <= 1:
+            continue
+        positions = np.flatnonzero(values[1:] > values[:-1] + 1e-7) + 1
+        if positions.size == 0:
+            continue
+        valid = (positions >= min_samples_leaf) & ((values.size - positions) >= min_samples_leaf)
+        total += int(np.sum(valid))
+    return total
+
+
 # also load the iris dataset
 # and randomly permute it
 iris = datasets.load_iris()
@@ -265,6 +279,28 @@ def test_early_stop_regression_splitters_emit_stats(splitter):
     assert EXPECTED_EARLY_STOP_STATS.issubset(stats)
     assert stats["split_calls"] >= 1
     assert stats["threshold_candidates"] >= stats["gain_evaluations"] >= 0
+
+
+@pytest.mark.parametrize("task_name,X,y,Estimator,criterion", [
+    ("classification", iris.data, iris.target, EarlyStopDecisionTreeClassifier, "gini"),
+    ("regression", diabetes.data, diabetes.target, EarlyStopDecisionTreeRegressor, "squared_error"),
+])
+@pytest.mark.parametrize("threshold_rule", [0.1, "1/e", "ln_n", "sqrt_n"])
+def test_secretary_root_effort_stays_below_exhaustive(task_name, X, y, Estimator, criterion, threshold_rule):
+    exhaustive_candidates = _count_root_exhaustive_candidates(X)
+    estimator = Estimator(
+        criterion=criterion,
+        splitter="secretary",
+        max_depth=1,
+        random_state=0,
+        split_search={"secretary_threshold": threshold_rule},
+    )
+    estimator.fit(X, y)
+
+    stats = estimator.splitter_stats_
+    assert stats["split_calls"] == 1
+    assert stats["gain_evaluations"] <= exhaustive_candidates, (task_name, threshold_rule, stats)
+    assert stats["threshold_candidates"] <= exhaustive_candidates, (task_name, threshold_rule, stats)
 
 
 def test_prophet_one_sample_matches_extra_tree_on_binary_regression_tree():

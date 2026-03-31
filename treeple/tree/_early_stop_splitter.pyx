@@ -996,13 +996,21 @@ cdef inline bint _best_split_above_threshold_skip_pos(
 
 
 # ---------------------------------------------------------------------------
-# (S) SecretarySplitter: sample a random fraction of continuous thresholds for exploration,
-# then accept the first feature whose best exact split improves on the sampled maximum
+# (S) SecretarySplitter: one random pass over features. Exploration features use
+# ExtraTree-style continuous threshold draws; selection features use the best
+# exact split within the feature and stop on the first feature beating the
+# exploration maximum.
 # ---------------------------------------------------------------------------
 
 cdef class SecretarySplitter(BaseEarlyStopSplitter):
-    """(S) Secretary on splits: sample a random fraction of continuous thresholds, then
-    take the first feature whose best exact split beats the sampled maximum."""
+    """(S) Secretary in a single pass over features.
+
+    A random subset of visited features is used for exploration, where each such
+    feature is scored by the best gain among ExtraTree-style continuous
+    threshold draws. The remaining visited features are scored by their exact
+    best split, and the first feature beating the exploration maximum is
+    accepted. If none does, the best exploration split is returned.
+    """
 
     def __reduce__(self):
         return (type(self), (
@@ -1031,13 +1039,14 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
         cdef uint32_t* random_state = &self.rand_r_state
         cdef float64_t impurity = parent.impurity
         cdef intp_t n_known_constants = parent.n_constant_features
-        cdef intp_t f_i, f_j, p, i, f_i_end
+        cdef intp_t f_i, f_j, p
         cdef intp_t n_visited, n_found_constants, n_drawn_constants, n_total_constants
         cdef intp_t n_candidates, n_draws
         cdef SplitRecord best_split, current_split
         cdef float64_t cur_imp
         cdef float64_t max_explore = -INFINITY
         cdef float64_t eff_frac
+        cdef bint in_exploration
         cdef bint found = 0
 
         self.partitioner.init_node_split(start, end)
@@ -1058,7 +1067,9 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
 
-        # Exploration: sample a random fraction of continuous thresholds per visited feature.
+        # Single pass: exploration features use ExtraTree-style continuous draws
+        # to update the stopping threshold; selection features use one exact
+        # best-splitter-style scan and stop on the first improvement.
         while f_i > n_total_constants and (
             n_visited < self.max_features or n_visited <= n_found_constants + n_drawn_constants
         ):
@@ -1089,46 +1100,38 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
                 n_candidates += 1
             if n_candidates <= 0:
                 continue
-            n_draws = max(1, <intp_t>(eff_frac * n_candidates + 0.5))
-            _draw_extratree_split_batch(
-                self,
-                current_split.feature,
-                start,
-                end,
-                min_weight_leaf,
-                random_state,
-                n_draws,
-                NULL,
-                0,
-                &current_split,
-            )
-            cur_imp = current_split.improvement if current_split.pos < end else -INFINITY
-            if cur_imp > max_explore:
-                max_explore = cur_imp
-                best_split = current_split
-
-        f_i_end = f_i
-
-        # Selection: replay the same feature order and run one best-splitter-style
-        # exact scan per feature; accept the first feature whose best exact split beats tau.
-        i = n_features - 1
-        while i >= f_i_end:
-            current_split.feature = features[i]
-            _fill_and_sort_feature(self, current_split.feature, start, end)
-            if not _sorted_feature_is_constant(self, start, end):
-                if _best_split_strictly_above(
+            in_exploration = rand_uniform(0.0, 1.0, random_state) < eff_frac
+            if in_exploration:
+                n_draws = max(1, <intp_t>(eff_frac * n_candidates + 0.5))
+                _draw_extratree_split_batch(
                     self,
                     current_split.feature,
                     start,
                     end,
                     min_weight_leaf,
-                    max_explore,
+                    random_state,
+                    n_draws,
+                    NULL,
+                    0,
                     &current_split,
-                ):
+                )
+                cur_imp = current_split.improvement if current_split.pos < end else -INFINITY
+                if cur_imp > max_explore:
+                    max_explore = cur_imp
+                    best_split = current_split
+            else:
+                cur_imp = _best_gain_one_feature(
+                    self,
+                    current_split.feature,
+                    start,
+                    end,
+                    min_weight_leaf,
+                    &current_split,
+                )
+                if cur_imp > -INFINITY and cur_imp > max_explore:
                     best_split = current_split
                     found = 1
                     break
-            i -= 1
 
         if best_split.pos >= end:
             split.pos = end
