@@ -43,15 +43,16 @@ SPLITTERS_NO_PAR = (
 )
 SECRETARY_SPLITTERS_NO_PAR = [s for s in SPLITTERS_NO_PAR if s != "best"]
 
-# Distinct base colors per method (no secretary_par); variants get shades of these
+# Distinct base colors per method (no secretary_par); variants get shades of these.
+# ExtraTree intentionally avoids blue/cyan hues so it stays visually distinct from Secretary.
 BASE_COLORS_NO_PAR = {
     "best": "#333333",
-    "secretary": "#1f77b4",
-    "secretary_all": "#2ca02c",
-    "double_secretary": "#d62728",
-    "block_rank": "#9467bd",
+    "secretary": "#2166ac",
+    "secretary_all": "#1b9e77",
+    "double_secretary": "#d73027",
+    "block_rank": "#6a3d9a",
     "prophet_1sample": "#8c564b",
-    "extra_tree": "#17becf",
+    "extra_tree": "#e69f00",
 }
 VARIANT_ORDER = ("1overe", "sqrt_n", "ln_n", "0.1n")  # canonical order for shading
 EXTRA_TREE_VARIANT_ORDER = (
@@ -77,8 +78,8 @@ EFFORT_RELATIVE_COLS = (
 )
 SPAR_REPRESENTATIVE_KEY = "secretary_par|samples=10,q=0.5"
 
-# secretary_par (parametric) — base color when include_secretary_par=True
-BASE_COLOR_SECRETARY_PAR = "#ff7f0e"
+# secretary_par (parametric) — kept neutral so it does not compete visually with ExtraTree.
+BASE_COLOR_SECRETARY_PAR = "#7f7f7f"
 
 
 def _shade_hex(hex_color: str, mix_white: float) -> str:
@@ -244,8 +245,8 @@ def plot_grouped_variant_legend(
 ):
     """
     Legend layout for figures 1 / 3 / 4:
-    - One column per variant family (secretary, secretary_all, double_secretary), variants stacked.
-    - Last column: best, block-rank, prophet_1sample, ExtraTrees baselines.
+    - Fixed columns for Secretary, S_all, S², and ExtraTree variants.
+    - Final column for all remaining methods (best, block-rank, prophet, S_par).
 
     legend_style:
     - ``"patch"``: small rectangles (matches bar / block legend; default for figure 4).
@@ -260,13 +261,13 @@ def plot_grouped_variant_legend(
     pairs = list(zip(method_order, method_labels))
 
     families = defaultdict(list)
-    last_pairs = []
+    other_pairs = []
     for k, lab in pairs:
         sp = str(k).split("|", 1)[0] if "|" in str(k) else str(k)
-        if sp in ("best", "block_rank", "prophet_1sample", "extra_tree"):
-            last_pairs.append((k, lab))
-        elif sp in ("secretary", "secretary_all", "double_secretary", "secretary_par"):
+        if sp in ("secretary", "secretary_all", "double_secretary", "extra_tree"):
             families[sp].append((k, lab))
+        else:
+            other_pairs.append((k, lab))
 
     def _var_key(key):
         splitter = str(key).split("|", 1)[0] if "|" in str(key) else str(key)
@@ -279,51 +280,58 @@ def plot_grouped_variant_legend(
             return (0, VARIANT_ORDER.index(v), v)
         return (1, 999, v)
 
-    family_order = [
-        s
-        for s in SPLITTERS_NO_PAR
-        if s in families and s not in ("best", "block_rank", "prophet_1sample", "extra_tree")
-    ]
-    if "secretary_par" in families:
-        family_order.append("secretary_par")
+    family_order = ("secretary", "secretary_all", "double_secretary", "extra_tree")
     for sp in family_order:
         families[sp].sort(key=lambda kv: _var_key(kv[0]))
 
-    last_sorted = []
-    seen_last = set()
-    for sp in ("best", "block_rank", "prophet_1sample"):
-        for k, lab in last_pairs:
-            sk = str(k).split("|", 1)[0] if "|" in str(k) else str(k)
-            if sk == sp and k not in seen_last:
-                last_sorted.append((k, lab))
-                seen_last.add(k)
-                break
-    extra_pairs = [(k, lab) for (k, lab) in last_pairs if (str(k).split("|", 1)[0] if "|" in str(k) else str(k)) == "extra_tree"]
-    extra_pairs.sort(key=lambda kv: _var_key(kv[0]))
-    for k, lab in extra_pairs:
-        if k not in seen_last:
-            last_sorted.append((k, lab))
-            seen_last.add(k)
+    def _other_key(item):
+        key, _ = item
+        sp = str(key).split("|", 1)[0] if "|" in str(key) else str(key)
+        variant = str(key).split("|", 1)[1] if "|" in str(key) else ""
+        if sp == "best":
+            return (0, 0, "")
+        if sp == "block_rank":
+            return (1, 0, "")
+        if sp == "prophet_1sample":
+            return (2, 0, "")
+        if sp == "secretary_par":
+            return (3, _var_key(key))
+        return (4, sp, variant)
 
-    n_fam = len(family_order)
-    if n_fam == 0:
-        n_cols = 1
-    elif not last_sorted:
-        n_cols = n_fam
-    else:
-        n_cols = n_fam + 1  # +1 for best / block_rank / prophet / extra_tree baselines
+    other_pairs.sort(key=_other_key)
+    n_cols = 5
     col_w = 1.0 / n_cols
 
     family_headers = {
         "secretary": "Secretary",
         "secretary_all": "S_all",
         "double_secretary": "S²",
-        "secretary_par": "S_par",
+        "extra_tree": "ExtraTree",
+        "others": "Others",
     }
 
     y_header = 0.98
     y_top = 0.90
     y_bot = 0.06
+
+    def _display_label(key, default_label):
+        splitter = str(key).split("|", 1)[0] if "|" in str(key) else str(key)
+        variant = str(key).split("|", 1)[1] if "|" in str(key) else ""
+        if splitter in {"secretary", "secretary_all", "double_secretary"}:
+            return {
+                "1overe": "n/e",
+                "sqrt_n": "sqrt(n)",
+                "ln_n": "ln(n)",
+                "0.1n": "0.1n",
+            }.get(variant, default_label)
+        if splitter == "extra_tree":
+            return {
+                "max_features=1": "mtry=1",
+                "max_features=1over3": "mtry=p/3",
+                "max_features=2over3": "mtry=2p/3",
+                "max_features=all": "mtry=p",
+            }.get(variant, default_label)
+        return default_label
 
     def _draw_column(ci, title, entries):
         x0 = ci * col_w
@@ -380,20 +388,16 @@ def plot_grouped_variant_legend(
             ax.text(
                 text_x,
                 y,
-                lab,
+                _display_label(key, lab),
                 ha="left",
                 va="center",
                 fontsize=fontsize,
                 transform=ax.transAxes,
             )
 
-    if n_fam == 0:
-        _draw_column(0, "", last_sorted)
-    else:
-        for ci, sp in enumerate(family_order):
-            _draw_column(ci, family_headers.get(sp, sp.replace("_", " ")), families[sp])
-        if last_sorted:
-            _draw_column(n_fam, "", last_sorted)
+    for ci, sp in enumerate(family_order):
+        _draw_column(ci, family_headers.get(sp, sp.replace("_", " ")), families[sp])
+    _draw_column(len(family_order), family_headers["others"], other_pairs)
 
 
 def _load_run_files(indir: Path, prefix: str, run_pattern: str = "run*.csv"):

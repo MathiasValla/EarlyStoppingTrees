@@ -165,6 +165,9 @@ def _sync_pmlb_cache(src_cache_dir: Path | None, outdir: Path) -> None:
     if src_cache_dir is None or not src_cache_dir.exists():
         return
     dst_cache_dir = outdir / "pmlb_cache"
+    if src_cache_dir.resolve() == dst_cache_dir.resolve():
+        print(f"Skipping PMLB cache sync because source and destination are the same: {src_cache_dir}", flush=True)
+        return
     dst_cache_dir.mkdir(parents=True, exist_ok=True)
     copied = 0
     for src in src_cache_dir.iterdir():

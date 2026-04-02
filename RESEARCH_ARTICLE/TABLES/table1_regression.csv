@@ -1,0 +1,20 @@
+task,method,median_speedup,median_effort_saved_%,median_loss_%,p90_loss_%,P(loss≤5%),P(speedup≥20%)
+Regression,best,1,0,0,0,1,0
+Regression,block_rank,2.798,90.78,32.95,55.03,0.1593,0.9381
+Regression,double_secretary (0.1n),2.188,78.92,31.06,55.73,0.1416,0.8938
+Regression,double_secretary (1overe),1.419,58.66,21.69,48.9,0.1858,0.7257
+Regression,double_secretary (ln_n),2.02,74.58,28.68,54.98,0.1504,0.8938
+Regression,double_secretary (sqrt_n),1.894,66.65,30.09,56.19,0.1504,0.8938
+Regression,extra_tree (max_features=1),5.558,98.93,36.67,60.67,0.115,0.9646
+Regression,extra_tree (max_features=1over3),4.513,96.7,28.67,44.86,0.1681,0.9646
+Regression,extra_tree (max_features=2over3),3.341,92.95,14.92,29.38,0.2124,0.9646
+Regression,extra_tree (max_features=all),2.616,88.8,8.689,17.01,0.3363,0.9381
+Regression,prophet_1sample,1.03,59.65,0,9.944,0.7168,0.0531
+Regression,secretary (0.1n),2.186,86.84,30.76,56.42,0.1416,0.7168
+Regression,secretary (1overe),1.504,79.18,22.76,50.65,0.1858,0.6637
+Regression,secretary (ln_n),2.136,85.28,30.06,55.75,0.1327,0.6814
+Regression,secretary (sqrt_n),1.987,82.53,31.2,56.49,0.1416,0.823
+Regression,secretary_all (0.1n),2.891,84.81,28.93,55.92,0.1504,0.9558
+Regression,secretary_all (1overe),2.304,70.57,20.5,48.61,0.2035,0.9558
+Regression,secretary_all (ln_n),2.741,81.68,28.09,55.38,0.1593,0.9646
+Regression,secretary_all (sqrt_n),2.551,76.79,30.44,55.75,0.1504,0.9735

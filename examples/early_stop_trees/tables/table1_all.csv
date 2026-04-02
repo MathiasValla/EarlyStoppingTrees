@@ -1,60 +1,60 @@
 task,method,median_speedup,median_effort_saved_%,median_loss_%,p90_loss_%,P(loss≤5%),P(speedup≥20%)
 Regression,best,1,0,0,0,1,0
-Regression,block_rank,2.725,90.75,31.61,55.01,0.1593,0.8938
-Regression,double_secretary (0.1n),2.087,84.52,31.81,55.98,0.1239,0.8407
-Regression,double_secretary (1overe),1.383,69.7,20.37,49.33,0.1681,0.646
-Regression,double_secretary (ln_n),1.882,81.67,28.52,55.17,0.1327,0.8142
-Regression,double_secretary (sqrt_n),1.787,74.19,30.43,56.11,0.1327,0.8053
-Regression,extra_tree (max_features=1),5.605,98.93,36.67,60.56,0.115,0.9292
-Regression,extra_tree (max_features=1over3),4.472,96.7,28.37,44.54,0.1504,0.8938
-Regression,extra_tree (max_features=2over3),3.365,92.95,15.23,28.98,0.2212,0.885
-Regression,extra_tree (max_features=all),2.689,88.8,8.462,16.29,0.354,0.823
-Regression,prophet_1sample,0.9234,68.21,0.1824,11.87,0.6903,0.0885
-Regression,secretary (0.1n),0.7806,31.9,1.854,6.557,0.8142,0
-Regression,secretary (1overe),0.5417,-5.483,0.5189,3.831,0.9381,0
-Regression,secretary (ln_n),0.6962,22.3,1.251,5.217,0.8673,0
-Regression,secretary (sqrt_n),0.7514,20.92,0.8651,5.026,0.8938,0
-Regression,secretary_all (0.1n),2.74,84.64,29.89,55.92,0.1416,0.9027
-Regression,secretary_all (1overe),2.127,70.18,20.35,48.68,0.2035,0.8673
-Regression,secretary_all (ln_n),2.677,81.73,28.46,55.05,0.1416,0.9204
-Regression,secretary_all (sqrt_n),2.475,76.88,28.76,56.01,0.1593,0.8938
+Regression,block_rank,3.405,,38.57,56.5,0.03846,0.9519
+Regression,double_secretary (0.1n),3.6,,40.03,59.8,0.05769,0.9712
+Regression,double_secretary (1overe),2.77,,42.44,59.8,0.04808,0.9135
+Regression,double_secretary (ln_n),3.389,,40.27,59.8,0.05769,0.9615
+Regression,double_secretary (sqrt_n),3.57,,39.89,59.82,0.05769,0.9712
+Regression,extra_tree (max_features=1),6.093,98.97,41.33,61.23,0.09615,0.9615
+Regression,extra_tree (max_features=1over3),4.574,96.78,29.07,44.72,0.125,0.9615
+Regression,extra_tree (max_features=2over3),3.448,93.13,16.11,28.98,0.2019,0.9423
+Regression,extra_tree (max_features=all),2.763,89.24,9.254,16.83,0.3077,0.8654
+Regression,prophet_1sample,1.276,,23.8,51.07,0.07692,0.6346
+Regression,secretary (0.1n),3.648,,40.72,59.61,0.05769,0.9519
+Regression,secretary (1overe),3.431,,43.7,60.18,0.04808,0.8942
+Regression,secretary (ln_n),3.647,,41.81,59.64,0.05769,0.9519
+Regression,secretary (sqrt_n),3.563,,42,59.63,0.05769,0.9519
+Regression,secretary_all (0.1n),3.193,,34.29,55.51,0.06731,0.9615
+Regression,secretary_all (1overe),1.981,,24.23,44.93,0.1635,0.9038
+Regression,secretary_all (ln_n),2.811,,31.44,55.67,0.07692,0.9423
+Regression,secretary_all (sqrt_n),3.445,,38.17,58.66,0.06731,0.9423
 Classification (Gini),best,1,0,0,0,1,0
-Classification (Gini),block_rank,1.768,71.89,2.675,14.64,0.6393,0.7541
-Classification (Gini),double_secretary (0.1n),1.62,71,2.982,16.79,0.6475,0.7541
-Classification (Gini),double_secretary (1overe),1.355,52.76,1.719,10.76,0.7705,0.6311
-Classification (Gini),double_secretary (ln_n),1.588,67.24,2.711,15.95,0.6639,0.7377
-Classification (Gini),double_secretary (sqrt_n),1.578,61.08,2.794,14.95,0.6639,0.7623
-Classification (Gini),extra_tree (max_features=1),2.352,96.34,4.573,21.93,0.5246,0.8115
-Classification (Gini),extra_tree (max_features=1over3),1.976,89.25,1.736,7.923,0.7787,0.7951
-Classification (Gini),extra_tree (max_features=2over3),1.645,84.1,1.006,3.803,0.9344,0.7705
-Classification (Gini),extra_tree (max_features=all),1.354,84.57,0.291,2.598,0.9672,0.6475
-Classification (Gini),prophet_1sample,0.8561,44.96,0.4032,2.883,0.9672,0.02459
-Classification (Gini),secretary (0.1n),0.7922,22.55,0.01048,1.461,0.9836,0
-Classification (Gini),secretary (1overe),0.6671,-11.18,0,1.107,0.9754,0
-Classification (Gini),secretary (ln_n),0.7641,12.17,0,1.366,0.9836,0
-Classification (Gini),secretary (sqrt_n),0.8185,17.4,0.005115,1.43,0.9918,0
-Classification (Gini),secretary_all (0.1n),2.051,78.46,2.88,16.12,0.6639,0.8197
-Classification (Gini),secretary_all (1overe),1.683,60.93,1.605,10.8,0.7705,0.7787
-Classification (Gini),secretary_all (ln_n),2.043,73.54,2.561,15.11,0.6803,0.7869
-Classification (Gini),secretary_all (sqrt_n),1.985,67.99,2.541,14.35,0.6721,0.7951
-Classification (Gini),"secretary_par (10, q=0.5)",0.8835,24.59,0.5719,4.539,0.918,0.04098
+Classification (Gini),block_rank,1.85,,3.869,24.74,0.5577,0.7788
+Classification (Gini),double_secretary (0.1n),2.096,,14.95,49.4,0.3077,0.8173
+Classification (Gini),double_secretary (1overe),1.671,,10.81,47.76,0.3942,0.7692
+Classification (Gini),double_secretary (ln_n),2.085,,12.65,49.15,0.3365,0.8077
+Classification (Gini),double_secretary (sqrt_n),2.151,,15.83,49.9,0.3495,0.8155
+Classification (Gini),extra_tree (max_features=1),2.667,96.93,4.121,21.57,0.5577,0.8077
+Classification (Gini),extra_tree (max_features=1over3),2.164,91.79,1.744,7.708,0.8077,0.7788
+Classification (Gini),extra_tree (max_features=2over3),1.67,88.61,1.009,3.379,0.9423,0.75
+Classification (Gini),extra_tree (max_features=all),1.5,86.08,0.3825,2.531,0.9712,0.7308
+Classification (Gini),prophet_1sample,1.032,,6.196,26.33,0.4519,0.2692
+Classification (Gini),secretary (0.1n),2.224,,14.89,49.66,0.3365,0.8269
+Classification (Gini),secretary (1overe),1.824,,12.08,51.56,0.3654,0.7019
+Classification (Gini),secretary (ln_n),2.122,,13.38,49.32,0.3462,0.7885
+Classification (Gini),secretary (sqrt_n),2.14,,16.46,49.89,0.3269,0.7596
+Classification (Gini),secretary_all (0.1n),1.922,,8.72,35.34,0.3846,0.7692
+Classification (Gini),secretary_all (1overe),1.449,,3.401,27.66,0.5865,0.7115
+Classification (Gini),secretary_all (ln_n),1.778,,6.519,30.96,0.4423,0.7596
+Classification (Gini),secretary_all (sqrt_n),2.004,,10.52,48.67,0.3654,0.8077
+Classification (Gini),"secretary_par (10, q=0.5)",0.9612,,2.472,31.39,0.6058,0.1346
 Classification (Entropy),best,1,0,0,0,1,0
-Classification (Entropy),block_rank,1.7,70.23,2.364,14.25,0.6311,0.7541
-Classification (Entropy),double_secretary (0.1n),1.671,69.94,2.571,16.47,0.6393,0.7705
-Classification (Entropy),double_secretary (1overe),1.289,50.57,1.726,10.85,0.7541,0.6311
-Classification (Entropy),double_secretary (ln_n),1.641,66.65,2.521,16.12,0.6557,0.7623
-Classification (Entropy),double_secretary (sqrt_n),1.591,60.11,2.429,14.72,0.6639,0.7705
-Classification (Entropy),extra_tree (max_features=1),2.241,95.82,4.43,21.95,0.5164,0.8115
-Classification (Entropy),extra_tree (max_features=1over3),1.95,88.55,1.802,7.676,0.7787,0.7951
-Classification (Entropy),extra_tree (max_features=2over3),1.636,83.77,1.076,3.939,0.9508,0.7705
-Classification (Entropy),extra_tree (max_features=all),1.418,83.46,0.4856,2.303,0.9754,0.6557
-Classification (Entropy),prophet_1sample,0.8546,42.75,0.5407,2.556,0.9918,0.06557
-Classification (Entropy),secretary (0.1n),0.849,21.13,0.05786,1.198,0.9918,0.008197
-Classification (Entropy),secretary (1overe),0.6928,-10.55,0.00367,0.7806,0.9918,0
-Classification (Entropy),secretary (ln_n),0.8094,10.94,0.005734,1.134,1,0
-Classification (Entropy),secretary (sqrt_n),0.8655,17.28,0.02854,1.253,0.9918,0.008197
-Classification (Entropy),secretary_all (0.1n),1.925,77,2.494,16.32,0.6557,0.8115
-Classification (Entropy),secretary_all (1overe),1.648,59.03,1.683,10.53,0.7541,0.7787
-Classification (Entropy),secretary_all (ln_n),1.903,72.55,2.421,15.62,0.6639,0.7869
-Classification (Entropy),secretary_all (sqrt_n),1.882,66.35,2.203,14.6,0.6557,0.8115
-Classification (Entropy),"secretary_par (10, q=0.5)",0.8991,24.64,0.7176,4,0.918,0.05738
+Classification (Entropy),block_rank,1.878,,4.151,26.25,0.5288,0.8173
+Classification (Entropy),double_secretary (0.1n),2.024,,13.93,49.09,0.3269,0.8077
+Classification (Entropy),double_secretary (1overe),1.722,,10.7,48.17,0.3654,0.7788
+Classification (Entropy),double_secretary (ln_n),2.04,,12.38,49.07,0.3462,0.8173
+Classification (Entropy),double_secretary (sqrt_n),2.037,,17.32,49.47,0.3462,0.8077
+Classification (Entropy),extra_tree (max_features=1),3.042,96.64,3.962,21.4,0.5577,0.8173
+Classification (Entropy),extra_tree (max_features=1over3),2.184,91.84,1.802,7.14,0.7885,0.8077
+Classification (Entropy),extra_tree (max_features=2over3),1.755,87.56,0.9668,3.891,0.9519,0.7692
+Classification (Entropy),extra_tree (max_features=all),1.489,86.37,0.5023,2.37,0.9712,0.6923
+Classification (Entropy),prophet_1sample,1.049,,5.203,24.91,0.4712,0.2692
+Classification (Entropy),secretary (0.1n),2.049,,16.41,49.44,0.3462,0.7788
+Classification (Entropy),secretary (1overe),1.833,,12.33,50.22,0.375,0.7212
+Classification (Entropy),secretary (ln_n),2.133,,14.4,49.07,0.3462,0.7788
+Classification (Entropy),secretary (sqrt_n),2.184,,16.74,49.73,0.3365,0.7788
+Classification (Entropy),secretary_all (0.1n),1.922,,9.686,36.47,0.375,0.7981
+Classification (Entropy),secretary_all (1overe),1.449,,3.304,27.43,0.5481,0.6635
+Classification (Entropy),secretary_all (ln_n),1.879,,8.005,30.88,0.4423,0.7788
+Classification (Entropy),secretary_all (sqrt_n),1.929,,11.46,49.17,0.375,0.7885
+Classification (Entropy),"secretary_par (10, q=0.5)",0.9515,,3.497,31.96,0.5769,0.1635

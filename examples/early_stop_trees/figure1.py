@@ -41,13 +41,13 @@ SUPP_DIR = _SCRIPT_DIR / "SUPP_FIGURES"
 # Method labels and colors (best = baseline, others distinct)
 METHOD_COLORS = {
     "best": "#444444",
-    "secretary": "#1f77b4",
-    "secretary_par": "#ff7f0e",
-    "secretary_all": "#2ca02c",
-    "double_secretary": "#d62728",
-    "block_rank": "#9467bd",
+    "secretary": "#2166ac",
+    "secretary_par": "#7f7f7f",
+    "secretary_all": "#1b9e77",
+    "double_secretary": "#d73027",
+    "block_rank": "#6a3d9a",
     "prophet_1sample": "#8c564b",
-    "extra_tree": "#17becf",
+    "extra_tree": "#e69f00",
 }
 METHOD_ORDER = [
     "best",

@@ -97,6 +97,26 @@ EFFORT_KEYS = (
 FEATURE_THRESHOLD = 1e-7
 
 
+def _parse_run_ids(spec):
+    if not spec:
+        return None
+    run_ids = []
+    for chunk in spec.split(","):
+        token = chunk.strip()
+        if not token:
+            continue
+        if "-" in token:
+            start_str, end_str = token.split("-", 1)
+            start = int(start_str)
+            end = int(end_str)
+            if end < start:
+                raise ValueError(f"Invalid run range: {token}")
+            run_ids.extend(range(start, end + 1))
+        else:
+            run_ids.append(int(token))
+    return sorted(set(run_ids))
+
+
 def _finalize_effort_stats(
     split_calls,
     threshold_candidates,
@@ -1035,6 +1055,8 @@ def run_benchmark_n_times(
     classification_only=False,
     isolate_datasets=False,
     splitters=None,
+    run_ids=None,
+    write_aggregate=True,
 ):
     """
     Run the full benchmark N times (each with a different seed: random_state, random_state+1, ...),
@@ -1053,11 +1075,13 @@ def run_benchmark_n_times(
     all_classification_entropy = []
     run_times = []  # seconds per run
 
-    for run_idx in range(n_runs):
-        seed = random_state + run_idx
-        print(f"\n--- Run {run_idx + 1}/{n_runs} (random_state={seed}) ---", flush=True)
+    run_numbers = sorted(set(run_ids)) if run_ids else list(range(1, n_runs + 1))
+
+    for run_pos, run_number in enumerate(run_numbers):
+        seed = random_state + (run_number - 1)
+        print(f"\n--- Run {run_number}/{n_runs} (random_state={seed}) ---", flush=True)
         t0 = time.perf_counter()
-        run_suffix = f"_run{run_idx + 1:03d}.csv"
+        run_suffix = f"_run{run_number:03d}.csv"
         if not classification_only:
             rows_reg, _ = run_regression(
                 max_datasets=max_datasets,
@@ -1107,7 +1131,7 @@ def run_benchmark_n_times(
                 rows_gini, rows_entropy, _ = _enforce_common_classification_datasets(
                     rows_by_criterion["gini"],
                     rows_by_criterion["entropy"],
-                    label=f"run {run_idx + 1}/{n_runs}",
+                    label=f"run {run_number}/{n_runs}",
                 )
                 rows_by_criterion["gini"] = rows_gini
                 rows_by_criterion["entropy"] = rows_entropy
@@ -1127,9 +1151,9 @@ def run_benchmark_n_times(
 
         elapsed = time.perf_counter() - t0
         run_times.append(elapsed)
-        print(f"Run {run_idx + 1}/{n_runs} took {elapsed:.1f}s", flush=True)
-        if run_idx + 1 < n_runs:
-            remaining = n_runs - (run_idx + 1)
+        print(f"Run {run_number}/{n_runs} took {elapsed:.1f}s", flush=True)
+        if run_pos + 1 < len(run_numbers):
+            remaining = len(run_numbers) - (run_pos + 1)
             avg_per_run = sum(run_times) / len(run_times)
             eta_sec = avg_per_run * remaining
             if eta_sec >= 3600:
@@ -1141,7 +1165,7 @@ def run_benchmark_n_times(
             print(f"Estimated {eta_str} ({remaining} runs × ~{avg_per_run:.1f}s/run)", flush=True)
 
     # Aggregate and write (aggregated summary to regression_results.csv etc.; per-run files already written above)
-    if all_regression:
+    if write_aggregate and all_regression:
         agg_reg = _aggregate_regression_rows(all_regression)
         if agg_reg:
             path_reg = outdir / "regression_results.csv"
@@ -1153,7 +1177,7 @@ def run_benchmark_n_times(
             print(f"Wrote aggregated regression ({n_runs} runs) to {path_reg}")
         else:
             print("No aggregated regression results to write.", file=sys.stderr)
-    if all_classification_gini:
+    if write_aggregate and all_classification_gini:
         agg_gini = _aggregate_classification_rows(all_classification_gini)
         if agg_gini:
             path_gini = outdir / "classification_gini_results.csv"
@@ -1165,7 +1189,7 @@ def run_benchmark_n_times(
             print(f"Wrote aggregated classification gini ({n_runs} runs) to {path_gini}")
         else:
             print("No aggregated classification gini results to write.", file=sys.stderr)
-    if all_classification_entropy:
+    if write_aggregate and all_classification_entropy:
         agg_ent = _aggregate_classification_rows(all_classification_entropy)
         if agg_ent:
             path_ent = outdir / "classification_entropy_results.csv"
@@ -1205,6 +1229,13 @@ def main():
     p.add_argument("--classification-only", action="store_true", help="Run only classification")
     p.add_argument("--random-state", type=int, default=None, help="Random seed for estimators and subsampling (default: 42). Repeated runs increment this seed while keeping the CV folds fixed.")
     p.add_argument("--n-runs", type=int, default=1, help="Run full benchmark N times and aggregate mean (and std) of metrics across runs (default: 1). Repeated runs vary estimator randomness, not the CV folds.")
+    p.add_argument(
+        "--run-ids",
+        type=str,
+        default=None,
+        help="Optional comma-separated 1-based run numbers to execute and write (e.g. 14,20,23). Uses the corresponding random states and per-run filenames.",
+    )
+    p.add_argument("--skip-aggregate", action="store_true", help="Skip writing aggregated *_results.csv files. Useful for surgical reruns.")
     p.add_argument("--isolate-datasets", action="store_true", help="Run each dataset in a subprocess; if one crashes (e.g. SIGSEGV), skip it and continue.")
     p.add_argument("--run-single-dataset", type=str, default=None, help="(Internal) Run only this dataset and print pickle of rows to stdout.")
     p.add_argument("--task", type=str, default=None, help="(Internal) With --run-single-dataset: regression, classification_gini, or classification_entropy")
@@ -1222,6 +1253,7 @@ def main():
     random_state = args.random_state if args.random_state is not None else RANDOM_STATE
     max_product = args.max_product if args.max_product > 0 else None
     splitters = tuple(s.strip() for s in (args.splitters or "").split(",") if s.strip()) if args.splitters else None
+    run_ids = _parse_run_ids(args.run_ids)
     if args.dataset is not None and args.datasets_file is not None:
         print("Use either --dataset or --datasets-file, not both.", file=sys.stderr)
         sys.exit(2)
@@ -1291,6 +1323,8 @@ def main():
             classification_only=args.classification_only,
             isolate_datasets=isolate,
             splitters=splitters,
+            run_ids=run_ids,
+            write_aggregate=not args.skip_aggregate,
         )
     else:
         if not args.classification_only:

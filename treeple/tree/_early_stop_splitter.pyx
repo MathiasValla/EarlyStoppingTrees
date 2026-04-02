@@ -186,7 +186,7 @@ cdef inline void _sync_constant_features(
 # Base
 # ---------------------------------------------------------------------------
 
-# Effective secretary exploration probability: 1/e, 1/sqrt(n), or user float.
+# Effective secretary exploration fraction: 1/e, 1/sqrt(n), or user float.
 cdef inline float64_t _effective_explore_frac(
     float64_t explore_frac,
     bint use_sqrt_n,
@@ -197,6 +197,22 @@ cdef inline float64_t _effective_explore_frac(
     if explore_frac > 0.0 and explore_frac <= 1.0:
         return explore_frac
     return ONE_OVER_E
+
+
+cdef inline intp_t _exploration_budget_from_frac(
+    float64_t eff_frac,
+    intp_t budget_total,
+) noexcept nogil:
+    cdef intp_t n_explore
+
+    if budget_total <= 0:
+        return 0
+    n_explore = <intp_t>(eff_frac * budget_total + 0.5)
+    if n_explore < 1:
+        n_explore = 1
+    if n_explore > budget_total:
+        n_explore = budget_total
+    return n_explore
 
 
 cdef class BaseEarlyStopSplitter(Splitter):
@@ -1005,11 +1021,12 @@ cdef inline bint _best_split_above_threshold_skip_pos(
 cdef class SecretarySplitter(BaseEarlyStopSplitter):
     """(S) Secretary in a single pass over features.
 
-    A random subset of visited features is used for exploration, where each such
-    feature is scored by the best gain among ExtraTree-style continuous
-    threshold draws. The remaining visited features are scored by their exact
-    best split, and the first feature beating the exploration maximum is
-    accepted. If none does, the best exploration split is returned.
+    An exploration prefix of the random feature order is used to set the
+    stopping level, where each exploration feature is scored by the best gain
+    among ExtraTree-style continuous threshold draws. The remaining visited
+    features are scored by their exact best split, and the first feature
+    beating the exploration maximum is accepted. If none does, the best
+    exploration split is returned.
     """
 
     def __reduce__(self):
@@ -1041,13 +1058,12 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
         cdef intp_t n_known_constants = parent.n_constant_features
         cdef intp_t f_i, f_j, p
         cdef intp_t n_visited, n_found_constants, n_drawn_constants, n_total_constants
-        cdef intp_t n_candidates, n_draws
+        cdef intp_t n_candidates, n_draws, n_visit_budget, n_explore, n_nonconstant_seen
         cdef SplitRecord best_split, current_split
         cdef float64_t cur_imp
         cdef float64_t max_explore = -INFINITY
         cdef float64_t eff_frac
         cdef bint in_exploration
-        cdef bint found = 0
 
         self.partitioner.init_node_split(start, end)
         _init_split_record(&best_split, end)
@@ -1064,12 +1080,16 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
             parent.n_constant_features = n_known_constants
             _sync_constant_features(features, constant_features, n_known_constants, 0)
             return 0
+        n_visit_budget = self.max_features if self.max_features < n_avail else n_avail
+        n_explore = _exploration_budget_from_frac(eff_frac, n_visit_budget)
+        n_nonconstant_seen = 0
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
 
-        # Single pass: exploration features use ExtraTree-style continuous draws
-        # to update the stopping threshold; selection features use one exact
-        # best-splitter-style scan and stop on the first improvement.
+        # Single pass: the exploration prefix of the random feature order uses
+        # ExtraTree-style continuous draws to update the stopping threshold; the
+        # remaining features use one exact best-splitter-style scan and stop on
+        # the first improvement.
         while f_i > n_total_constants and (
             n_visited < self.max_features or n_visited <= n_found_constants + n_drawn_constants
         ):
@@ -1089,6 +1109,8 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
                 continue
             f_i -= 1
             features[f_i], features[f_j] = features[f_j], features[f_i]
+            in_exploration = n_nonconstant_seen < n_explore
+            n_nonconstant_seen += 1
             p = start
             n_candidates = 0
             while p < end:
@@ -1100,7 +1122,6 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
                 n_candidates += 1
             if n_candidates <= 0:
                 continue
-            in_exploration = rand_uniform(0.0, 1.0, random_state) < eff_frac
             if in_exploration:
                 n_draws = max(1, <intp_t>(eff_frac * n_candidates + 0.5))
                 _draw_extratree_split_batch(
@@ -1120,17 +1141,16 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
                     max_explore = cur_imp
                     best_split = current_split
             else:
-                cur_imp = _best_gain_one_feature(
+                if _best_split_strictly_above(
                     self,
                     current_split.feature,
                     start,
                     end,
                     min_weight_leaf,
+                    max_explore,
                     &current_split,
-                )
-                if cur_imp > -INFINITY and cur_imp > max_explore:
+                ):
                     best_split = current_split
-                    found = 1
                     break
 
         if best_split.pos >= end:
@@ -1211,20 +1231,18 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
         cdef intp_t n_found_constants = 0
         cdef intp_t n_drawn_constants = 0
         cdef intp_t n_total_constants = n_known_constants
-        cdef intp_t partition_end
         cdef SplitRecord best_split, feat_best
         cdef float64_t max_explore = -INFINITY
         cdef bint in_exploration
-        cdef bint found = 0
         cdef float64_t feat_buf[256]
         cdef intp_t n_feat_gains
         cdef float64_t tau_j
         cdef float64_t reward_gain
-        cdef intp_t selection_list[4096]
-        cdef intp_t n_selection = 0
-        cdef intp_t si
         cdef intp_t empirical_idx
         cdef float64_t eff_frac
+        cdef intp_t n_visit_budget
+        cdef intp_t n_explore
+        cdef intp_t n_nonconstant_seen = 0
 
         self.partitioner.init_node_split(start, end)
         _init_split_record(&best_split, end)
@@ -1236,10 +1254,14 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
             parent.n_constant_features = n_total_constants
             _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
+        n_visit_budget = self.max_features if self.max_features < n_avail else n_avail
+        n_explore = _exploration_budget_from_frac(eff_frac, n_visit_budget)
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
 
-        # Single pass: exploration (sample p_thr_par of thresholds, fit distribution, first threshold above q_thr_par quantile = within-feature best) or record selection feature
+        # Single pass over the random feature order: the exploration prefix uses
+        # sampled gains to fit a working threshold, and the remaining features
+        # are tested immediately against the global exploration maximum.
         while f_i > n_total_constants and (
             n_visited < self.max_features or n_visited <= n_found_constants + n_drawn_constants
         ):
@@ -1259,7 +1281,8 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
                 continue
             f_i -= 1
             features[f_i], features[f_j] = features[f_j], features[f_i]
-            in_exploration = rand_uniform(0.0, 1.0, random_state) < eff_frac
+            in_exploration = n_nonconstant_seen < n_explore
+            n_nonconstant_seen += 1
             if in_exploration:
                 n_feat_gains = _collect_gains_one_feature_fraction(
                     self, feat_best.feature, start, end, min_weight_leaf,
@@ -1282,21 +1305,10 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
                             max_explore = reward_gain
                             best_split = feat_best
             else:
-                if n_selection < 4096:
-                    selection_list[n_selection] = feat_best.feature
-                    n_selection += 1
-
-        # Selection: first feature whose best exact split beats max_explore.
-        for si in range(n_selection):
-            feat_best.feature = selection_list[si]
-            _fill_and_sort_feature(self, feat_best.feature, start, end)
-            if _sorted_feature_is_constant(self, start, end):
-                continue
-            if _best_split_strictly_above(
-                    self, feat_best.feature, start, end, min_weight_leaf, max_explore, &feat_best):
-                best_split = feat_best
-                found = 1
-                break
+                if _best_split_strictly_above(
+                        self, feat_best.feature, start, end, min_weight_leaf, max_explore, &feat_best):
+                    best_split = feat_best
+                    break
 
         if best_split.pos >= end:
             split.pos = end
@@ -1315,7 +1327,8 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
 # ---------------------------------------------------------------------------
 
 cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
-    """(S+all) Secretary on covariates; reward = max gain over all thresholds. Explore random 1/e of covariates; then first better or best in exploration."""
+    """(S+all) Secretary on covariates with an exploration prefix of the random
+    feature order; reward = max gain over all thresholds."""
 
     cdef int node_split(
         self,
@@ -1339,13 +1352,14 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
         cdef intp_t n_found_constants = 0
         cdef intp_t n_drawn_constants = 0
         cdef intp_t n_total_constants = n_known_constants
-        cdef intp_t partition_end
         cdef SplitRecord best_split, feat_best
         cdef float64_t reward
         cdef float64_t max_explore = -INFINITY
         cdef float64_t eff_frac
         cdef bint in_exploration
-        cdef bint found = 0
+        cdef intp_t n_visit_budget
+        cdef intp_t n_explore
+        cdef intp_t n_nonconstant_seen = 0
 
         self.partitioner.init_node_split(start, end)
         _init_split_record(&best_split, end)
@@ -1357,10 +1371,14 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
             parent.n_constant_features = n_total_constants
             _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
+        n_visit_budget = self.max_features if self.max_features < n_avail else n_avail
+        n_explore = _exploration_budget_from_frac(eff_frac, n_visit_budget)
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
 
-        # Single pass: each covariate once; coin explore_frac → exploration (update max), else selection (first > max then stop)
+        # Single pass: evaluate features in random order, explore on the prefix,
+        # then stop on the first later feature whose exact within-feature best
+        # exceeds the exploration maximum.
         while f_i > n_total_constants and (
             n_visited < self.max_features or n_visited <= n_found_constants + n_drawn_constants
         ):
@@ -1380,17 +1398,18 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
                 continue
             f_i -= 1
             features[f_i], features[f_j] = features[f_j], features[f_i]
-            in_exploration = rand_uniform(0.0, 1.0, random_state) < eff_frac
+            in_exploration = n_nonconstant_seen < n_explore
+            n_nonconstant_seen += 1
             if in_exploration:
                 reward = _best_gain_one_feature(self, feat_best.feature, start, end, min_weight_leaf, &feat_best)
                 if reward > -INFINITY and reward > max_explore:
                     max_explore = reward
                     best_split = feat_best
             else:
-                reward = _best_gain_one_feature(self, feat_best.feature, start, end, min_weight_leaf, &feat_best)
-                if reward > -INFINITY and reward > max_explore:
+                if _best_split_strictly_above(
+                    self, feat_best.feature, start, end, min_weight_leaf, max_explore, &feat_best
+                ):
                     best_split = feat_best
-                    found = 1
                     break
 
         if best_split.pos >= end:
@@ -1414,7 +1433,8 @@ cdef class CovariateSecretaryAllSplitter(BaseEarlyStopSplitter):
 cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
     """(S^2) Secretary on covariates; reward = best among ~1/e continuous
     threshold draws followed by the best exact threshold above that level.
-    Explore random 1/e of covariates; then first better or best in exploration."""
+    Use an exploration prefix of the random feature order; then first better or
+    best in exploration."""
 
     cdef int node_split(
         self,
@@ -1438,13 +1458,14 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
         cdef intp_t n_found_constants = 0
         cdef intp_t n_drawn_constants = 0
         cdef intp_t n_total_constants = n_known_constants
-        cdef intp_t partition_end
         cdef SplitRecord best_split, feat_best
         cdef float64_t reward
         cdef float64_t max_explore = -INFINITY
         cdef float64_t eff_frac
         cdef bint in_exploration
-        cdef bint found = 0
+        cdef intp_t n_visit_budget
+        cdef intp_t n_explore
+        cdef intp_t n_nonconstant_seen = 0
 
         self.partitioner.init_node_split(start, end)
         _init_split_record(&best_split, end)
@@ -1456,12 +1477,14 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
             parent.n_constant_features = n_total_constants
             _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
+        n_visit_budget = self.max_features if self.max_features < n_avail else n_avail
+        n_explore = _exploration_budget_from_frac(eff_frac, n_visit_budget)
         if n_features > MAX_FEATURES_BACKUP:
             return _node_split_best_fallback(self, parent, split)
 
-        # Single pass: each covariate once; coin explore_frac → exploration
-        # (continuous threshold samples followed by best exact improvement),
-        # else selection (first > max then stop)
+        # Single pass: evaluate features in random order, explore on the prefix
+        # with the inner threshold rule, then stop on the first later feature
+        # whose realized gain exceeds the exploration maximum.
         while f_i > n_total_constants and (
             n_visited < self.max_features or n_visited <= n_found_constants + n_drawn_constants
         ):
@@ -1481,7 +1504,8 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
                 continue
             f_i -= 1
             features[f_i], features[f_j] = features[f_j], features[f_i]
-            in_exploration = rand_uniform(0.0, 1.0, random_state) < eff_frac
+            in_exploration = n_nonconstant_seen < n_explore
+            n_nonconstant_seen += 1
             if in_exploration:
                 reward = _secretary_gain_one_feature_random_explore(
                     self, feat_best.feature, start, end, min_weight_leaf, random_state, &feat_best)
@@ -1489,11 +1513,10 @@ cdef class DoubleSecretarySplitter(BaseEarlyStopSplitter):
                     max_explore = reward
                     best_split = feat_best
             else:
-                reward = _secretary_gain_one_feature_random_explore(
-                    self, feat_best.feature, start, end, min_weight_leaf, random_state, &feat_best)
-                if reward > -INFINITY and reward > max_explore:
+                if _best_split_strictly_above(
+                    self, feat_best.feature, start, end, min_weight_leaf, max_explore, &feat_best
+                ):
                     best_split = feat_best
-                    found = 1
                     break
 
         if best_split.pos >= end:
@@ -1751,23 +1774,24 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
             parent.n_constant_features = n_total_constants
             _sync_constant_features(features, constant_features, n_known_constants, n_found_constants)
             return 0
-        # Selection: one best-splitter-style exact scan per feature, skipping the
-        # exploration position. This removes the shuffled replay/reset loop while
-        # keeping the exploration phase unchanged.
-        for idx in range(n_features):
-            if self.explore_gains[idx] <= -INFINITY:
+        # Selection: replay the same randomized feature order used during
+        # exploration, and on each visited feature do one exact best-splitter
+        # scan while skipping the exploration position.
+        for idx in range(n_features - 1, f_i - 1, -1):
+            cur_split.feature = features[idx]
+            if self.explore_gains[cur_split.feature] <= -INFINITY:
                 continue
-            _fill_and_sort_feature(self, idx, start, end)
+            _fill_and_sort_feature(self, cur_split.feature, start, end)
             if _sorted_feature_is_constant(self, start, end):
                 continue
             if _best_split_above_threshold_skip_pos(
                 self,
-                idx,
+                cur_split.feature,
                 start,
                 end,
                 min_weight_leaf,
                 tau,
-                self.explore_splits[idx].pos,
+                self.explore_splits[cur_split.feature].pos,
                 &cur_split,
             ):
                 first_above = cur_split
@@ -1794,7 +1818,13 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
 # ---------------------------------------------------------------------------
 
 cdef class BlockRankSplitter(BaseEarlyStopSplitter):
-    """Block-rank: within each feature partition thresholds into blocks of size ~sqrt(n); best per block; secretary on block-best stream."""
+    """Block-best stream with secretary-style acceptance.
+
+    For each visited feature, admissible thresholds are grouped into blocks of
+    size ~sqrt(n). The best threshold in each block is exposed as one stream
+    item. The current implementation evaluates that block-best stream with a
+    secretary-style rule while keeping the within-feature scan incremental.
+    """
 
     cdef int node_split(
         self,
@@ -1813,7 +1843,7 @@ cdef class BlockRankSplitter(BaseEarlyStopSplitter):
         cdef uint32_t* random_state = &self.rand_r_state
         cdef float64_t impurity = parent.impurity
         cdef intp_t n_known_constants = parent.n_constant_features
-        cdef intp_t f_i, f_j, p, block_start, block_end, block_size, step
+        cdef intp_t f_i, f_j, p, block_size, step
         cdef intp_t n_visited = 0
         cdef intp_t n_found_constants = 0
         cdef intp_t n_drawn_constants = 0
@@ -1860,26 +1890,28 @@ cdef class BlockRankSplitter(BaseEarlyStopSplitter):
             f_i -= 1
             features[f_i], features[f_j] = features[f_j], features[f_i]
             block_size = max(1, <intp_t>sqrt(<float64_t>(end - start)))
-            block_start = start
             _init_split_record(&block_best, end)
             block_best.feature = features[f_i]
-            while block_start < end:
-                block_end = block_start
-                block_best_imp = -INFINITY
-                cur_split.feature = block_best.feature
-                self.criterion.reset()
-                step = 0
-                while step < block_size and block_end < end:
-                    while block_end + 1 < end and feature_values[block_end + 1] <= feature_values[block_end] + FEATURE_THRESHOLD:
-                        block_end += 1
-                    block_end += 1
-                    if block_end >= end:
-                        break
-                    cur_imp = _eval_split(self, cur_split.feature, block_end, start, end, min_weight_leaf, &cur_split)
-                    if cur_imp > block_best_imp and cur_imp > -INFINITY:
-                        block_best_imp = cur_imp
-                        block_best = cur_split
-                    step += 1
+            cur_split.feature = block_best.feature
+            self.criterion.init_missing(self.partitioner.n_missing)
+            self.criterion.missing_go_to_left = 0
+            self.criterion.reset()
+            block_best_imp = -INFINITY
+            step = 0
+            p = start
+            while p < end:
+                while p + 1 < end and feature_values[p + 1] <= feature_values[p] + FEATURE_THRESHOLD:
+                    p += 1
+                p += 1
+                if p >= end:
+                    break
+                cur_imp = _eval_split(self, cur_split.feature, p, start, end, min_weight_leaf, &cur_split)
+                if cur_imp > block_best_imp and cur_imp > -INFINITY:
+                    block_best_imp = cur_imp
+                    block_best = cur_split
+                step += 1
+                if step < block_size:
+                    continue
                 if block_best_imp > -INFINITY:
                     do_explore = rand_uniform(0.0, 1.0, random_state) < eff_frac
                     if do_explore:
@@ -1891,9 +1923,20 @@ cdef class BlockRankSplitter(BaseEarlyStopSplitter):
                             best_split = block_best
                             found = 1
                             break
-                block_start = block_end
-                if block_end >= end:
-                    break
+                step = 0
+                block_best_imp = -INFINITY
+                _init_split_record(&block_best, end)
+                block_best.feature = cur_split.feature
+            if not found and step > 0 and block_best_imp > -INFINITY:
+                do_explore = rand_uniform(0.0, 1.0, random_state) < eff_frac
+                if do_explore:
+                    if block_best_imp > max_explore:
+                        max_explore = block_best_imp
+                        best_split = block_best
+                else:
+                    if block_best_imp > max_explore:
+                        best_split = block_best
+                        found = 1
             if found:
                 break
 

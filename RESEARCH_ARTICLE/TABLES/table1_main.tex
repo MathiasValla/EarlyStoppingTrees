@@ -1,0 +1,48 @@
+\begin{table}[t]
+\centering
+\caption{Representative global summary by method after the optimized 50-run rerun. The $n/e$ schedule is used for the secretary families, the low-overhead \((10,q=0.5)\) configuration is used for \(S_{\mathrm{par}}\) in classification, and all four ExtraTrees \texttt{max\_features} budgets are shown. Speedup is relative to the exhaustive \texttt{scikit-learn} splitter. Effort saved is the median percentage reduction in gain evaluations relative to exhaustive split search; negative values indicate methods whose replay logic performs more exact gain evaluations than the exhaustive baseline. Loss is expressed in percent.}
+\label{tab:summary_results}
+\begin{adjustbox}{max width=\textwidth}
+\scriptsize
+\begin{tabular}{llrrrrrr}
+\toprule
+Task & Method & Median speedup & Median effort saved (\%) & Median loss (\%) & 90th pct.\ loss (\%) & $P(\mathrm{loss}\le 5\%)$ & $P(\mathrm{speedup}\ge 20\%)$ \\
+\midrule
+Regression & Exhaustive & 1.00 & 0.0 & 0.0 & 0.0 & 1.000 & 0.000 \\
+Regression & $S$ ($n/e$) & 0.53 & -8.5 & 0.5 & 3.2 & 0.947 & 0.000 \\
+Regression & $S^2$ ($n/e$) & 1.42 & 58.7 & 21.7 & 48.9 & 0.186 & 0.726 \\
+Regression & $S_{\mathrm{all}}$ ($n/e$) & 2.30 & 70.6 & 20.5 & 48.6 & 0.204 & 0.956 \\
+Regression & Block-rank & 2.80 & 90.8 & 33.0 & 55.0 & 0.159 & 0.938 \\
+Regression & 1-sample prophet & 1.03 & 59.6 & 0.0 & 9.9 & 0.717 & 0.053 \\
+Regression & ExtraTree ($m_{\mathrm{try}}=1$) & 5.56 & 98.9 & 36.7 & 60.7 & 0.115 & 0.965 \\
+Regression & ExtraTree ($m_{\mathrm{try}}=p/3$) & 4.51 & 96.7 & 28.7 & 44.9 & 0.168 & 0.965 \\
+Regression & ExtraTree ($m_{\mathrm{try}}=2p/3$) & 3.34 & 93.0 & 14.9 & 29.4 & 0.212 & 0.965 \\
+Regression & ExtraTree ($m_{\mathrm{try}}=p$) & 2.62 & 88.8 & 8.7 & 17.0 & 0.336 & 0.938 \\
+\midrule
+Classification (Gini) & Exhaustive & 1.00 & 0.0 & 0.0 & 0.0 & 1.000 & 0.000 \\
+Classification (Gini) & $S$ ($n/e$) & 0.65 & -13.5 & 0.0 & 0.9 & 0.992 & 0.000 \\
+Classification (Gini) & $S^2$ ($n/e$) & 1.33 & 38.3 & 1.7 & 10.8 & 0.787 & 0.598 \\
+Classification (Gini) & $S_{\mathrm{all}}$ ($n/e$) & 1.77 & 60.8 & 1.5 & 11.1 & 0.762 & 0.680 \\
+Classification (Gini) & $S_{\mathrm{par}}$ \((10,q=0.5)\) & 0.90 & 26.7 & 0.3 & 3.4 & 0.951 & 0.107 \\
+Classification (Gini) & Block-rank & 1.89 & 72.4 & 2.5 & 14.3 & 0.639 & 0.721 \\
+Classification (Gini) & 1-sample prophet & 0.88 & 35.4 & 0.4 & 3.0 & 0.967 & 0.123 \\
+Classification (Gini) & ExtraTree ($m_{\mathrm{try}}=1$) & 2.40 & 96.3 & 4.5 & 21.9 & 0.525 & 0.746 \\
+Classification (Gini) & ExtraTree ($m_{\mathrm{try}}=p/3$) & 2.09 & 89.2 & 1.9 & 8.3 & 0.779 & 0.721 \\
+Classification (Gini) & ExtraTree ($m_{\mathrm{try}}=2p/3$) & 1.65 & 84.0 & 1.1 & 3.6 & 0.943 & 0.697 \\
+Classification (Gini) & ExtraTree ($m_{\mathrm{try}}=p$) & 1.44 & 84.6 & 0.4 & 2.6 & 0.967 & 0.590 \\
+\midrule
+Classification (Entropy) & Exhaustive & 1.00 & 0.0 & 0.0 & 0.0 & 1.000 & 0.000 \\
+Classification (Entropy) & $S$ ($n/e$) & 0.66 & -13.9 & 0.0 & 0.8 & 1.000 & 0.000 \\
+Classification (Entropy) & $S^2$ ($n/e$) & 1.41 & 37.3 & 1.6 & 10.9 & 0.738 & 0.574 \\
+Classification (Entropy) & $S_{\mathrm{all}}$ ($n/e$) & 1.83 & 59.5 & 1.6 & 10.6 & 0.746 & 0.705 \\
+Classification (Entropy) & $S_{\mathrm{par}}$ \((10,q=0.5)\) & 0.89 & 28.2 & 0.6 & 2.6 & 0.959 & 0.139 \\
+Classification (Entropy) & Block-rank & 1.93 & 70.8 & 2.3 & 14.3 & 0.631 & 0.713 \\
+Classification (Entropy) & 1-sample prophet & 0.94 & 35.4 & 0.4 & 2.9 & 0.984 & 0.148 \\
+Classification (Entropy) & ExtraTree ($m_{\mathrm{try}}=1$) & 2.45 & 95.8 & 4.5 & 22.3 & 0.516 & 0.730 \\
+Classification (Entropy) & ExtraTree ($m_{\mathrm{try}}=p/3$) & 2.09 & 88.5 & 1.8 & 7.4 & 0.787 & 0.730 \\
+Classification (Entropy) & ExtraTree ($m_{\mathrm{try}}=2p/3$) & 1.71 & 83.8 & 1.1 & 4.0 & 0.943 & 0.697 \\
+Classification (Entropy) & ExtraTree ($m_{\mathrm{try}}=p$) & 1.44 & 83.4 & 0.5 & 2.4 & 0.975 & 0.598 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
