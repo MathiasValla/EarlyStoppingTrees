@@ -60,8 +60,40 @@ def _plot_one_heatmap(
     show_legend: bool = True,
 ):
     sub = grid_df[["log_n", "p_over_n", value_col]].dropna().copy()
+    if sub.empty or not method_order:
+        ax.set_title(title, fontsize=9)
+        ax.set_xlabel(r"log(n) (natural log)")
+        ax.set_ylabel(r"p/n")
+        ax.text(
+            0.5,
+            0.5,
+            "Insufficient data for a stable predicted regime map",
+            ha="center",
+            va="center",
+            fontsize=8,
+            wrap=True,
+            transform=ax.transAxes,
+        )
+        ax.grid(False)
+        return
     x_vals = np.sort(sub["log_n"].unique())
     y_vals = np.sort(sub["p_over_n"].unique())
+    if x_vals.size == 0 or y_vals.size == 0:
+        ax.set_title(title, fontsize=9)
+        ax.set_xlabel(r"log(n) (natural log)")
+        ax.set_ylabel(r"p/n")
+        ax.text(
+            0.5,
+            0.5,
+            "Insufficient data for a stable predicted regime map",
+            ha="center",
+            va="center",
+            fontsize=8,
+            wrap=True,
+            transform=ax.transAxes,
+        )
+        ax.grid(False)
+        return
     pivot = sub.pivot(index="p_over_n", columns="log_n", values=value_col)
     pivot = pivot.reindex(index=y_vals, columns=x_vals)
 
@@ -149,8 +181,19 @@ def main():
 
     leg_ax = fig.add_subplot(gs[3, :])
     leg_ax.set_axis_off()
-    handles = [Patch(facecolor=colors.get(mk, "#888888"), edgecolor="white", label=_method_label(mk)) for mk in method_order]
-    leg_ax.legend(handles=handles, loc="center", ncol=min(4, len(handles)), fontsize=7, frameon=True)
+    if method_order:
+        handles = [Patch(facecolor=colors.get(mk, "#888888"), edgecolor="white", label=_method_label(mk)) for mk in method_order]
+        leg_ax.legend(handles=handles, loc="center", ncol=min(4, len(handles)), fontsize=7, frameon=True)
+    else:
+        leg_ax.text(
+            0.5,
+            0.5,
+            "Pilot benchmark too small for a stable predicted regime map legend.",
+            ha="center",
+            va="center",
+            fontsize=8,
+            transform=leg_ax.transAxes,
+        )
 
     out_merged = SUPP_DIR / "supp_figure_08_predicted_regime_maps.png"
     fig.savefig(out_merged, dpi=200, bbox_inches="tight")

@@ -76,6 +76,14 @@ EFFORT_RELATIVE_COLS = (
     "effort_speedup_per_split",
     "effort_saved_per_split",
 )
+EARLY_STOP_SPLITTERS = {
+    "secretary",
+    "secretary_par",
+    "secretary_all",
+    "double_secretary",
+    "block_rank",
+    "prophet_1sample",
+}
 SPAR_REPRESENTATIVE_KEY = "secretary_par|samples=10,q=0.5"
 
 # secretary_par (parametric) — kept neutral so it does not compete visually with ExtraTree.
@@ -413,7 +421,50 @@ def _load_run_files(indir: Path, prefix: str, run_pattern: str = "run*.csv"):
         frames.append(df)
     if not frames:
         return None
-    return pd.concat(frames, ignore_index=True)
+    out = pd.concat(frames, ignore_index=True)
+    _validate_early_stop_effort(out, prefix=prefix, indir=indir)
+    return out
+
+
+def _validate_early_stop_effort(df: pd.DataFrame, *, prefix: str, indir: Path) -> None:
+    """Fail loudly when an archive is missing effort counters for early-stop splitters."""
+    if df is None or df.empty:
+        return
+    if "splitter" not in df.columns or "gain_evaluations_mean" not in df.columns:
+        return
+
+    splitter = df["splitter"].astype(str)
+    early = splitter.isin(EARLY_STOP_SPLITTERS)
+    if not early.any():
+        return
+
+    required_cols = [
+        col
+        for col in (
+            "split_calls_mean",
+            "threshold_candidates_mean",
+            "gain_evaluations_mean",
+        )
+        if col in df.columns
+    ]
+    if not required_cols:
+        return
+
+    missing_mask = early.copy()
+    for col in required_cols:
+        missing_mask &= pd.to_numeric(df[col], errors="coerce").isna()
+    missing_count = int(missing_mask.sum())
+    if missing_count == 0:
+        return
+
+    sample_cols = [col for col in ("dataset", "splitter", "variant", "run") if col in df.columns]
+    sample = df.loc[missing_mask, sample_cols].head(5).to_dict(orient="records")
+    raise RuntimeError(
+        "Corrupted benchmark archive: early-stop splitter effort counters are missing "
+        f"for {missing_count} rows in '{prefix}' under {indir}. "
+        "This usually means the benchmark imported a stale or mismatched treeple build. "
+        f"Example rows: {sample}"
+    )
 
 
 def load_regression_runs(indir: Path):

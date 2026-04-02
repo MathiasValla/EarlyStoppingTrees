@@ -7,6 +7,7 @@ Writes:
   - SUPP_FIGURES/supp_figure_15_time_effort_calibration.png
 """
 from pathlib import Path
+import argparse
 
 import matplotlib
 
@@ -228,9 +229,19 @@ def plot_time_effort(indir: Path):
 
 
 def main():
+    ap = argparse.ArgumentParser(description="Supplementary effort figures.")
+    ap.add_argument(
+        "--indir",
+        type=str,
+        default=None,
+        help="Input directory with benchmark_results (default: examples/early_stop_trees/benchmark_results).",
+    )
+    args = ap.parse_args()
+    indir = Path(args.indir) if args.indir is not None else BENCHMARK_DIR
+
     SUPP_DIR.mkdir(parents=True, exist_ok=True)
-    plot_effort_loss(BENCHMARK_DIR)
-    plot_time_effort(BENCHMARK_DIR)
+    plot_effort_loss(indir)
+    plot_time_effort(indir)
 
 
 if __name__ == "__main__":

@@ -388,27 +388,34 @@ def _save_supp_figure4_loss_only_large_small(
 def main():
     ap = argparse.ArgumentParser(description="Figure 4: success-probability curves.")
     ap.add_argument(
+        "--indir",
+        type=str,
+        default=None,
+        help="Input directory with benchmark_results (default: examples/early_stop_trees/benchmark_results).",
+    )
+    ap.add_argument(
         "--no-supp",
         action="store_true",
         help="Do not write merged supplementary PNGs to SUPP_FIGURES/ (supp_figure_06, supp_figure_07).",
     )
     args = ap.parse_args()
+    indir = Path(args.indir) if args.indir is not None else BENCHMARK_DIR
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    data = load_all(BENCHMARK_DIR, exclude_secretary_par=False, by_variant=True)
+    data = load_all(indir, exclude_secretary_par=False, by_variant=True)
 
     reg_run = data.get("regression_run")
     if reg_run is None:
-        reg_run = get_regression_run_level(BENCHMARK_DIR)
+        reg_run = get_regression_run_level(indir)
     if reg_run is not None:
         reg_run = reg_run[reg_run["splitter"] != "secretary_par"].copy()
     gini_run = data.get("classification_gini_run")
     if gini_run is None:
-        gini_run = get_classification_run_level(BENCHMARK_DIR, "gini")
+        gini_run = get_classification_run_level(indir, "gini")
     gini_run = keep_secretary_par_representative(gini_run)
     entropy_run = data.get("classification_entropy_run")
     if entropy_run is None:
-        entropy_run = get_classification_run_level(BENCHMARK_DIR, "entropy")
+        entropy_run = get_classification_run_level(indir, "entropy")
     entropy_run = keep_secretary_par_representative(entropy_run)
 
     for df in (reg_run, gini_run, entropy_run):

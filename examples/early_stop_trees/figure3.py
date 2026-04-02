@@ -266,6 +266,12 @@ def _legend_panel(ax, method_order: list, method_colors: dict, method_labels: li
 def main():
     p = argparse.ArgumentParser(description="Figure 3: regime maps (KNN background + scatter)")
     p.add_argument(
+        "--indir",
+        type=str,
+        default=None,
+        help="Input directory with benchmark_results (default: examples/early_stop_trees/benchmark_results).",
+    )
+    p.add_argument(
         "--region-alpha",
         type=float,
         default=DEFAULT_REGION_ALPHA,
@@ -273,9 +279,10 @@ def main():
     )
     args = p.parse_args()
     region_alpha = float(np.clip(args.region_alpha, 0.0, 1.0))
+    indir = Path(args.indir) if args.indir is not None else BENCHMARK_DIR
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    data = load_all(BENCHMARK_DIR, exclude_secretary_par=False, by_variant=True)
+    data = load_all(indir, exclude_secretary_par=False, by_variant=True)
 
     regression_summary = data["regression_summary"]
     if regression_summary is not None:

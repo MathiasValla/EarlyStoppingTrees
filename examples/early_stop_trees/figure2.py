@@ -162,14 +162,21 @@ def _ridgeline_panel(
 def main():
     ap = argparse.ArgumentParser(description="Figure 2: ridgeline plots of per-dataset distributions.")
     ap.add_argument(
+        "--indir",
+        type=str,
+        default=None,
+        help="Input directory with benchmark_results (default: examples/early_stop_trees/benchmark_results).",
+    )
+    ap.add_argument(
         "--no-supp",
         action="store_true",
         help="Do not write supplementary PNG copies to SUPP_FIGURES/ (supp_figure_03–05).",
     )
     args = ap.parse_args()
+    indir = Path(args.indir) if args.indir is not None else BENCHMARK_DIR
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    data = load_all(BENCHMARK_DIR, exclude_secretary_par=True)
+    data = load_all(indir, exclude_secretary_par=True)
 
     def _prepare_run_df(raw, loss_col: str):
         if raw is None:
@@ -185,15 +192,15 @@ def main():
 
     reg_raw = data.get("regression_run")
     if reg_raw is None:
-        reg_raw = get_regression_run_level(BENCHMARK_DIR)
+        reg_raw = get_regression_run_level(indir)
         if reg_raw is not None:
             reg_raw = reg_raw[reg_raw["splitter"].isin(SECRETARY_SPLITTERS_NO_PAR)].copy()
     gini_raw = data.get("classification_gini_run")
     if gini_raw is None:
-        gini_raw = get_classification_run_level(BENCHMARK_DIR, "gini")
+        gini_raw = get_classification_run_level(indir, "gini")
     entropy_raw = data.get("classification_entropy_run")
     if entropy_raw is None:
-        entropy_raw = get_classification_run_level(BENCHMARK_DIR, "entropy")
+        entropy_raw = get_classification_run_level(indir, "entropy")
 
     if reg_raw is None:
         raise FileNotFoundError("Missing regression run-level data.")

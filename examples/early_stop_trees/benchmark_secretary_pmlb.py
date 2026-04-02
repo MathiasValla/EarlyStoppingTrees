@@ -244,6 +244,13 @@ def _collect_effort_summary(estimators, *, estimator, X, y, cv):
     for fold_idx, fitted_estimator in enumerate(estimators):
         stats = getattr(fitted_estimator, "splitter_stats_", None)
         if not stats:
+            splitter_name = getattr(fitted_estimator, "splitter", None)
+            if splitter_name not in ("best", "random"):
+                raise RuntimeError(
+                    "Missing splitter_stats_ for early-stop splitter "
+                    f"{splitter_name!r} on fold {fold_idx}. "
+                    f"Imported treeple from {Path(treeple.__file__).resolve()}."
+                )
             if cv_splits is None:
                 cv_splitter = check_cv(cv, y, classifier=is_classifier(estimator))
                 cv_splits = list(cv_splitter.split(X, y))
@@ -275,6 +282,7 @@ def _benchmark_metadata(splitters, n_runs, random_state):
         "numpy_version": np.__version__,
         "scikit_learn_version": sklearn.__version__,
         "treeple_version": treeple.__version__,
+        "treeple_import_path": str(Path(treeple.__file__).resolve()),
         "n_folds": N_FOLDS,
         "splitters": list(splitters),
         "n_runs": int(n_runs),
@@ -1303,6 +1311,7 @@ def main():
 
     isolate = args.isolate_datasets
     outdir.mkdir(parents=True, exist_ok=True)
+    print(f"Using treeple from {Path(treeple.__file__).resolve()}", flush=True)
     _write_benchmark_metadata(outdir, splitters or SPLITTERS, args.n_runs, random_state)
 
     if args.n_runs > 1:
