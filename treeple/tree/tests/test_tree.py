@@ -303,6 +303,26 @@ def test_secretary_root_effort_stays_below_exhaustive(task_name, X, y, Estimator
     assert stats["threshold_candidates"] <= exhaustive_candidates, (task_name, threshold_rule, stats)
 
 
+@pytest.mark.parametrize("task_name,X,y,Estimator,criterion", [
+    ("classification", iris.data, iris.target, EarlyStopDecisionTreeClassifier, "gini"),
+    ("regression", diabetes.data, diabetes.target, EarlyStopDecisionTreeRegressor, "squared_error"),
+])
+def test_prophet_one_sample_root_effort_stays_below_exhaustive(task_name, X, y, Estimator, criterion):
+    exhaustive_candidates = _count_root_exhaustive_candidates(X)
+    estimator = Estimator(
+        criterion=criterion,
+        splitter="prophet_1sample",
+        max_depth=1,
+        random_state=0,
+    )
+    estimator.fit(X, y)
+
+    stats = estimator.splitter_stats_
+    assert stats["split_calls"] == 1
+    assert stats["gain_evaluations"] <= exhaustive_candidates, (task_name, stats)
+    assert stats["threshold_candidates"] <= exhaustive_candidates, (task_name, stats)
+
+
 def test_prophet_one_sample_matches_extra_tree_on_binary_regression_tree():
     X = np.array(
         [

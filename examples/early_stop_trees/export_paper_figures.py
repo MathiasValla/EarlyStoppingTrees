@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """
-Copy benchmark figures into MAIN_FIGURES/.
+Copy benchmark figures into the local figure folders and the article tree.
 
 Supplementary figures (SUPP_FIGURES/) are **PNG-only** and are written in-place by the
-generating scripts (merged layouts, single legends — no PDF merge step).
+generating scripts (merged layouts, single legends — no PDF merge step), but this
+script also synchronizes them into ``RESEARCH_ARTICLE/SUPP_FIGURES``.
 
 Prerequisites (from ``examples/early_stop_trees/``):
 
@@ -31,26 +32,32 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 FIGURES = SCRIPT_DIR / "figures"
 MAIN_DIR = SCRIPT_DIR / "MAIN_FIGURES"
 SUPP_DIR = SCRIPT_DIR / "SUPP_FIGURES"
+ARTICLE_DIR = SCRIPT_DIR.parents[1] / "RESEARCH_ARTICLE"
+ARTICLE_MAIN_DIR = ARTICLE_DIR / "MAIN_FIGURES"
+ARTICLE_SUPP_DIR = ARTICLE_DIR / "SUPP_FIGURES"
 
 
-def _copy_pair(stem: str, src_dir: Path, dst_dir: Path) -> None:
+def _copy_pair(stem: str, src_dir: Path, *dst_dirs: Path) -> None:
     for ext in (".pdf", ".png"):
         src = src_dir / f"{stem}{ext}"
         if src.is_file():
-            shutil.copy2(src, dst_dir / src.name)
-            print(f"Copied {src.name} -> {dst_dir.name}/")
+            for dst_dir in dst_dirs:
+                shutil.copy2(src, dst_dir / src.name)
+                print(f"Copied {src.name} -> {dst_dir.name}/")
 
 
 def main() -> int:
     MAIN_DIR.mkdir(parents=True, exist_ok=True)
     SUPP_DIR.mkdir(parents=True, exist_ok=True)
+    ARTICLE_MAIN_DIR.mkdir(parents=True, exist_ok=True)
+    ARTICLE_SUPP_DIR.mkdir(parents=True, exist_ok=True)
 
     for stem in (
         "figure1_pareto_all",
         "figure4_success_combined",
         "figure3_regime_combined",
     ):
-        _copy_pair(stem, FIGURES, MAIN_DIR)
+        _copy_pair(stem, FIGURES, MAIN_DIR, ARTICLE_MAIN_DIR)
 
     expected_supp = [
         "supp_figure_01_pareto_large_small.png",
@@ -74,6 +81,7 @@ def main() -> int:
     for name in expected_supp:
         p = SUPP_DIR / name
         if p.is_file():
+            shutil.copy2(p, ARTICLE_SUPP_DIR / name)
             print(f"  OK   {name}")
             n_ok += 1
         else:

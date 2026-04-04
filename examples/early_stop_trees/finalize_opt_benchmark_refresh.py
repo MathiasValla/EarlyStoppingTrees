@@ -17,6 +17,40 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 
+MINIMAL_EXAMPLES_KEEP = {
+    "README.md",
+    "README_PAPER_EXPORT.md",
+    "MAIN_FIGURES",
+    "SUPP_FIGURES",
+    "figures",
+    "tables",
+    "benchmark_results",
+    "aggregate_benchmark_results.py",
+    "analysis_gain_landscape.py",
+    "analysis_meta_regression.py",
+    "analysis_paired.py",
+    "analysis_utils.py",
+    "benchmark_results_utils.py",
+    "benchmark_secretary_pmlb.py",
+    "export_paper_figures.py",
+    "figure1.py",
+    "figure2.py",
+    "figure3.py",
+    "figure4.py",
+    "finalize_opt_benchmark_refresh.py",
+    "plan_benchmark_shards.py",
+    "run_analysis.py",
+    "supp_plot_effort_metrics.py",
+    "supp_plot_gain_landscape.py",
+    "supp_plot_predicted_regime_maps.py",
+    "supp_plot_within_between_variability.py",
+    "table1.py",
+    "table2.py",
+    "table_dataset_benchmark_summary.py",
+    "table_pairwise_method_comparison.py",
+    "wait_and_export_no_limit.py",
+}
+
 
 def _call(cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
     where = cwd if cwd is not None else Path.cwd()
@@ -43,6 +77,13 @@ def _cleanup_article_sidecars(article_dir: Path) -> None:
             _cleanup_path(path)
 
 
+def _prune_examples_tree(examples_dir: Path) -> None:
+    for path in sorted(examples_dir.iterdir()):
+        if path.name in MINIMAL_EXAMPLES_KEEP:
+            continue
+        _cleanup_path(path)
+
+
 def _git_has_changes(repo_root: Path) -> bool:
     result = subprocess.run(
         ["git", "status", "--porcelain"],
@@ -65,11 +106,18 @@ def main() -> int:
     ap.add_argument("--poll-seconds", type=int, default=300)
     ap.add_argument("--python-executable", type=str, default=sys.executable)
     ap.add_argument("--commit-message", type=str, default="Refresh optimized 100-run benchmark and manuscript outputs")
+    ap.add_argument("--skip-git", action="store_true", help="Skip git add/commit after refresh.")
+    ap.add_argument("--push", action="store_true", help="Push origin/main after committing.")
     ap.add_argument(
         "--cleanup-paths",
         type=str,
         default="",
         help="Comma-separated files/directories to remove after refresh succeeds.",
+    )
+    ap.add_argument(
+        "--prune-examples",
+        action="store_true",
+        help="Remove non-essential files from examples/early_stop_trees after refresh succeeds.",
     )
     args = ap.parse_args()
 
@@ -102,11 +150,16 @@ def main() -> int:
     for path in cleanup_paths:
         _cleanup_path(path)
     _cleanup_article_sidecars(article_dir)
+    if args.prune_examples:
+        _prune_examples_tree(SCRIPT_DIR)
 
-    if _git_has_changes(REPO_ROOT):
+    if args.skip_git:
+        print("Skipping git add/commit by request.", flush=True)
+    elif _git_has_changes(REPO_ROOT):
         _call(["git", "add", "-A"], cwd=REPO_ROOT)
         _call(["git", "commit", "-m", args.commit_message], cwd=REPO_ROOT)
-        _call(["git", "push", "origin", "main"], cwd=REPO_ROOT)
+        if args.push:
+            _call(["git", "push", "origin", "main"], cwd=REPO_ROOT)
     else:
         print("No git changes to commit after refresh.", flush=True)
 

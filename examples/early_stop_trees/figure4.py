@@ -8,7 +8,7 @@ Figure 4a: For each method, fraction of runs satisfying loss vs best ≤ ε, as 
 
 Figure 4b: P(speedup ≥ s and loss ≤ ε) for grid (s, ε), one figure with grouped bars
   (regression | gini | entropy) per method per panel.
-  s = 0, 10, 25, 50 (%); ε = 5, 10, 20 (%). 4×3 panels.
+  s = 0, 10, 25, 50 (%); ε = 0.5, 1, 2.5 (%). 4×3 panels.
   Generated for: all, small, large.
 
 Main text export (``MAIN_FIGURES``): **loss CDF row only** + grouped legend (marker swatches) → ``figure4_success_combined{suffix}`` — styled like ``figure4_success_loss_only`` (same titles) but one bottom legend instead of per-panel line legends.
@@ -47,7 +47,7 @@ LARGE_SIZE = 25000
 
 # Joint criterion grid for Figure 4b
 S_PERCENT = (0, 10, 25, 50)
-EPSILON_PERCENT = (5, 10, 20)
+EPSILON_PERCENT = (0.5, 1, 2.5)
 
 
 def _time_saved_pct(speedup: np.ndarray) -> np.ndarray:
@@ -165,7 +165,7 @@ def _plot_joint_panel_three_tasks(
         )
     ax.set_xticks(x)
     ax.set_xticklabels(task_labels, rotation=15, ha="right", fontsize=8)
-    ax.set_ylabel("Fraction")
+    ax.set_ylabel("")
     ax.set_ylim(0, 1.02)
     if show_title:
         ax.set_title(f"s ≥ {s_pct}%, ε ≤ {eps_pct}%")
@@ -266,7 +266,15 @@ def _save_supp_figure4_joint_large_small(
 
     leg_ax = fig.add_subplot(gs[8, :])
     plot_grouped_variant_legend(
-        leg_ax, method_order, method_colors, method_labels, fontsize=7, legend_style="patch"
+        leg_ax,
+        method_order,
+        method_colors,
+        method_labels,
+        fontsize=7,
+        legend_style="patch",
+        y_header=0.90,
+        y_top=0.72,
+        y_bot=0.02,
     )
     out = SUPP_DIR / "supp_figure_06_success_joint_large_small.png"
     fig.savefig(out, bbox_inches="tight", dpi=200)
@@ -377,7 +385,15 @@ def _save_supp_figure4_loss_only_large_small(
 
     leg_ax = fig.add_subplot(gs[2, :])
     plot_grouped_variant_legend(
-        leg_ax, method_order, method_colors, method_labels, fontsize=7, legend_style="patch"
+        leg_ax,
+        method_order,
+        method_colors,
+        method_labels,
+        fontsize=7,
+        legend_style="patch",
+        y_header=0.82,
+        y_top=0.60,
+        y_bot=0.00,
     )
     out = SUPP_DIR / "supp_figure_07_success_loss_only_large_small.png"
     fig.savefig(out, bbox_inches="tight", dpi=200)
@@ -549,7 +565,15 @@ def main():
 
         leg_ax_j = fig_j.add_subplot(gs_j[4, :])
         plot_grouped_variant_legend(
-            leg_ax_j, method_order, method_colors, method_labels, fontsize=7, legend_style="patch"
+            leg_ax_j,
+            method_order,
+            method_colors,
+            method_labels,
+            fontsize=7,
+            legend_style="patch",
+            y_header=0.78,
+            y_top=0.58,
+            y_bot=0.02,
         )
         for ext in ("pdf", "png"):
             fig_j.savefig(

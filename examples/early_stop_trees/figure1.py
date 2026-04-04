@@ -28,6 +28,7 @@ from benchmark_results_utils import (
     load_all,
     SECRETARY_SPLITTERS,
     SECRETARY_SPLITTERS_NO_PAR,
+    SPAR_REPRESENTATIVE_KEY,
     per_dataset_median_iqr,
     get_variant_method_order_and_colors,
     keep_secretary_par_representative,
@@ -42,7 +43,7 @@ SUPP_DIR = _SCRIPT_DIR / "SUPP_FIGURES"
 METHOD_COLORS = {
     "best": "#444444",
     "secretary": "#2166ac",
-    "secretary_par": "#7f7f7f",
+    "secretary_par": "#d95f02",
     "secretary_all": "#1b9e77",
     "double_secretary": "#d73027",
     "block_rank": "#6a3d9a",
@@ -67,7 +68,7 @@ FIG1_DEFAULT_FAMILY_KEYS = frozenset(
         "secretary|1overe",
         "double_secretary|1overe",
         "secretary_all|1overe",
-        "secretary_par|samples=10,q=0.5",
+        SPAR_REPRESENTATIVE_KEY,
         "block_rank|",
         "prophet_1sample|",
         "extra_tree|max_features=all",
@@ -175,6 +176,13 @@ def _pareto_envelope_smooth(x: np.ndarray, y: np.ndarray, n_grid: int = 400) -> 
     y_smooth = np.convolve(y_pad, kernel, mode="valid")
     y_smooth = np.minimum.accumulate(y_smooth[::-1])[::-1]
     return x_grid, y_smooth
+
+
+def _loss_axis_limits(loss_col: str) -> tuple[float, float]:
+    """Fixed y-axis ranges requested for Figure 1 / S1."""
+    if str(loss_col).startswith("loss_rmse_bounded"):
+        return (-10.0, 55.0)
+    return (-10.0, 15.0)
 
 
 def _plot_density_fade(
@@ -339,6 +347,7 @@ def _plot_pareto_panel_centroids(
     *,
     flagship_style: bool = False,
     show_title: bool = True,
+    y_limits=None,
 ):
     """
     One panel: centroid per method + 2D density (KDE) with opacity fading; individual points on top.
@@ -359,9 +368,8 @@ def _plot_pareto_panel_centroids(
     x_all = df["x"].values
     y_all = df["y"].values
     cy_all = np.mean(y_all)
-    # Envelope: all non-best (use SECRETARY_SPLITTERS_NO_PAR when summary has variant/method_key to exclude par)
-    sec_col = "method_key" if "method_key" in df.columns else "splitter"
-    all_sec = df[df["splitter"] != "best"] if "method_key" not in df.columns else df[df["splitter"].isin(SECRETARY_SPLITTERS_NO_PAR)]
+    # Envelope: all non-best alternatives.
+    all_sec = df[df["splitter"] != "best"]
     global_env = None
     y_lowest = None
     if len(all_sec) >= 2:
@@ -371,7 +379,9 @@ def _plot_pareto_panel_centroids(
             y_lowest = np.nanmin(y_g)
     # Shared x-scale; y: bottom = lowest point of global Pareto * 1.1
     left, right_border = -50, 100
-    if y_lowest is not None:
+    if y_limits is not None:
+        bottom, top = float(y_limits[0]), float(y_limits[1])
+    elif y_lowest is not None:
         bottom = float(y_lowest) * 1.1
         margin_y = np.max(np.abs(y_all - cy_all)) + 5
         top = max(2 * cy_all - bottom, bottom + max(margin_y, 1.0))
@@ -383,6 +393,7 @@ def _plot_pareto_panel_centroids(
     method_order = METHOD_ORDER if method_order is None else list(method_order)
     method_colors = METHOD_COLORS if method_colors is None else dict(method_colors)
     id_col = "method_key" if "method_key" in df.columns else "splitter"
+    centroid_rows = []
 
     # Draw 2D density (KDE) per method, then points, then centroids
     for method in method_order:
@@ -425,10 +436,19 @@ def _plot_pareto_panel_centroids(
             linewidths=cent_lw,
             zorder=2,
         )
+        centroid_rows.append({"method": method, "x": cx, "y": cy})
 
     if plot_envelope and global_env is not None:
+        # Individual-point frontier: very low opacity.
         x_g, y_g = global_env
-        ax.plot(x_g, y_g, "--", color="black", linewidth=2.0, alpha=0.8, zorder=3)
+        ax.plot(x_g, y_g, "--", color="black", linewidth=1.2, alpha=0.14, zorder=3)
+        # Centroid frontier: low opacity but stronger than individual-point frontier.
+        cent_df = pd.DataFrame(centroid_rows)
+        if not cent_df.empty:
+            cent_df = cent_df[~cent_df["method"].astype(str).str.startswith("best")]
+            if len(cent_df) >= 2:
+                x_c, y_c = _pareto_envelope_smooth(cent_df["x"].to_numpy(), cent_df["y"].to_numpy())
+                ax.plot(x_c, y_c, "-", color="black", linewidth=1.8, alpha=0.30, zorder=4)
 
     ax.set_xlabel("Median % time saved vs best")
     ax.set_ylabel("Median % loss vs best")
@@ -444,7 +464,17 @@ def _plot_legend_panel(ax):
     return _plot_legend_panel_custom(ax, METHOD_ORDER, METHOD_COLORS)
 
 
-def _plot_legend_panel_custom(ax, method_order, method_colors, method_labels=None):
+def _plot_legend_panel_custom(
+    ax,
+    method_order,
+    method_colors,
+    method_labels=None,
+    *,
+    ncol=None,
+    fontsize=9,
+    bbox_to_anchor=None,
+    mode=None,
+):
     """Legend panel for an arbitrary set of methods. Uses colored markers (not line swatches)."""
     ax.set_axis_off()
     labels = method_labels if method_labels is not None else [str(m).replace("_", " ") for m in method_order]
@@ -462,7 +492,22 @@ def _plot_legend_panel_custom(ax, method_order, method_colors, method_labels=Non
         )
         for i, m in enumerate(method_order)
     ]
-    ax.legend(handles=handles, loc="center", fontsize=9, frameon=True)
+    if ncol is None:
+        ncol = min(len(handles), 4) if handles else 1
+    if bbox_to_anchor is None:
+        bbox_to_anchor = (0, 0, 1, 1)
+    ax.legend(
+        handles=handles,
+        loc="center",
+        ncol=ncol,
+        fontsize=fontsize,
+        frameon=True,
+        bbox_to_anchor=bbox_to_anchor,
+        mode=mode,
+        columnspacing=1.1,
+        handletextpad=0.5,
+        borderaxespad=0.0,
+    )
 
 
 def _variant_summaries(data: dict, target_splitter: str):
@@ -549,6 +594,7 @@ def _save_supp_figure1_pareto_large_small(
                 method_colors=method_colors,
                 flagship_style=flagship_style,
                 show_title=False,
+                y_limits=_loss_axis_limits(lc),
             )
         if row == 0:
             for ax, ct in zip((ax_r, ax_g, ax_e), ("Regression", "Gini", "Entropy")):
@@ -564,8 +610,15 @@ def _save_supp_figure1_pareto_large_small(
             fontweight="bold",
         )
     leg_ax = fig.add_subplot(gs[2, :])
-    plot_grouped_variant_legend(
-        leg_ax, method_order, method_colors, method_labels, fontsize=7, legend_style="point"
+    _plot_legend_panel_custom(
+        leg_ax,
+        method_order,
+        method_colors,
+        method_labels,
+        ncol=min(5, max(2, len(method_order))),
+        fontsize=7,
+        bbox_to_anchor=(0, 0.05, 1, 0.9),
+        mode="expand",
     )
     out = SUPP_DIR / "supp_figure_01_pareto_large_small.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")
@@ -658,6 +711,7 @@ def _save_supp_figure1_secretary_par_triple(indir: Path):
                 method_colors=method_colors,
                 flagship_style=False,
                 show_title=False,
+                y_limits=_loss_axis_limits(lc),
             )
         if row == 0:
             for ax, ct in zip((ax_r, ax_g, ax_e), ("Regression", "Gini", "Entropy")):
@@ -673,8 +727,15 @@ def _save_supp_figure1_secretary_par_triple(indir: Path):
             fontweight="bold",
         )
     leg_ax = fig.add_subplot(gs[3, :])
-    plot_grouped_variant_legend(
-        leg_ax, method_order, method_colors, method_labels, fontsize=7, legend_style="point"
+    _plot_legend_panel_custom(
+        leg_ax,
+        method_order,
+        method_colors,
+        method_labels,
+        ncol=min(5, max(2, len(method_order))),
+        fontsize=7,
+        bbox_to_anchor=(0, 0.05, 1, 0.9),
+        mode="expand",
     )
     out = SUPP_DIR / "supp_figure_02_secretary_par_all_large_small.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")
@@ -821,6 +882,7 @@ def main():
                 method_colors=method_colors,
                 flagship_style=flagship_style,
                 show_title=False,
+                y_limits=_loss_axis_limits("loss_rmse_bounded_median"),
             )
             _plot_pareto_panel_centroids(
                 ax_g,
@@ -834,6 +896,7 @@ def main():
                 method_colors=method_colors,
                 flagship_style=flagship_style,
                 show_title=False,
+                y_limits=_loss_axis_limits("loss_f1_median"),
             )
             _plot_pareto_panel_centroids(
                 ax_e,
@@ -847,6 +910,7 @@ def main():
                 method_colors=method_colors,
                 flagship_style=flagship_style,
                 show_title=False,
+                y_limits=_loss_axis_limits("loss_f1_median"),
             )
             for ax, col_title in zip(
                 (ax_r, ax_g, ax_e),
@@ -869,6 +933,7 @@ def main():
                 method_order=method_order,
                 method_colors=method_colors,
                 flagship_style=flagship_style,
+                y_limits=_loss_axis_limits("loss_rmse_bounded_median"),
             )
             _plot_pareto_panel_centroids(
                 axes[0, 1],
@@ -881,6 +946,7 @@ def main():
                 method_order=method_order,
                 method_colors=method_colors,
                 flagship_style=flagship_style,
+                y_limits=_loss_axis_limits("loss_f1_median"),
             )
             _plot_legend_panel_custom(axes[1, 0], method_order, method_colors)
             _plot_pareto_panel_centroids(
@@ -894,6 +960,7 @@ def main():
                 method_order=method_order,
                 method_colors=method_colors,
                 flagship_style=flagship_style,
+                y_limits=_loss_axis_limits("loss_f1_median"),
             )
             plt.tight_layout()
         for ext in ("pdf", "png"):

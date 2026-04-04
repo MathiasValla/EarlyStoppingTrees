@@ -128,7 +128,7 @@ def _plot_within_whiskers_merged_png(
         return
 
     h_each = max(3.5, 0.9 * n)
-    fig = plt.figure(figsize=(10, 2 * h_each + 0.6))
+    fig = plt.figure(figsize=(10, 2 * h_each + 0.6), constrained_layout=True)
     outer = fig.add_gridspec(2, 1, height_ratios=[1, 1], hspace=0.22)
     gs0 = outer[0].subgridspec(n, 1, hspace=0.03)
     gs1 = outer[1].subgridspec(n, 1, hspace=0.03)
@@ -161,16 +161,7 @@ def _plot_within_whiskers_merged_png(
             ax.set_ylabel(mk, rotation=0, ha="right", va="center", labelpad=28)
             ax.set_yticks([])
             ax.grid(True, axis="x", alpha=0.2)
-        axes_list[0].annotate(
-            block_label,
-            xy=(-0.14, 0.5),
-            xycoords="axes fraction",
-            ha="right",
-            va="center",
-            rotation=90,
-            fontsize=10,
-            fontweight="bold",
-        )
+        axes_list[0].set_title(block_label, fontsize=15, fontweight="bold", pad=26)
         axes_list[-1].set_xlabel(xlabel)
 
     _block(
@@ -191,7 +182,6 @@ def _plot_within_whiskers_merged_png(
     )
 
     outpath.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout()
     fig.savefig(outpath, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
@@ -318,4 +308,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

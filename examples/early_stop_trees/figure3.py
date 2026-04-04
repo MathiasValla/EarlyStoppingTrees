@@ -64,7 +64,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_DIR = SCRIPT_DIR / "benchmark_results"
 OUT_DIR = SCRIPT_DIR / "figures"
 
-TAU_VALUES = (0.05, 0.10, 0.20)  # 5%, 10%, 20%
+TAU_VALUES = (0.005, 0.01, 0.025)  # 0.5%, 1%, 2.5%
+
+
+def _pct_label(tau: float) -> str:
+    """Format tolerance in percent without spurious trailing zeros."""
+    return f"{tau * 100:.3g}"
 
 # method_colors built from get_variant_method_order_and_colors (variant shades)
 
@@ -340,7 +345,7 @@ def main():
         gs = GridSpec(4, 3, figure=fig, height_ratios=[1, 1, 1, 0.55], hspace=0.11, wspace=0.06)
         axes_grid = [[None] * 3 for _ in range(3)]
         col_titles = ["Regression", "Gini", "Entropy"]
-        row_titles = [r"$\tau = 5\%$", r"$\tau = 10\%$", r"$\tau = 20\%$"]
+        row_titles = [rf"$\tau = {_pct_label(t)}\%$" for t in TAU_VALUES]
         # prepared order matches configs: [regression, gini, entropy]
         for r in range(3):
             tau = TAU_VALUES[r]
@@ -355,7 +360,8 @@ def main():
                 else:
                     ax = fig.add_subplot(gs[r, c], sharex=axes_grid[0][c], sharey=axes_grid[r][0])
                 axes_grid[r][c] = ax
-                panel_title = f"{task_label}\nτ = {int(tau * 100)}% (loss ≤ {int(tau * 100)}%)"
+                tau_lbl = _pct_label(tau)
+                panel_title = f"{task_label}\nτ = {tau_lbl}% (loss ≤ {tau_lbl}%)"
                 _regime_map_panel(
                     ax,
                     summary,
@@ -402,7 +408,7 @@ def main():
 
     for tag, summary, loss_col, task_label in prepared:
         fig, axes = plt.subplots(2, 2, figsize=(8, 8), sharex=True, sharey=True)
-        titles = [f"{task_label} – τ = {int(t * 100)}% (loss ≤ {int(t * 100)}%)" for t in TAU_VALUES]
+        titles = [f"{task_label} – τ = {_pct_label(t)}% (loss ≤ {_pct_label(t)}%)" for t in TAU_VALUES]
         for i, (tau, title) in enumerate(zip(TAU_VALUES, titles)):
             ax = axes[i // 2, i % 2]
             _regime_map_panel(

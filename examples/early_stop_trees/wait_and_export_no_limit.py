@@ -193,6 +193,21 @@ def _copy_matching(src_dir: Path, dst_dir: Path, patterns: tuple[str, ...]) -> N
 def _sync_article_assets(article_dir: Path) -> None:
     _copy_matching(MAIN_DIR, article_dir / "MAIN_FIGURES", ("*.png", "*.pdf"))
     _copy_matching(SUPP_DIR, article_dir / "SUPP_FIGURES", ("*.png",))
+    _copy_matching(
+        SCRIPT_DIR / "tables",
+        article_dir / "TABLES",
+        (
+            "dataset_benchmark_summary.tex",
+            "dataset_benchmark_summary.csv",
+            "table1.tex",
+            "table1_main.tex",
+            "table1_all.csv",
+            "table1_regression.csv",
+            "table1_gini.csv",
+            "table1_entropy.csv",
+            "pairwise_method_comparison.csv",
+        ),
+    )
 
 
 def _compile_article(article_dir: Path) -> None:

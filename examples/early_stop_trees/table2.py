@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """
-Table 2. Joint probabilities P(speedup ≥ x% and loss ≥ y%).
+Table 2. Joint probabilities P(speedup ≥ x% and loss ≤ y%).
 
 Rows: speedup ≥ x% for x = 0, 5, 10, ..., 50.
-Columns: loss ≥ y% for y = 0, 5, 10, ..., 50.
+Columns: loss ≤ y% for y = 0, 5, 10, ..., 50.
 Cell (x, y) = proportion of datasets (for that task and method) where
-  speedup_median >= 1 + x/100  and  loss_median >= y/100.
+  speedup_median >= 1 + x/100  and  loss_median <= y/100.
 
 One such table per (task, method): regression, classification Gini, classification Entropy
 and each method in SPLITTERS.
@@ -29,7 +29,7 @@ LOSS_PCT = list(range(0, 55, 5))      # 0, 5, ..., 50
 
 
 def _joint_probability_table(sub: pd.DataFrame, loss_col: str) -> pd.DataFrame:
-    """Build 11×11 matrix: cell (i,j) = P(speedup ≥ speedup_pct[i] and loss ≥ loss_pct[j])."""
+    """Build 11×11 matrix: cell (i,j) = P(speedup ≥ speedup_pct[i] and loss ≤ loss_pct[j])."""
     if sub is None or sub.empty:
         return pd.DataFrame()
     sub = sub.dropna(subset=["speedup_median", loss_col])
@@ -43,11 +43,11 @@ def _joint_probability_table(sub: pd.DataFrame, loss_col: str) -> pd.DataFrame:
         sp_min = 1.0 + x / 100.0
         row = []
         for y in LOSS_PCT:
-            loss_min = y / 100.0
-            count = np.sum((speedup >= sp_min) & (loss >= loss_min))
+            loss_max = y / 100.0
+            count = np.sum((speedup >= sp_min) & (loss <= loss_max))
             row.append(count / n)
         rows.append(row)
-    df = pd.DataFrame(rows, index=[f"speedup≥{x}%" for x in SPEEDUP_PCT], columns=[f"loss≥{y}%" for y in LOSS_PCT])
+    df = pd.DataFrame(rows, index=[f"speedup≥{x}%" for x in SPEEDUP_PCT], columns=[f"loss≤{y}%" for y in LOSS_PCT])
     return df
 
 

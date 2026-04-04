@@ -20,6 +20,7 @@ from matplotlib.gridspec import GridSpec
 from benchmark_results_utils import (
     add_method_key,
     get_variant_method_order_and_colors,
+    keep_secretary_par_representative,
     load_all,
     per_dataset_median_iqr,
     plot_grouped_variant_legend,
@@ -60,10 +61,12 @@ def _prepare_run_df(df: pd.DataFrame, loss_col: str) -> pd.DataFrame:
 
 def _load_all_runs(indir: Path):
     data = load_all(indir, exclude_secretary_par=False, by_variant=True)
-    return {
-        task_key: _prepare_run_df(data.get(f"{task_key}_run"), loss_col)
-        for task_key, _, loss_col in TASK_CONFIGS
-    }
+    out = {}
+    for task_key, _, loss_col in TASK_CONFIGS:
+        run_df = data.get(f"{task_key}_run")
+        run_df = keep_secretary_par_representative(run_df)
+        out[task_key] = _prepare_run_df(run_df, loss_col)
+    return out
 
 
 def _dataset_summary(run_df: pd.DataFrame, value_cols) -> pd.DataFrame:
@@ -84,11 +87,40 @@ def _dataset_summary(run_df: pd.DataFrame, value_cols) -> pd.DataFrame:
     return summary.loc[keep].copy()
 
 
-def _scatter_panel(ax, summary_df, x_col, y_col, title, method_order, method_colors):
+def _pareto_frontier(x_vals: np.ndarray, y_vals: np.ndarray):
+    x = np.asarray(x_vals, dtype=float)
+    y = np.asarray(y_vals, dtype=float)
+    ok = np.isfinite(x) & np.isfinite(y)
+    x = x[ok]
+    y = y[ok]
+    if x.size < 2:
+        return x, y
+    order = np.argsort(x)
+    x_s = x[order]
+    y_s = y[order]
+    y_env = np.minimum.accumulate(y_s[::-1])[::-1]
+    return x_s, y_env
+
+
+def _scatter_panel(
+    ax,
+    summary_df,
+    x_col,
+    y_col,
+    title,
+    method_order,
+    method_colors,
+    *,
+    x_limits=(-50.0, 100.0),
+    y_limits=(-10.0, 100.0),
+):
     if summary_df is None or summary_df.empty:
         ax.set_visible(False)
         return
 
+    all_x = []
+    all_y = []
+    centroids = []
     for method_key in method_order:
         splitter, variant = method_key.split("|", 1)
         sub = summary_df[
@@ -103,10 +135,17 @@ def _scatter_panel(ax, summary_df, x_col, y_col, title, method_order, method_col
         if not np.any(ok):
             continue
         color = method_colors.get(method_key, "#888888")
-        ax.scatter(x[ok], y[ok], s=12, alpha=0.16, color=color, edgecolors="none")
+        x_ok = x[ok]
+        y_ok = y[ok]
+        all_x.extend(x_ok.tolist())
+        all_y.extend(y_ok.tolist())
+        ax.scatter(x_ok, y_ok, s=12, alpha=0.16, color=color, edgecolors="none")
+        cx = float(np.median(x_ok))
+        cy = float(np.median(y_ok))
+        centroids.append((cx, cy))
         ax.scatter(
-            np.median(x[ok]),
-            np.median(y[ok]),
+            cx,
+            cy,
             s=72,
             color=color,
             edgecolors="white",
@@ -114,10 +153,23 @@ def _scatter_panel(ax, summary_df, x_col, y_col, title, method_order, method_col
             zorder=3,
         )
 
+    if len(all_x) >= 2:
+        px, py = _pareto_frontier(np.asarray(all_x), np.asarray(all_y))
+        ax.plot(px, py, "--", color="black", linewidth=1.1, alpha=0.14, zorder=1)
+    if len(centroids) >= 2:
+        cx = np.asarray([p[0] for p in centroids], dtype=float)
+        cy = np.asarray([p[1] for p in centroids], dtype=float)
+        px, py = _pareto_frontier(cx, cy)
+        ax.plot(px, py, "-", color="black", linewidth=1.6, alpha=0.30, zorder=2)
+
     ax.axhline(0, color="#d7d7d7", linewidth=0.8, zorder=0)
     ax.axvline(0, color="#d7d7d7", linewidth=0.8, zorder=0)
     ax.grid(alpha=0.18, linewidth=0.5)
     ax.set_title(title, fontsize=10, fontweight="bold", pad=5)
+    if x_limits is not None:
+        ax.set_xlim(*x_limits)
+    if y_limits is not None:
+        ax.set_ylim(*y_limits)
 
 
 def _build_method_palette(task_summaries):

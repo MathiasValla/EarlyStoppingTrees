@@ -84,10 +84,63 @@ EARLY_STOP_SPLITTERS = {
     "block_rank",
     "prophet_1sample",
 }
-SPAR_REPRESENTATIVE_KEY = "secretary_par|samples=10,q=0.5"
+SPAR_REPRESENTATIVE_KEY = "secretary_par|samples=sqrt_n,q=0.75"
 
-# secretary_par (parametric) — kept neutral so it does not compete visually with ExtraTree.
-BASE_COLOR_SECRETARY_PAR = "#7f7f7f"
+# secretary_par (parametric) base color (must stay visually distinct from secretary/ERT).
+BASE_COLOR_SECRETARY_PAR = "#d95f02"
+
+
+def splitter_display_name(splitter: str) -> str:
+    """Human-readable splitter family name used in legends/tables."""
+    s = str(splitter)
+    return {
+        "best": "best",
+        "secretary": "S",
+        "secretary_all": "S_all",
+        "double_secretary": "S^2",
+        "secretary_par": "S_par",
+        "block_rank": "block-rank",
+        "prophet_1sample": "prophet-1sample",
+        "extra_tree": "ERT",
+    }.get(s, s.replace("_", " "))
+
+
+def method_display_label(splitter: str, variant: str = "") -> str:
+    """Readable method label with variant suffix for figure/table text."""
+    s = splitter_display_name(splitter)
+    v = "" if variant is None else str(variant)
+    v = v.strip()
+    if not v:
+        return s
+    if splitter in {"secretary", "secretary_all", "double_secretary"}:
+        schedule = {
+            "1overe": "n/e",
+            "sqrt_n": "sqrt(n)",
+            "ln_n": "ln(n)",
+            "0.1n": "0.1n",
+        }.get(v, v)
+        return f"{s} ({schedule})"
+    if splitter == "extra_tree":
+        mtry = {
+            "max_features=1": "mtry=1",
+            "max_features=1over3": "mtry=p/3",
+            "max_features=2over3": "mtry=2p/3",
+            "max_features=all": "mtry=p",
+        }.get(v, v)
+        return f"{s} ({mtry})"
+    if splitter == "secretary_par":
+        fields = dict(part.split("=", 1) for part in v.split(",") if "=" in part)
+        samples = fields.get("samples", "")
+        quantile = fields.get("q", "")
+        sample_label = {
+            "sqrt_n": "sqrt(n)",
+            "ln_n": "ln(n)",
+            "1overe": "n/e",
+            "0.1n": "0.1n",
+        }.get(samples, samples)
+        if sample_label and quantile:
+            return f"{s} ({sample_label}, q={quantile})"
+    return f"{s} ({v})"
 
 
 def _shade_hex(hex_color: str, mix_white: float) -> str:
@@ -222,10 +275,7 @@ def get_variant_method_order_and_colors(*summary_dfs, include_secretary_par: boo
     colors = {}
     for s, v in method_order:
         key = f"{s}|{v}"
-        if v:
-            labels.append(f"{s.replace('_', ' ')} ({v})")
-        else:
-            labels.append(s.replace("_", " "))
+        labels.append(method_display_label(s, v))
         if s == "secretary_par":
             base = BASE_COLOR_SECRETARY_PAR
         else:
@@ -250,6 +300,9 @@ def plot_grouped_variant_legend(
     fontsize=7,
     header_fontsize=8,
     legend_style="patch",
+    y_header=0.98,
+    y_top=0.90,
+    y_bot=0.06,
 ):
     """
     Legend layout for figures 1 / 3 / 4:
@@ -314,13 +367,9 @@ def plot_grouped_variant_legend(
         "secretary": "Secretary",
         "secretary_all": "S_all",
         "double_secretary": "S²",
-        "extra_tree": "ExtraTree",
+        "extra_tree": "ERT",
         "others": "Others",
     }
-
-    y_header = 0.98
-    y_top = 0.90
-    y_bot = 0.06
 
     def _display_label(key, default_label):
         splitter = str(key).split("|", 1)[0] if "|" in str(key) else str(key)
@@ -339,6 +388,8 @@ def plot_grouped_variant_legend(
                 "max_features=2over3": "mtry=2p/3",
                 "max_features=all": "mtry=p",
             }.get(variant, default_label)
+        if splitter in {"best", "block_rank", "prophet_1sample", "secretary_par"}:
+            return splitter_display_name(splitter) if not variant else default_label
         return default_label
 
     def _draw_column(ci, title, entries):

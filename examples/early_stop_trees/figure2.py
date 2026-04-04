@@ -29,6 +29,7 @@ from benchmark_results_utils import (
     get_classification_run_level,
     SECRETARY_SPLITTERS_NO_PAR,
     get_variant_method_order_and_colors,
+    plot_grouped_variant_legend,
 )
 
 # A4 portrait: 210 × 297 mm → inches
@@ -63,7 +64,7 @@ def _dataset_meta_by_size(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # Default x-axis (time saved); loss panels use (-40, 100)
-RIDGE_X_MIN, RIDGE_X_MAX = -100.0, 100.0
+RIDGE_X_MIN, RIDGE_X_MAX = -500.0, 100.0
 RIDGE_LOSS_X_MIN, RIDGE_LOSS_X_MAX = -40.0, 100.0
 
 
@@ -113,7 +114,11 @@ def _ridgeline_panel(
         if sub.empty:
             continue
 
-        for method in method_order:
+        draw_order = sorted(
+            list(method_order),
+            key=lambda mk: 0 if str(mk).split("|", 1)[0] == "extra_tree" else 1,
+        )
+        for method in draw_order:
             vals = sub.loc[sub[id_col] == method, value_col].dropna().values
             if vals.size < 2:
                 continue
@@ -127,6 +132,7 @@ def _ridgeline_panel(
                 ys = ys / ys.max() * ridge_height
             y_top = y0 + ys
             color = method_colors.get(method, "#555555")
+            is_ert = str(method).split("|", 1)[0] == "extra_tree"
             ax.fill_between(
                 xs,
                 y0,
@@ -134,6 +140,7 @@ def _ridgeline_panel(
                 color=to_rgba(color, alpha=0.5),
                 linewidth=0.6,
                 edgecolor=to_rgba(color, alpha=0.85),
+                zorder=1 if is_ert else 2,
             )
 
         if show_ridge_labels:
@@ -205,7 +212,7 @@ def main():
     if reg_raw is None:
         raise FileNotFoundError("Missing regression run-level data.")
     reg = _prepare_run_df(reg_raw, "loss_rmse_bounded")
-    method_order, method_colors, _ = get_variant_method_order_and_colors(reg_raw, gini_raw, entropy_raw)
+    method_order, method_colors, method_labels = get_variant_method_order_and_colors(reg_raw, gini_raw, entropy_raw)
 
     figures_config = [
         ("regression", reg, "Regression", "% loss vs best (RMSE bounded)"),
@@ -215,10 +222,12 @@ def main():
     if entropy_raw is not None:
         figures_config.append(("classification_entropy", _prepare_run_df(entropy_raw, "loss_f1"), "Classification (Entropy)", "% loss vs best (F1)"))
 
-    for tag, run_df, _, loss_xlabel in figures_config:
+    for tag, run_df, _task_label, loss_xlabel in figures_config:
         if run_df is None:
             continue
-        fig, axes = plt.subplots(1, 2, figsize=A4_INCHES, sharey=False)
+        fig = plt.figure(figsize=A4_INCHES, layout="constrained")
+        gs = fig.add_gridspec(2, 2, height_ratios=[1.0, 0.16], hspace=0.06, wspace=0.08)
+        axes = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])]
         _ridgeline_panel(
             axes[0],
             run_df,
@@ -239,7 +248,18 @@ def main():
             x_min=RIDGE_LOSS_X_MIN,
             x_max=RIDGE_LOSS_X_MAX,
         )
-        plt.tight_layout()
+        leg_ax = fig.add_subplot(gs[1, :])
+        plot_grouped_variant_legend(
+            leg_ax,
+            method_order,
+            method_colors,
+            method_labels,
+            fontsize=7,
+            legend_style="patch",
+            y_header=0.96,
+            y_top=0.80,
+            y_bot=0.10,
+        )
         for ext in ("pdf", "png"):
             out = OUT_DIR / f"figure2_ridgelines_{tag}.{ext}"
             fig.savefig(out, bbox_inches="tight", dpi=(150 if ext == "png" else None))

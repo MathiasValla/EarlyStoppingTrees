@@ -365,6 +365,51 @@ cdef inline float64_t _eval_split_at_position(
     return _eval_split(splitter, feat, pos, start, end, min_weight_leaf, out)
 
 
+cdef inline float64_t _draw_extratree_split_gain_from_minmax(
+    BaseEarlyStopSplitter splitter,
+    intp_t feat,
+    intp_t start,
+    intp_t end,
+    float64_t min_weight_leaf,
+    uint32_t* random_state,
+    float32_t min_feature_value,
+    float32_t max_feature_value,
+    SplitRecord* out,
+) noexcept nogil:
+    """Evaluate one ExtraTree-style continuous threshold draw without sorting."""
+    cdef float64_t threshold
+    cdef float64_t cur_imp
+    cdef intp_t pos
+
+    _init_split_record(out, end)
+    threshold = rand_uniform(min_feature_value, max_feature_value, random_state)
+    if threshold == max_feature_value:
+        threshold = min_feature_value
+
+    pos = splitter.partitioner.partition_samples(threshold)
+    splitter.n_threshold_candidates += 1
+    if (pos - start) < splitter.min_samples_leaf or (end - pos) < splitter.min_samples_leaf:
+        return -INFINITY
+
+    splitter.criterion.reset()
+    splitter.criterion.update(pos)
+    if splitter.criterion.weighted_n_left < min_weight_leaf or splitter.criterion.weighted_n_right < min_weight_leaf:
+        return -INFINITY
+
+    cur_imp = splitter.criterion.proxy_impurity_improvement()
+    splitter.n_gain_evaluations += 1
+    if cur_imp <= -INFINITY:
+        return -INFINITY
+
+    out.feature = feat
+    out.pos = pos
+    out.threshold = threshold
+    out.n_missing = splitter.partitioner.n_missing
+    out.missing_go_to_left = 0
+    out.improvement = cur_imp
+    return cur_imp
+
+
 cdef inline bint _draw_extratree_threshold_from_sorted_feature(
     BaseEarlyStopSplitter splitter,
     intp_t start,
@@ -435,6 +480,7 @@ cdef inline intp_t _draw_extratree_split_batch(
     cdef SplitRecord cur
     cdef intp_t draw_idx
     cdef intp_t pos
+    cdef intp_t prev_pos
     cdef intp_t n_valid = 0
 
     if n_draws <= 0 or end_non_missing <= start:
@@ -469,21 +515,29 @@ cdef inline intp_t _draw_extratree_split_batch(
     qsort(thresholds, n_draws, sizeof(float64_t), _cmp_float64)
 
     pos = start
+    prev_pos = start
+    splitter.criterion.reset()
     for draw_idx in range(n_draws):
         threshold = thresholds[draw_idx]
         while pos < end_non_missing and splitter.feature_values[pos] <= threshold:
             pos += 1
-        cur_imp = _eval_split_at_position(
-            splitter,
-            feat,
-            pos,
-            start,
-            end,
-            min_weight_leaf,
-            &cur,
-        )
+        splitter.n_threshold_candidates += 1
+        if (pos - start) < splitter.min_samples_leaf or (end - pos) < splitter.min_samples_leaf:
+            continue
+        if pos > prev_pos:
+            splitter.criterion.update(pos)
+            prev_pos = pos
+        if splitter.criterion.weighted_n_left < min_weight_leaf or splitter.criterion.weighted_n_right < min_weight_leaf:
+            continue
+        cur_imp = splitter.criterion.proxy_impurity_improvement()
+        splitter.n_gain_evaluations += 1
         if cur_imp > -INFINITY:
+            cur.feature = feat
+            cur.pos = pos
             cur.threshold = threshold
+            cur.n_missing = splitter.partitioner.n_missing
+            cur.missing_go_to_left = 0
+            cur.improvement = cur_imp
             if gain_buf != NULL and n_valid < gain_buf_len:
                 gain_buf[n_valid] = cur_imp
             n_valid += 1
@@ -1706,17 +1760,17 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
         cdef uint32_t* explore_random_state = &self.explore_rand_r_state
         cdef float64_t impurity = parent.impurity
         cdef intp_t n_known_constants = parent.n_constant_features
-        cdef intp_t f_i, f_j, p, idx
+        cdef intp_t f_i, f_j, idx
         cdef intp_t n_visited = 0
         cdef intp_t n_found_constants = 0
         cdef intp_t n_drawn_constants = 0
         cdef intp_t n_total_constants = n_known_constants
+        cdef intp_t end_non_missing
         cdef SplitRecord cur_split, feat_split, tau_split, best_split, first_above
-        cdef float64_t cur_imp, feat_imp
+        cdef float32_t min_feature_value, max_feature_value
+        cdef float64_t feat_imp
         cdef float64_t tau = -INFINITY
-        cdef float64_t sampled_threshold
         cdef bint found_above = 0
-        cdef intp_t partition_end
 
         self.partitioner.init_node_split(start, end)
         for idx in range(n_features):
@@ -1737,8 +1791,16 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
                 continue
             f_j += n_found_constants
             cur_split.feature = features[f_j]
-            _fill_and_sort_feature(self, cur_split.feature, start, end)
-            if _sorted_feature_is_constant(self, start, end):
+            self.partitioner.find_min_max(
+                cur_split.feature,
+                &min_feature_value,
+                &max_feature_value,
+            )
+            end_non_missing = end - self.partitioner.n_missing
+            if (
+                end_non_missing == start or
+                max_feature_value <= min_feature_value + FEATURE_THRESHOLD
+            ):
                 features[f_j], features[n_total_constants] = features[n_total_constants], features[f_j]
                 n_found_constants += 1
                 n_total_constants += 1
@@ -1746,24 +1808,17 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
             f_i -= 1
             features[f_i], features[f_j] = features[f_j], features[f_i]
             # Exploration mirrors ExtraTree: one continuous threshold draw per feature.
-            feat_imp = -INFINITY
-            _init_split_record(&feat_split, end)
-            if _draw_extratree_threshold_from_sorted_feature(
-                self, start, end, explore_random_state, &sampled_threshold, &p
-            ):
-                cur_imp = _eval_split_at_position(
-                    self,
-                    cur_split.feature,
-                    p,
-                    start,
-                    end,
-                    min_weight_leaf,
-                    &cur_split,
-                )
-                if cur_imp > -INFINITY:
-                    feat_imp = cur_imp
-                    cur_split.threshold = sampled_threshold
-                    feat_split = cur_split
+            feat_imp = _draw_extratree_split_gain_from_minmax(
+                self,
+                cur_split.feature,
+                start,
+                end,
+                min_weight_leaf,
+                explore_random_state,
+                min_feature_value,
+                max_feature_value,
+                &feat_split,
+            )
             if feat_imp > tau:
                 tau = feat_imp
                 tau_split = feat_split
