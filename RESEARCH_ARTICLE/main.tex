@@ -172,8 +172,6 @@ We study four secretary-style split-search strategies for CART, ranging from spl
 
 The contribution is empirical and methodological rather than theoretical. We benchmark the proposed rules against the standard exhaustive \texttt{scikit-learn} splitter and against ERT-style random-threshold baselines \cite{geurts2006extra} on a large collection of regression and classification datasets from the PMLB benchmark suite \cite{romano2022pmlb}. The goal is to characterize the time--accuracy trade-off, quantify the variability induced by randomized split exploration, and identify which stopping rules offer the best practical compromise at the single-tree level before studying ensembles built from the same splitters.
 
-\paragraph{Code availability.} The implementation and the scripts used to reproduce the experiments are available at \href{https://github.com/MathiasValla/EarlyStoppingTrees}{https://github.com/MathiasValla/EarlyStoppingTrees}.
-
 \section{Methods}
 \label{sec:methods}
 
@@ -313,6 +311,12 @@ A second important outcome is mostly negative but informative. The parametric se
 The study is limited to single trees, benchmark datasets, and a deliberately small family of stopping rules, and is intended primarily as an empirical characterization rather than a complete theory. This restriction is deliberate: understanding the time--loss trade-off for a single tree is a necessary first step before one can interpret what these splitters might contribute inside larger ensembles.
 
 A natural next step is to study the same split-search rules in bagging and boosting, but this remains genuine future work rather than a claim of the present paper. Because split-search cost is incurred at every node and across many trees, even moderate node-level savings may accumulate into substantial end-to-end gains, and ensembling may damp the predictive effect of occasional suboptimal splits. At the same time, those ensemble-level effects cannot be interpreted cleanly without first understanding the single-tree regime studied here. A second direction is methodological: the performance of the block-rank rule suggests that adaptive rank-based or sample-based stopping rules may be preferable to the classical secretary rule in this context. Overall, secretary-style split search is not a universal replacement for exhaustive CART search, but in favorable settings, especially in classification, it offers a simple and interpretable way to trade split-search time against predictive performance.
+
+\section*{Code availability}
+The implementation and the scripts used to reproduce the experiments are available at \href{https://github.com/MathiasValla/EarlyStoppingTrees}{https://github.com/MathiasValla/EarlyStoppingTrees}.
+
+\section*{Acknowledgments}
+Work conducted within the Research Chair DIALog under the aegis of the Risk Foundation, a joint initiative by Universit\'e Paris-Dauphine PSL and CNP Assurances
 
 \bibliographystyle{elsarticle-num}
 \bibliography{references}
