@@ -677,12 +677,16 @@ def _save_joint_profiles(
     size_filter: str,
     interval_scope: str,
     supplementary_copy: Path | None = None,
+    figure_height: float = 7.55,
 ) -> None:
     """Save the compact grid of joint operating-point profiles."""
     note, has_intervals = _interval_note(
         joint_tables, interval_scope=interval_scope
     )
-    fig = plt.figure(figsize=(7.45, 7.55), layout="constrained")
+    compact_layout = figure_height <= 4.5
+    if compact_layout:
+        note = note.split(";")[0] + "."
+    fig = plt.figure(figsize=(7.45, figure_height), layout="constrained")
     grid = GridSpec(
         4,
         3,
@@ -719,11 +723,21 @@ def _save_joint_profiles(
                 ax.tick_params(labelbottom=False)
             if column == 0:
                 unit = "%" if task == "regression" else " F1 pp"
-                ax.set_ylabel(
-                    "Fraction of datasets\n"
-                    + rf"$\varepsilon\leq {tolerance:g}${unit}",
-                    fontsize=7.5,
-                )
+                if compact_layout:
+                    ax.set_ylabel(
+                        rf"$\varepsilon\leq {tolerance:g}${unit}",
+                        fontsize=7.5,
+                        rotation=0,
+                        ha="right",
+                        va="center",
+                        labelpad=18,
+                    )
+                else:
+                    ax.set_ylabel(
+                        "Fraction of datasets\n"
+                        + rf"$\varepsilon\leq {tolerance:g}${unit}",
+                        fontsize=7.5,
+                    )
             else:
                 ax.tick_params(labelleft=False)
 
@@ -742,6 +756,8 @@ def _save_joint_profiles(
         title = f"Joint dataset reliability | {_size_description(size_filter)}"
         title_color = "#333333"
     fig.suptitle(title, fontsize=9.2, fontweight="bold", color=title_color)
+    if compact_layout:
+        fig.supylabel("Fraction of datasets", fontsize=7.8, x=-0.004)
     _save_figure(fig, output_stem)
     if supplementary_copy is not None:
         supplementary_copy.parent.mkdir(parents=True, exist_ok=True)
@@ -1138,8 +1154,10 @@ def main(argv: list[str] | None = None) -> int:
 
     for size_filter in ("all", "small", "large"):
         suffix = "" if size_filter == "all" else f"_{size_filter}"
-        _save_combined_reliability(
-            loss_tables=loss_by_size[size_filter],
+        # The journal limits figures to half a page. The main figure therefore
+        # shows the joint operating criteria only; the complementary loss-only
+        # profile remains in Supplementary Figure S6.
+        _save_joint_profiles(
             joint_tables=joint_by_size[size_filter],
             method_order=main_method_order,
             method_colors=main_method_colors,
@@ -1147,6 +1165,7 @@ def main(argv: list[str] | None = None) -> int:
             output_stem=out_dir / f"figure4_success_combined{suffix}",
             size_filter=size_filter,
             interval_scope=args.interval_scope,
+            figure_height=4.15,
         )
         _save_joint_profiles(
             joint_tables=joint_by_size[size_filter],

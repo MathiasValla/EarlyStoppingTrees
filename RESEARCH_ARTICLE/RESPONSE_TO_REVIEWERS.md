@@ -213,7 +213,11 @@ figures are supplied as vector PDFs and the supplementary composites as
 high-resolution images. The reliability figure uses the revision-designated
 representative set; the Pareto and regime figures retain schedule variants with
 reorganized multi-column legends. We inspected the rendered manuscript at final
-size rather than judging only the full-size source images.
+size rather than judging only the full-size source images. Main Figures 2 and 3
+were rebuilt so that neither source PDF is taller than 4.35 inches before
+journal-width scaling, keeping both within the journal's half-page figure limit.
+Figure 2 now contains the joint operating criteria; the complementary loss-only
+profiles remain in Supplementary Figure S6.
 
 Figure 1 now emphasizes the dataset-level centroids and shows separate 95%
 hierarchical intervals for both coordinates. Figure 2 uses datasets as the unit
@@ -586,10 +590,15 @@ regime maps. We report only benchmark-supported patterns: under their respective
 loss endpoints, retained classification entries admit incomplete search more
 often, regression more often retains exhaustive CART under strict margins, and
 loosening the margin makes aggressive ERT and stopping rules eligible on more
-entries. We explicitly state that the nearest-neighbor background is descriptive
-and that the corpus does not establish causal or universal boundaries. The
-Conclusion recommends reporting future ensemble results by task and entry regime
-rather than only as one pooled average.
+entries. At the 1-unit margin, ERT was the fastest admissible family for 62/122
+Gini and 68/122 entropy entries. It won 23/32 and 22/32 classification entries
+with `n >= 3196`, and 22/31 entries for each impurity in the lowest `p/n`
+quartile (`p/n <= 0.00769`). Regression instead retained exhaustive CART on
+63/113 entries overall and 24/43 entries with `n >= 1000`; `S_all` won 13/113.
+We identify these cutoffs as corpus quartiles, not deployment thresholds. We
+also state that the nearest-neighbor background is descriptive and that the
+corpus does not establish causal or universal boundaries. The Conclusion
+reports the same qualified pattern.
 
 **Location.** Main manuscript, Table 1, Sections 4.2 and 5, and Figure 3.
 Supplement, Section S4 and Figure S8.

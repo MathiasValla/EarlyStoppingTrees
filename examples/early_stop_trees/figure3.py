@@ -39,8 +39,8 @@ DEFAULT_REGION_ALPHA = 0.18
 GRID_RESOLUTION = 150
 DEFAULT_PNG_DPI = 450
 FULL_PAGE_WIDTH_IN = 7.35
-COMBINED_HEIGHT_IN = 8.2
-POINT_SIZE = 29
+COMBINED_HEIGHT_IN = 4.35
+POINT_SIZE = 23
 
 # method_key for exhaustive baseline (must match benchmark_results_utils / summaries)
 BEST_METHOD_KEY = "best|"
@@ -306,17 +306,17 @@ def _style_panel_axes(ax, *, title: str, show_xlabel: bool, show_ylabel: bool):
     ax.set_facecolor("#FCFCFA")
     ax.set_axisbelow(True)
     ax.grid(True, color="#D5D5CF", linewidth=0.45, alpha=0.75)
-    ax.set_box_aspect(0.72)
+    ax.set_box_aspect(0.42)
     ax.xaxis.set_major_locator(MaxNLocator(nbins=5, steps=[1, 2, 2.5, 5, 10]))
     ax.yaxis.set_major_locator(MaxNLocator(nbins=4, steps=[1, 2, 2.5, 5, 10]))
-    ax.tick_params(axis="both", labelsize=8, length=3, width=0.65, pad=2)
+    ax.tick_params(axis="both", labelsize=8.5, length=2.5, width=0.65, pad=1.5)
     for spine in ax.spines.values():
         spine.set_color("#404040")
         spine.set_linewidth(0.65)
-    ax.set_xlabel(r"Dataset size, $\log_{10}(n)$" if show_xlabel else "", fontsize=9)
-    ax.set_ylabel(r"Feature count, $\log_{10}(p)$" if show_ylabel else "", fontsize=9)
+    ax.set_xlabel(r"Dataset size, $\log_{10}(n)$" if show_xlabel else "", fontsize=8.5)
+    ax.set_ylabel(r"Feature count, $\log_{10}(p)$" if show_ylabel else "", fontsize=8.5)
     if title:
-        ax.set_title(title, fontsize=10.5, fontweight="bold", pad=7)
+        ax.set_title(title, fontsize=8.5, fontweight="bold", pad=3)
 
 
 def _legend_handles(method_order: list, method_colors: dict, method_labels: list):
@@ -362,7 +362,7 @@ def _legend_panel(ax, method_order: list, method_colors: dict, method_labels: li
         handles=handles,
         loc="center",
         ncol=ncol,
-        fontsize=7.5,
+        fontsize=8.5,
         frameon=True,
         columnspacing=0.8,
         handlelength=1.0,
@@ -434,12 +434,12 @@ def _combined_legend_panel(ax, method_order: list, method_colors: dict):
             headers[family],
             ha="center",
             va="top",
-            fontsize=8.8,
+            fontsize=8.5,
             fontweight="bold",
             transform=ax.transAxes,
         )
         entries = groups[family]
-        y_positions = np.linspace(0.72, 0.29, len(entries)) if entries else []
+        y_positions = np.linspace(0.68, 0.12, len(entries)) if entries else []
         for method_key, y in zip(entries, y_positions):
             marker_x = start + width * 0.08
             ax.scatter(
@@ -459,32 +459,9 @@ def _combined_legend_panel(ax, method_order: list, method_colors: dict):
                 _compact_legend_label(method_key),
                 ha="left",
                 va="center",
-                fontsize=8.0,
+                fontsize=8.5,
                 transform=ax.transAxes,
             )
-
-    ax.text(
-        0.5,
-        0.12,
-        r"Outlined symbols: observed datasets; winner = fastest method with loss $\leq\tau$ "
-        "(exhaustive if none qualifies).",
-        ha="center",
-        va="center",
-        fontsize=7.5,
-        color="#303030",
-        transform=ax.transAxes,
-    )
-    ax.text(
-        0.5,
-        0.015,
-        f"Background tint: descriptive {KNN_NEIGHBORS}-NN interpolation of observed winner labels "
-        "(not model estimates).",
-        ha="center",
-        va="bottom",
-        fontsize=7.5,
-        color="#303030",
-        transform=ax.transAxes,
-    )
 
 
 def _save_figure_pair(fig, outdir: Path, stem: str, png_dpi: int) -> tuple[Path, Path]:
@@ -623,12 +600,12 @@ def main():
             2,
             1,
             figure=fig,
-            height_ratios=[3.25, 1.0],
-            hspace=0.17,
-            left=0.115,
+            height_ratios=[3.0, 1.05],
+            hspace=0.10,
+            left=0.105,
             right=0.985,
-            bottom=0.035,
-            top=0.955,
+            bottom=0.02,
+            top=0.97,
         )
         panel_gs = outer[0].subgridspec(3, 3, hspace=0.15, wspace=0.12)
         axes_grid = [[None] * 3 for _ in range(3)]
@@ -667,7 +644,7 @@ def main():
                 ha="center",
                 va="center",
                 rotation=90,
-                fontsize=9.5,
+                fontsize=8.5,
                 fontweight="bold",
                 annotation_clip=False,
             )
@@ -689,11 +666,11 @@ def main():
         panel_top = max(box.y1 for box in panel_boxes)
         fig.text(
             (panel_left + panel_right) / 2,
-            panel_bottom - 0.044,
+            panel_bottom - 0.040,
             r"Dataset size, $\log_{10}(n)$",
             ha="center",
             va="center",
-            fontsize=9.5,
+            fontsize=8.5,
         )
         fig.text(
             0.018,
@@ -702,7 +679,7 @@ def main():
             ha="center",
             va="center",
             rotation=90,
-            fontsize=9.5,
+            fontsize=8.5,
         )
 
         pdf_path, png_path = _save_figure_pair(
