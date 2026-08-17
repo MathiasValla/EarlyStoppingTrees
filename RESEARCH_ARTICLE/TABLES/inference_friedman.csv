@@ -1,0 +1,10 @@
+task,task_label,metric,metric_label,unit,n_complete_datasets,n_methods,statistic,df,pvalue,kendalls_w
+regression,Regression,time_saved_pct,Time saved,percent_training_time,113,10,923.9927594529363,9,4.182229282881101e-193,0.9085474527560828
+regression,Regression,predictive_loss_pct,Predictive loss,percent_bounded_relative_RMSE_loss,113,10,730.5761293920801,9,1.8414453377527497e-151,0.7183639423717602
+regression,Regression,effort_saved_pct,Effort saved,percent_gain_evaluations,113,10,980.8208232445522,9,2.354416181775111e-205,0.9644255882443975
+classification_gini,Classification (Gini),time_saved_pct,Time saved,percent_training_time,122,10,803.1254843517136,9,4.5164994120701384e-167,0.7314439748194113
+classification_gini,Classification (Gini),predictive_loss_pct,Predictive loss,F1_percentage_points,122,10,384.9181298489177,9,2.257140954393954e-77,0.35056295978954255
+classification_gini,Classification (Gini),effort_saved_pct,Effort saved,percent_gain_evaluations,122,10,808.8075639045297,9,2.701740662622567e-168,0.7366189106598632
+classification_entropy,Classification (Entropy),time_saved_pct,Time saved,percent_training_time,122,10,809.7907600596127,9,1.659538727602793e-168,0.7375143534240552
+classification_entropy,Classification (Entropy),predictive_loss_pct,Predictive loss,F1_percentage_points,122,10,425.50838531547197,9,4.910513378143914e-86,0.3875304055696466
+classification_entropy,Classification (Entropy),effort_saved_pct,Effort saved,percent_gain_evaluations,122,10,808.0012457023267,9,4.0292209990932307e-168,0.7358845589274379

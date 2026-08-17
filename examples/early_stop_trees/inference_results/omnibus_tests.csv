@@ -1,0 +1,10 @@
+task,metric,unit,test,statistic,df,pvalue,kendalls_w,n_complete_datasets,n_methods
+regression,time_saved_pct,percent_training_time,friedman,923.9927594529363,9,4.1822292828811011e-193,0.90854745275608284,113,10
+regression,predictive_loss_pct,percent_bounded_relative_RMSE_loss,friedman,730.57612939208013,9,1.8414453377527497e-151,0.71836394237176016,113,10
+regression,effort_saved_pct,percent_gain_evaluations,friedman,980.82082324455223,9,2.354416181775111e-205,0.9644255882443975,113,10
+classification_gini,time_saved_pct,percent_training_time,friedman,803.12548435171357,9,4.5164994120701384e-167,0.73144397481941126,122,10
+classification_gini,predictive_loss_pct,F1_percentage_points,friedman,384.91812984891772,9,2.2571409543939542e-77,0.35056295978954255,122,10
+classification_gini,effort_saved_pct,percent_gain_evaluations,friedman,808.80756390452973,9,2.7017406626225669e-168,0.73661891065986318,122,10
+classification_entropy,time_saved_pct,percent_training_time,friedman,809.79076005961269,9,1.6595387276027931e-168,0.73751435342405525,122,10
+classification_entropy,predictive_loss_pct,F1_percentage_points,friedman,425.50838531547197,9,4.9105133781439137e-86,0.38753040556964657,122,10
+classification_entropy,effort_saved_pct,percent_gain_evaluations,friedman,808.00124570232674,9,4.0292209990932307e-168,0.73588455892743787,122,10

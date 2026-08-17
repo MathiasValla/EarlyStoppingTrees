@@ -96,11 +96,11 @@ def splitter_display_name(splitter: str) -> str:
     return {
         "best": "best",
         "secretary": "S",
-        "secretary_all": "S_all",
-        "double_secretary": "S^2",
-        "secretary_par": "S_par",
-        "block_rank": "block-rank",
-        "prophet_1sample": "prophet-1sample",
+        "secretary_all": r"$S_{\mathrm{all}}$",
+        "double_secretary": r"$S^2$",
+        "secretary_par": r"$S_{\mathrm{par}}$",
+        "block_rank": "rank-inspired",
+        "prophet_1sample": "prophet-style",
         "extra_tree": "ERT",
     }.get(s, s.replace("_", " "))
 
@@ -114,10 +114,10 @@ def method_display_label(splitter: str, variant: str = "") -> str:
         return s
     if splitter in {"secretary", "secretary_all", "double_secretary"}:
         schedule = {
-            "1overe": "n/e",
-            "sqrt_n": "sqrt(n)",
-            "ln_n": "ln(n)",
-            "0.1n": "0.1n",
+            "1overe": "f=1/e",
+            "sqrt_n": "f=1/sqrt(n)",
+            "ln_n": "f=1/log(N)",
+            "0.1n": "f=0.1",
         }.get(v, v)
         return f"{s} ({schedule})"
     if splitter == "extra_tree":
@@ -133,10 +133,10 @@ def method_display_label(splitter: str, variant: str = "") -> str:
         samples = fields.get("samples", "")
         quantile = fields.get("q", "")
         sample_label = {
-            "sqrt_n": "sqrt(n)",
-            "ln_n": "ln(n)",
-            "1overe": "n/e",
-            "0.1n": "0.1n",
+            "sqrt_n": "rho=1/sqrt(N)",
+            "ln_n": "B=round(log(N))",
+            "1overe": "rho=1/e",
+            "0.1n": "rho=0.1",
         }.get(samples, samples)
         if sample_label and quantile:
             return f"{s} ({sample_label}, q={quantile})"
@@ -365,8 +365,8 @@ def plot_grouped_variant_legend(
 
     family_headers = {
         "secretary": "Secretary",
-        "secretary_all": "S_all",
-        "double_secretary": "S²",
+        "secretary_all": r"$S_{\mathrm{all}}$",
+        "double_secretary": r"$S^2$",
         "extra_tree": "ERT",
         "others": "Others",
     }
@@ -376,10 +376,10 @@ def plot_grouped_variant_legend(
         variant = str(key).split("|", 1)[1] if "|" in str(key) else ""
         if splitter in {"secretary", "secretary_all", "double_secretary"}:
             return {
-                "1overe": "n/e",
-                "sqrt_n": "sqrt(n)",
-                "ln_n": "ln(n)",
-                "0.1n": "0.1n",
+                "1overe": "f=1/e",
+                "sqrt_n": "f=1/sqrt(n)",
+                "ln_n": "f=1/log(N)",
+                "0.1n": "f=0.1",
             }.get(variant, default_label)
         if splitter == "extra_tree":
             return {

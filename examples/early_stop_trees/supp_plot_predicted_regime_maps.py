@@ -26,7 +26,6 @@ from matplotlib.gridspec import GridSpec
 
 from benchmark_results_utils import (
     get_variant_method_order_and_colors,
-    keep_secretary_par_representative,
     load_all,
     plot_grouped_variant_legend,
 )
@@ -221,19 +220,17 @@ def main():
     indir = Path(args.indir) if args.indir else BENCHMARK_DIR
     region_alpha = float(np.clip(args.region_alpha, 0.0, 1.0))
 
-    data = load_all(indir, exclude_secretary_par=False, by_variant=True)
+    data = load_all(indir, exclude_secretary_par=True, by_variant=True)
 
     regression_summary = data["regression_summary"]
-    if regression_summary is not None:
-        regression_summary = regression_summary[regression_summary["splitter"] != "secretary_par"].copy()
-    classification_gini_summary = keep_secretary_par_representative(data["classification_gini_summary"])
-    classification_entropy_summary = keep_secretary_par_representative(data["classification_entropy_summary"])
+    classification_gini_summary = data["classification_gini_summary"]
+    classification_entropy_summary = data["classification_entropy_summary"]
 
     method_order, method_colors, method_labels = get_variant_method_order_and_colors(
         regression_summary,
         classification_gini_summary,
         classification_entropy_summary,
-        include_secretary_par=True,
+        include_secretary_par=False,
     )
 
     configs = [
@@ -290,7 +287,7 @@ def main():
     )
 
     out = SUPP_DIR / "supp_figure_08_predicted_regime_maps.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight")
+    fig.savefig(out, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"Wrote {out}")
 

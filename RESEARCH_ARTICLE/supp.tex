@@ -1,5 +1,5 @@
 % !TeX program = pdflatex
-\documentclass[preprint,12pt]{elsarticle}
+\documentclass[longtitle,final,3p,times]{elsarticle}
 
 % -------------------------------------------------
 % Packages
@@ -8,7 +8,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
+\usepackage{prletters}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{hyperref}
 \usepackage{microtype}
 \renewcommand{\ttdefault}{cmtt}
@@ -24,152 +26,611 @@
 \renewcommand{\thefigure}{S\arabic{figure}}
 \renewcommand{\thetable}{S\arabic{table}}
 \renewcommand{\thesection}{S\arabic{section}}
-\newcommand{\suppwideimage}[1]{\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{#1}}
+\newcommand{\suppwideimage}[1]{\includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{SUPP_FIGURES/#1}}
+\newenvironment{suppalgorithm}[1]{%
+  \par\medskip\noindent\begin{minipage}{\columnwidth}\small
+  \hrule\smallskip\textbf{#1}\par\smallskip
+}{%
+  \smallskip\hrule\end{minipage}\par\medskip
+}
+\newcommand{\suppabstracttext}{This supplement gives pseudocode matched to the implementation, node-level cost bounds, benchmark and dataset details, and the paired hierarchical inferential protocol. It also reports size-stratified, reliability, regime, within-dataset, gain-landscape, and effort diagnostics. The displayed \(S_{\mathrm{par}}\) screen is retained only as an archived, uncorrected proxy-parametric ablation and is excluded from confirmatory inference and recommendations.}
 
 \begin{document}
 
 \begin{frontmatter}
+\patrecabstract{\suppabstracttext}
 
-\title{Supplementary Material for\\
-Secretary-Style Split Search for Decision Trees}
+\title{Supplementary material for\\
+Secretary-style split search for decision trees}
 
-\author{Mathias Valla}
+\author[inst1]{Mathias Valla\corref{cor1}}
+\cortext[cor1]{Corresponding author: \href{mailto:mathias.valla@gmail.com}{mathias.valla@gmail.com}}
+\address[inst1]{Chaire DIALog, Institut Louis Bachelier, 28 Place de la Bourse, 75002 Paris, France}
 
 \begin{abstract}
-This supplementary document provides the additional figures supporting the main manuscript: Supplementary Figure~S1 on size-stratified Pareto comparisons, Supplementary Figure~S2 on the screening analysis of the parametric secretary strategy, Supplementary Figures~S3--S5 on ridgeline summaries of within-dataset variability, Supplementary Figures~S6--S7 on reliability and joint-success plots, Supplementary Figure~S8 on tolerance-constrained quickest-method regime maps, Supplementary Figures~S9--S11 on within-dataset whisker summaries, Supplementary Figure~S12 on exhaustive gain-landscape diagnostics for the regression--classification asymmetry, and Supplementary Figures~S13--S14 on split-search effort comparisons using the selected \(S_{\mathrm{par}}\) representative.
+\suppabstracttext
 \end{abstract}
 
 \end{frontmatter}
+\clearpage
 
-\begin{figure}[p]
+\section{Implementation scope and notation}
+\label{sec:supp_scope}
+
+At a node, let \(n\) be the number of node samples, \(p\) the number of input
+features, and \(k\) the number already known to be constant from ancestor
+nodes.  The pre-scan feature budget is
+\(m=\min(p-k,m_{\mathrm{try}})\).  The early-stopping methods use all features,
+so \(m=p-k\); only the extremely randomized-tree (ERT) baselines vary
+\(m_{\mathrm{try}}\).  Further constant features can be discovered during the
+node scan.  For
+feature \(j\), let \(D_j\leq n-1\) be the number of distinct adjacent-value
+boundaries before leaf constraints, \(C_j\leq D_j\) the number of admissible
+boundaries whose proxy gain is evaluated by an exact scan, and \(d_j\) the
+number of continuously sampled thresholds.  A split gain is \emph{exact} when
+it is computed from every sample at the node; this does not imply that every
+candidate boundary was inspected.
+
+Features are drawn without replacement from this budget in a randomized order.
+A feature found constant at the current node is skipped without advancing the
+number of encountered non-constant features and without reducing the
+exploration target.  Whenever a feature is scanned exactly, its node samples are sorted by feature value and
+its boundaries are processed in increasing value order.  Thus the methods use
+a random feature order, not a random permutation of all feature--threshold
+pairs.  For an exploration fraction \(f\), the target prefix contains
+
+\[
+ r=\max\{1,\min[m,\operatorname{round}(fm)]\}.
+\]
+
+The evaluated schedules are
+\[
+ f\in\left\{1/e,\;0.1,\;1/\log N_{\mathrm{data}},\;
+ 1/\sqrt{n_{\mathrm{node}}}\right\}.
+\]
+The logarithmic schedule is fixed from the
+full dataset size, whereas the square-root schedule is recomputed at each
+node.  For \(S\), the same fraction also controls the sampled-threshold budget.
+For \(S^2\), \(f\) controls only the outer feature prefix and the inner
+sampled-threshold fraction is fixed at \(1/e\).  These are not exploration
+counts equal to \(n/e\), \(\log n\), or \(\sqrt n\).
+
+The benchmark contains dense arrays without missing values and does not use
+monotonic constraints.  The early-stopping helpers revert to exhaustive search
+above 4096 input features.  The fallback was not activated: the retained
+maximum is \(p=240\).
+
+\section{Algorithms and implementation details}
+\label{sec:supp_algorithms}
+
+All returned splits are finalized from exact child impurities.  Ties use the
+strict comparisons indicated below, and an exploration split is retained as a
+fallback when no selection item is accepted.
+
+\begin{suppalgorithm}{Algorithm S1: exhaustive CART and ERT baselines}
+\textbf{Exhaustive CART.}
+For each of the \(m\) randomized non-constant features, sort the node samples,
+scan every admissible distinct boundary, and retain the largest proxy gain.
+Finalize and return that split.
+
+\smallskip
+\textbf{ERT.}
+For each of the \(m_{\mathrm{try}}\) selected non-constant features, obtain its
+minimum and maximum without sorting, draw one threshold uniformly over that
+range, partition the node, and evaluate the sampled split.  Return the best of
+the sampled splits.  The four benchmark variants use
+\(m_{\mathrm{try}}\in\{1,p/3,2p/3,p\}\).
+\end{suppalgorithm}
+
+\begin{suppalgorithm}{Algorithm S2: sampled-threshold, feature-stopping rule \(S(f)\)}
+\textbf{Input:} node samples, \(m\), and exploration fraction \(f\).
+\begin{enumerate}
+\setlength{\itemsep}{0pt}
+\item Compute \(r\) from the pre-scan budget, draw features without replacement,
+      and skip newly discovered constants without reducing \(r\).
+\item For each of the first \(r\) features \(j\), sort the node samples, count
+      \(D_j\), generate the vector of
+      \(d_j=\max\{1,\operatorname{round}(fD_j)\}\) continuous thresholds once,
+      sort it once, and evaluate it in a monotone batch.  Let \(\tau\) be the
+      largest sampled gain over the prefix and retain its split as fallback.
+\item For each later feature, perform one complete exact scan and obtain its
+      best split with gain strictly above \(\tau\).  Return the first feature
+      for which such a split exists.
+\item If none exists, return the exploration fallback.
+\end{enumerate}
+The selection event is the first qualifying \emph{feature}; within that
+feature the implementation obtains the best qualifying exact boundary.
+\end{suppalgorithm}
+
+\begin{suppalgorithm}{Algorithm S3: exact-feature rule \(S_{\mathrm{all}}(f)\)}
+\begin{enumerate}
+\setlength{\itemsep}{0pt}
+\item Compute \(r\) from the pre-scan budget, draw features without replacement,
+      and skip newly discovered constants without reducing \(r\).
+\item Exactly scan every boundary on each of the first \(r\) features.  Set
+      \(\tau\) to the largest featurewise maximum and retain its split.
+\item Exactly scan each later feature.  Return the first feature whose exact
+      maximum is strictly greater than \(\tau\).
+\item If none is accepted, return the best exploration split.
+\end{enumerate}
+This is the closest implemented analogue of a secretary rule over randomized
+feature scores, although its exploration fallback is not part of the classical
+irrevocable model.
+\end{suppalgorithm}
+
+\begin{suppalgorithm}{Algorithm S4: calibration ablation \(S^2(f)\)}
+\begin{enumerate}
+\setlength{\itemsep}{0pt}
+\item Compute the outer prefix length \(r\) from the pre-scan budget, draw
+      features without replacement, and skip newly discovered constants without
+      reducing \(r\).
+\item On an exploration feature \(j\), draw
+      \(d_j=\max\{1,\operatorname{round}(D_j/e)\}\) continuous thresholds and
+      set an inner level to the largest sampled gain.
+\item Scan every exact boundary on the same feature and retain its best split
+      above the inner level, using the sampled split as fallback.  Update the
+      outer level with this feature score.
+\item On each selection feature, exactly scan for the best split above the
+      outer level and return the first qualifying feature; otherwise return the
+      best exploration split.
+\end{enumerate}
+The exploration feature is fully rescanned after sampling, so \(S^2\) is a
+calibration ablation rather than a cheaper nested stopping rule.
+\end{suppalgorithm}
+
+\begin{suppalgorithm}{Algorithm S5: blockwise rank-inspired heuristic}
+\begin{enumerate}
+\setlength{\itemsep}{0pt}
+\item Draw features without replacement and set
+      \(b=\max\{1,\lfloor\sqrt n\rfloor\}\).
+\item On each feature, exactly scan the value-ordered boundaries in contiguous
+      blocks of \(b\), representing each completed block by its maximum gain.
+\item Independently label each block ``exploration'' with probability \(f\).
+      An exploration block can update \(\tau\); accept and return the first
+      non-exploration block whose maximum is strictly above \(\tau\).
+\item If no block is accepted, return the best exploration-block split.
+\end{enumerate}
+The benchmark uses \(f=1/e\).  This Bernoulli-block construction is
+rank-inspired; it is not the published block-rank algorithm.
+\end{suppalgorithm}
+
+\begin{suppalgorithm}{Algorithm S6: two-pass prophet-style heuristic}
+\begin{enumerate}
+\setlength{\itemsep}{0pt}
+\item In Pass 1, draw one threshold uniformly over every feature range without
+      sorting, evaluate each sampled split, and set \(\tau\) to the largest
+      valid sampled gain.
+\item In Pass 2, replay the same feature order.  For each feature with a valid
+      first-pass sample, sort and exactly scan all boundaries other than that
+      sample's partition position.
+\item Return the first feature having an exact split with gain at least
+      \(\tau\); if none exists, return the best first-pass sample.
+\end{enumerate}
+The sample and replay use the same node and feature order, although the sampled
+partition position is skipped during exact replay.  The
+independence and irrevocability assumptions of single-sample prophet
+inequalities therefore do not apply.
+\end{suppalgorithm}
+
+\medskip
+\noindent\fbox{%
+\begin{minipage}{0.94\columnwidth}
+\small\textbf{Archived \(S_{\mathrm{par}}\) warning.}
+The displayed parametric screen was generated by an uncorrected implementation
+with two material calibration defects.  In regression, the fitted working law
+uses a proxy score that retains a nodewise target-dependent constant; the
+stopping threshold is therefore not invariant to translating all target
+values.  In classification, the normal inverse-CDF approximation reverses the
+sign: for \(q>1/2\), it returns the lower-tail sign and calibrates approximately
+to \(1-q\).  The archived \(S_{\mathrm{par}}\) results are retained solely as a
+proxy-parametric ablation.  They are excluded from confirmatory inference,
+method recommendations, and claims validating the parametric theory.  A
+corrected implementation would require a new benchmark.
+\end{minipage}}
+\medskip
+
+\begin{suppalgorithm}{Algorithm S7: archived proxy-parametric ablation \(S_{\mathrm{par}}\)}
+\begin{enumerate}
+\setlength{\itemsep}{0pt}
+\item Draw non-constant features without replacement and use the outer prefix
+      \(r\) with \(f=1/e\).
+\item On exploration feature \(j\), draw
+      \(d_j=\min\{B,\max[1,\operatorname{round}(\rho D_j)]\}\), with
+      \(B\leq256\), and compute the sampled proxy scores.
+\item Fit the archived working law and compute its nominal \(q\)-quantile:
+      moment-matched scaled noncentral \(\chi^2_1\) in regression and a normal
+      moment approximation in classification.  Scan exact boundaries in value
+      order and retain the first score at least as large as this level.
+\item Update the outer level with the retained exploration score.  On later
+      features, return the first feature whose best exact score is strictly
+      above the outer level; otherwise use the exploration fallback.
+\end{enumerate}
+For a fixed unweighted split under independent homoscedastic Gaussian errors,
+
+\begin{align*}
+ \frac{\Delta\mathrm{SSE}}{\sigma^2}
+ &=\frac{n_Ln_R}{n\sigma^2}(\bar Y_L-\bar Y_R)^2,\\
+ \frac{\Delta\mathrm{SSE}}{\sigma^2}
+ &\sim\chi^2_1(\lambda),\qquad
+ \lambda=\frac{n_Ln_R(\mu_L-\mu_R)^2}{n\sigma^2}.
+\end{align*}
+
+This fixed-split identity \cite{cochran1934quadratic} does not establish one pooled law across thresholds,
+whose child sizes and mean contrasts differ, and it does not validate the
+archived regression proxy calibration described above.
+\end{suppalgorithm}
+
+\section{Node-level cost and recorded effort}
+\label{sec:supp_complexity}
+
+Let \(A_E\) denote exploration features, \(A_S\) exact-selection features
+visited before stopping, \(h_j\leq C_j\) the exact boundaries scanned before an
+\(S_{\mathrm{par}}\) threshold is met, and \(c_G\) the criterion-dependent cost
+of a proxy-gain evaluation.  Table~\ref{tab:supp_complexity} gives fixed-node
+upper bounds; the number of visited features is data dependent.
+
+\begin{table*}[t]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_01_pareto_large_small.png}
-\caption{Size-stratified Pareto comparisons. The top row reports large datasets, defined by \(n\times p \ge 25000\), and the bottom row reports small datasets, defined by \(n\times p \le 2500\). Columns correspond to regression, classification with Gini impurity, and classification with entropy impurity. In each panel, each faint point represents one benchmark dataset summarized by the median over 100 runs for a given method variant. The horizontal axis is the median percentage of training time saved relative to the exhaustive \texttt{scikit-learn} splitter, and the vertical axis is the median percentage loss relative to the same baseline. The black point at the origin is the exhaustive splitter. Large white-edged markers indicate the cross-dataset centroids. Faint Pareto frontiers summarize the centroid-level and dataset-level envelopes.}
+\small
+\caption{Fixed-node split-search work.}
+\label{tab:supp_complexity}
+\begin{tabular}{@{}p{0.13\textwidth}p{0.29\textwidth}p{0.50\textwidth}@{}}
+\toprule
+Method & Proxy-gain evaluations & Sorting, scanning, and other work \\
+\midrule
+Exhaustive CART & At most \(\sum_{j=1}^{m}C_j\) & Sort and scan every visited feature: worst case \(O(mn\log n+\sum_j C_jc_G)\). \\
+ERT & At most \(m_{\mathrm{try}}\) & No sorting; one min/max pass and partition per feature: \(O(m_{\mathrm{try}}n+m_{\mathrm{try}}c_G)\). \\
+\(S\) & \(\sum_{j\in A_E}d_j+\sum_{j\in A_S}C_j\) & Sort every inspected feature; count boundaries and batch-sort sampled thresholds in exploration; exact-scan selection features. \\
+\(S_{\mathrm{all}}\) & \(\sum_{j\in A_E\cup A_S}C_j\) & Sort and exactly scan every inspected feature; worst case matches exhaustive order. \\
+\(S^2\) & \(\sum_{j\in A_E}(d_j+C_j)+\sum_{j\in A_S}C_j\) & Sample and then fully rescan each exploration feature; the gain count can exceed exhaustive CART at the same node. \\
+\(S_{\mathrm{par}}\), archived & \(\sum_{j\in A_E}(d_j+h_j)+\sum_{j\in A_S}C_j\) & Candidate count, sampled batch, fitted quantile, and exact replay on exploration features; the gain count can exceed exhaustive CART. \\
+Blockwise & At most \(\sum_{j\in A_E\cup A_S}C_j\) & Sort and scan exact boundaries through the accepted block; worst case matches exhaustive order. \\
+Prophet-style & At most \(m+\sum_{j=1}^{m}C_j\) & A min/max-and-partition pass over all features precedes sorted exact replay; the sampled partition position is skipped during the exact scan. \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The splitter effort counter increments only for valid proxy-gain evaluations
+after leaf-size and leaf-weight checks.  It excludes feature sorting,
+candidate-count passes, min/max passes, random-vector generation and sorting,
+partitioning, fitted-quantile calculations, memory traffic, and final split
+application.  CART and ERT counts are reconstructed for successful internal
+nodes, whereas early-stop counters also include failed split calls that produce
+leaves.  Total-tree comparisons are therefore conservative diagnostics for
+early stopping, and per-call normalization is not reported.  Gain evaluations
+are therefore an interpretable search-effort
+proxy, not a complete runtime model.  The fixed-node bounds also do not order
+full-tree totals: methods can select different splits, create different
+descendant topologies, and therefore make different numbers of later split
+calls.
+
+\section{Benchmark corpus and protocol}
+\label{sec:supp_benchmark}
+
+Every fold-specific fit grows one complete depth-limited tree: the selected
+splitter is invoked recursively at each internal node by the same depth-first
+builder, with \(\texttt{max\_depth}=20\) and common leaf and impurity settings.
+Thus, each method--seed result averages five fitted trees, one per fold.  This
+single-tree estimator design isolates within-node split search from bagging,
+aggregation, tree count, and ensemble parallelism; no forest-level behavior is
+inferred.
+
+The retained PMLB corpus contains 113 regression entries and 122 classification
+entries.  Gini and entropy use the same classification corpus.
+Table~\ref{tab:supp_datasets} summarizes these entries.  The exact sharded
+benchmark command was not retained, so the archive does not verify whether the
+driver's optional \(np\) cap was disabled.  The largest retained product is
+834,870.  The complete machine-readable repository inventory is:
+\begin{center}
+\footnotesize
+\path{examples/early_stop_trees/tables/}\\[-2pt]
+\path{dataset_benchmark_inventory.csv}
+\end{center}
+\noindent For classification, the
+majority-class proportions have quartiles 33.7\%, 51.4\%, and 66.4\%, with
+range 4.1--98.5\%.
+
+\begin{table*}[t]
+\centering
+\small
+\caption{Characteristics of the retained PMLB entries. Entries are Q1/median/Q3 with ranges in parentheses.}
+\label{tab:supp_datasets}
+\input{dataset_benchmark_summary.tex}
+\end{table*}
+
+Each estimator was evaluated by deterministic fivefold cross-validation:
+integer \texttt{cv=5} gives unshuffled \texttt{KFold} for regression and
+unshuffled \texttt{StratifiedKFold} for classification.  The folds are fixed
+across methods and seeds.  The archive contains 100 seeded repetitions on those
+fixed folds, using estimator seeds 42--141; each row stores fold-mean outcomes
+for one dataset, method, and seed.  Regression performance is RMSE.
+Classification performance is weighted F1 and is analyzed separately for Gini
+and entropy.  The timing outcome is the mean estimator fit time returned by
+\texttt{cross\_validate}; dataset loading, scoring,
+serialization, and figure generation are outside that boundary.
+Methods were evaluated in a fixed order with exhaustive CART first.  Pairing and
+moving-block sensitivity analyses retain this order but cannot remove an
+order-specific timing bias.
+
+Gain evaluations are read from splitter counters for the early-stopping
+methods, reconstructed from fitted trees and fold-specific training data for
+exhaustive CART, and reconstructed as one sampled-threshold gain per selected
+non-constant feature for ERT.  Timing and recorded effort therefore measure
+different parts of the computation.
+
+\section{Statistical analysis}
+\label{sec:supp_inference}
+
+\subsection{Pairing and estimands}
+
+The PMLB entry is the outer experimental and inferential unit.  Seeds quantify
+conditional randomization and timing variability within an entry; fixed folds
+are neither treated as independent replicates nor resampled.  Every method is
+paired with exhaustive CART by entry and seed before aggregation.  If
+\(t_m\), \(g_m\), and \(L_m\) denote fit time, gain count, and predictive
+performance for method \(m\), dataset-level points are medians over the complete
+paired seed block.  Time saved is
+
+\[
+100\left[1-\frac{1}{\operatorname{median}(t_{\mathrm{CART}}/t_m)}\right],
+\]
+
+effort saved is \(100\operatorname{median}(1-g_m/g_{\mathrm{CART}})\), and
+regression loss is
+\(100\operatorname{median}(1-\mathrm{RMSE}_{\mathrm{CART}}/\mathrm{RMSE}_m)\).
+Classification loss is
+\(100\operatorname{median}(\mathrm{F1}_{\mathrm{CART}}-\mathrm{F1}_m)\) and is
+reported in weighted-F1 percentage points, not as a relative percentage.  A
+centroid is the equal-weight mean of entry-level medians; the cross-entry
+median is a separate estimand.
+
+Regression dataset \texttt{564\_fried} lacks archived run 4.  Run 4 is removed
+from the common paired block for every method and metric on that dataset, so
+its summaries use 99 seeds without imputation.  Every other retained dataset
+has 100 complete paired seeds.
+
+\subsection{Paired hierarchical bootstrap}
+
+Uncertainty is quantified by a paired two-stage nonparametric percentile
+bootstrap with 10,000 replicates, 95\% intervals, and analysis seed 20260810.
+Within each dataset, common seed identifiers are resampled jointly across all
+methods and metrics.  At the outer level, datasets are resampled by identity
+with replacement and receive equal weight; every repeated occurrence of a
+dataset receives an independently selected within-dataset bootstrap draw.
+Intervals are produced for dataset medians, equal-weight centroids,
+cross-dataset medians, and dataset-level reliability probabilities.  Separate
+within-dataset-only and between-dataset-only intervals are diagnostics; the
+two-stage interval is the primary uncertainty summary.
+
+The revision reanalysis designates exhaustive CART plus nine alternatives:
+\(S(1/e)\), \(S^2(1/e)\), \(S_{\mathrm{all}}(1/e)\), the blockwise
+rank-inspired method, the prophet-style method, and ERT with
+\(m_{\mathrm{try}}\in\{1,p/3,2p/3,p\}\).  All other schedules and every
+\(S_{\mathrm{par}}\) configuration are exploratory and receive descriptive
+marginal intervals only.
+
+For the primary joint claim, an entry is successful only when its paired-seed
+median time saving is positive and its paired-seed median loss is below the
+task-specific margin: 1\% relative RMSE loss for regression and one weighted-F1
+percentage point for classification.  An exact one-sided binomial test assesses
+
+\[
+H_0:\Pr(\text{time saved}>0\ \text{and loss}<1)\leq\tfrac12.
+\]
+
+Holm correction is applied across the nine alternatives within each task.
+Margins 0.5 and 2.5 in the task-specific loss units are sensitivity analyses, with Holm correction across
+all 18 method--margin hypotheses within each task; they are not labeled primary
+confirmations.  Task--metric Friedman tests and two-sided paired Wilcoxon tests
+against exhaustive CART, with Holm adjustment within each task--metric family,
+provide complementary rank-based diagnostics.  Effect estimates and intervals
+lead interpretation; adjusted \(p\)-values are secondary.
+
+\input{TABLES/inference_friedman.tex}
+\input{TABLES/inference_joint_primary_1pct.tex}
+\input{TABLES/inference_timing_centroid_sensitivity.tex}
+\clearpage
+
+Reliability is also computed at the entry level.  An entry is successful
+only when its paired-seed median simultaneously meets a displayed time-saving
+threshold and stays within the displayed predictive-loss tolerance.  Seed rows
+are never pooled as independent entries.
+
+As a sensitivity analysis for related regression entries, the 62 Friedman
+generator variants are collapsed into five generator families and two exact
+CPU alias pairs are each collapsed into one family.  The remaining entries are
+singletons, giving 54 equally weighted regression families.  Family-balanced
+intervals and joint tests leave the primary decision unchanged.
+
+The complete machine-readable outputs are retained under:
+\begin{center}
+\footnotesize
+\path{examples/early_stop_trees/}\\[-2pt]
+\path{inference_results/}
+\end{center}
+\noindent The key files are:
+\begin{itemize}
+\small
+\setlength{\itemsep}{0pt}
+\setlength{\parskip}{0pt}
+\item \path{dataset_median_intervals.csv}: every per-dataset median interval;
+\item \path{global_intervals.csv}: all cross-dataset median and centroid intervals;
+\item \path{dataset_family_map.csv}: entry-to-family mapping for sensitivity analysis;
+\item \path{family_balanced_global_intervals.csv}: family-balanced regression intervals;
+\item \path{paired_vs_exhaustive.csv}: paired Wilcoxon tests and effect sizes;
+\item \path{joint_time_loss_margin_tests.csv}: primary and sensitivity joint tests;
+\item \path{family_balanced_joint_tests.csv}: family-balanced joint tests.
+\end{itemize}
+
+\subsection{Timing sensitivity and inferential scope}
+
+Run-index correlations and linear drift summaries diagnose serial timing
+patterns.  Circular moving-block bootstraps with block lengths 5 and 10 preserve
+short-range run-order dependence when recomputing dataset medians and global
+centroids.  This sensitivity analysis cannot remove bias from the fixed method
+evaluation order within a benchmark run or reconstruct execution chronology
+across independently scheduled shards.
+
+The intervals condition on resampling this curated PMLB corpus and the archived
+estimator seeds.  PMLB is not a probability sample, folds were fixed, and only
+fold means were archived.  The intervals therefore do not provide universal
+coverage over all tabular problems or uncertainty over newly drawn train--test
+partitions.  Marginal intervals over the exploratory method grid are not
+simultaneous confidence bands.  Because the original complete-case corpus was
+selected while \(S_{\mathrm{par}}\) was still included, its implementation defect
+could in principle have affected which entries survived that all-method gate.
+
+\section{Reproducibility record}
+\label{sec:supp_reproducibility}
+
+The archived benchmark records Python 3.10.18, NumPy 1.26.4,
+scikit-learn 1.7.2, treeple 0.10.3, and macOS 15.2 on ARM64 on a machine
+reporting eight CPUs.  The benchmark host was independently verified as an
+Apple M3 MacBook Air with 16~GB memory; processor model and memory were not
+written into the benchmark archive itself.  Its metadata records five folds, seeds 42--141, the
+estimator-only timing boundary, splitter-specific effort accounting, and the
+treeple import path used during execution.  The original metadata did not
+record a source commit, the loaded compiled-extension binary, or the exact
+sharded command, so neither bitwise identity with that executable nor disabling
+of the driver's optional product cap is asserted.
+
+The inference program validates unique dataset--seed--method rows, requires all
+ten confirmatory methods in every task, checks point estimates against the
+figure aggregation, inventories incomplete paired blocks, and writes the
+analysis environment and estimand definitions.  It also writes SHA-256 hashes
+for every raw input CSV and for the audited benchmark, splitter, build,
+analysis, and test sources.  The repository contains the benchmark and
+analysis code, tests, dataset inventory, inferential tables, and figure and
+table generators; the per-seed archive is retained as the manifest-verified
+input to the revision analysis.
+
+\section{Additional benchmark figures}
+\label{sec:supp_figures}
+
+\begin{figure*}[p]
+\centering
+\suppwideimage{supp_figure_01_pareto_large_small.png}
+\caption{Size-stratified time--loss comparisons. Rows show datasets with \(n p\geq25{,}000\) and \(n p\leq2{,}500\); columns show regression, Gini classification, and entropy classification. Small points are paired-seed dataset medians, large markers are equal-weight dataset centroids, and lines are dataset- and centroid-level Pareto envelopes.}
 \label{fig:supp_pareto_size}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_02_secretary_par_all_large_small.png}
-\caption{Screening analysis of the parametric secretary strategy \(S_{\mathrm{par}}\). Rows correspond to all datasets, large datasets, and small datasets. Columns correspond to regression, classification with Gini impurity, and classification with entropy impurity. Each colored point represents one tested configuration of \(S_{\mathrm{par}}\), defined by the number of gain samples used to fit the working distribution and by the acceptance quantile used for stopping. The horizontal axis reports the median percentage of training time saved relative to the exhaustive splitter, and the vertical axis reports the median percentage loss relative to the same baseline. The black point at the origin is the exhaustive baseline, and large white-edged markers indicate cross-dataset centroids of the corresponding configurations.}
+\suppwideimage{supp_figure_02_secretary_par_all_large_small.png}
+\caption{Archived \(S_{\mathrm{par}}\) configuration screen for all, large, and small datasets. Points show sampling and nominal-quantile configurations from the uncorrected proxy-parametric implementation described in Section~\ref{sec:supp_algorithms}; they are descriptive ablations, not validated or recommended methods.}
 \label{fig:supp_spar_screening}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_03_ridgelines_regression.png}
-\caption{Ridgeline summaries for regression. Each horizontal ridge corresponds to one benchmark dataset, identified on the vertical axis by its sample size and number of features. The left panel shows the empirical distribution, over 100 runs, of the percentage of training time saved relative to the exhaustive splitter; the right panel shows the corresponding distribution of percentage RMSE loss relative to the same baseline. Colors identify methods, and the dashed vertical line at zero marks parity with the exhaustive splitter.}
+\suppwideimage{supp_figure_03_ridgelines_regression.png}
+\caption{Within-dataset distributions of time saved and relative RMSE loss for regression over 100 seeded repetitions on fixed folds. Each ridge is one dataset; zero denotes parity with exhaustive CART.}
 \label{fig:supp_ridgeline_regression}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_04_ridgelines_classification_gini.png}
-\caption{Ridgeline summaries for classification with Gini impurity. Each horizontal ridge corresponds to one benchmark dataset. The left panel shows the empirical distribution, over 100 runs, of the percentage of training time saved relative to the exhaustive splitter, and the right panel shows the corresponding distribution of percentage F1 loss relative to the same baseline. Colors identify methods, and the dashed vertical line at zero marks parity with the exhaustive splitter.}
+\suppwideimage{supp_figure_04_ridgelines_classification_gini.png}
+\caption{Within-dataset distributions of time saved and weighted-F1 loss in percentage points for Gini classification over 100 seeded repetitions on fixed folds. Each ridge is one dataset; zero denotes parity with exhaustive CART.}
 \label{fig:supp_ridgeline_gini}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_05_ridgelines_classification_entropy.png}
-\caption{Ridgeline summaries for classification with entropy impurity. As in Supplementary Figure~\ref{fig:supp_ridgeline_gini}, each horizontal ridge corresponds to one benchmark dataset, the left panel shows percentage time saved, and the right panel shows percentage F1 loss, both relative to the exhaustive splitter and computed over 100 repeated runs.}
+\suppwideimage{supp_figure_05_ridgelines_classification_entropy.png}
+\caption{Within-dataset distributions of time saved and weighted-F1 loss in percentage points for entropy classification over 100 seeded repetitions on fixed folds. Each ridge is one dataset; zero denotes parity with exhaustive CART.}
 \label{fig:supp_ridgeline_entropy}
-\end{figure}
+\end{figure*}
 
-% \newpage
+\clearpage
 
-% \begin{figure}[p]
-% \centering
-% \includegraphics[width=0.6\linewidth]{SUPP_FIGURES/supp_figure_06_success_joint_large_small.png}
-% \caption{Joint success probabilities stratified by dataset size. The upper half of the figure reports large datasets and the lower half reports small datasets. Columns correspond to predictive-loss tolerances \(\varepsilon \in \{5\%,10\%,20\%\}\), and within each size stratum the rows correspond to minimum time-saving thresholds \(s \in \{0\%,10\%,25\%,50\%\}\). In each panel, bar heights give the empirical fraction of runs satisfying the joint event ``time saved \(\ge s\) and predictive loss \(\le \varepsilon\)'', aggregated separately for regression, Gini classification, and entropy classification. Colors identify methods. These summaries complement the continuous success curves by highlighting practically relevant operating points.}
-% \label{fig:supp_joint_success_size}
-% \end{figure}
-
-\newpage
-
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_07_success_loss_only_large_small.png}
-\caption{Loss-only success probabilities stratified by dataset size. The top row reports large datasets and the bottom row reports small datasets; columns correspond to regression, Gini classification, and entropy classification. In each panel, the horizontal axis is the predictive-loss tolerance \(\varepsilon\), and the vertical axis is the empirical fraction of runs whose loss is at most \(\varepsilon\), aggregated over the datasets in the corresponding size stratum. Colored curves identify methods, and the horizontal black line at one is the exhaustive baseline. All curves are computed over 100 repeated runs.}
+\suppwideimage{supp_figure_07_success_loss_only_large_small.png}
+\caption{Entry-level loss reliability stratified by size. Rows show large and small entries; columns show regression, Gini classification, and entropy classification. Curves give the fraction of entries whose paired-seed median loss is within each tolerance.}
 \label{fig:supp_loss_success_size}
-\end{figure}
+\end{figure*}
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_12_success_joint_all.png}
-\caption{Joint success probabilities over all benchmark datasets. Columns correspond to predictive-loss tolerances \(\varepsilon \in \{0.5\%,1\%,2.5\%\}\), and rows correspond to minimum time-saving thresholds \(s \in \{0\%,10\%,25\%,50\%\}\). In each panel, bar heights report the empirical fraction of runs satisfying the joint event ``time saved \(\ge s\) and predictive loss \(\le \varepsilon\)'', aggregated over all datasets for regression, classification with Gini impurity, and classification with entropy impurity. All probabilities are estimated over 100 repeated runs.}
+\suppwideimage{supp_figure_12_success_joint_all.png}
+\caption{Entry-level joint reliability. Columns show regression, Gini classification, and entropy classification; rows show loss margins 0.5, 1, and 2.5 in each task's loss units. The horizontal axis is the minimum time saving and each curve gives the fraction of entries satisfying both constraints.}
 \label{fig:supp_joint_success_all}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_08_predicted_regime_maps.png}
-\caption{Tolerance-constrained quickest-method regime maps in the \((\log n, p/n)\) plane. Rows correspond to regression, Gini classification, and entropy classification, and columns correspond to predictive-loss tolerances \(\tau \in \{0.5\%,1\%,2.5\%\}\). At each dataset location, the color marks the fastest method whose median loss stays at or below the displayed tolerance; when no non-exhaustive method satisfies the tolerance, the exhaustive splitter is shown instead.}
+\suppwideimage{supp_figure_08_predicted_regime_maps.png}
+\caption{Tolerance-constrained quickest-method maps in the \((\log n,p/n)\) plane. Rows show regression, Gini classification, and entropy classification; columns show loss margins 0.5, 1, and 2.5 in each task's loss units. Each entry is colored by its fastest admissible nonparametric method.}
 \label{fig:supp_regime_maps}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_09_within_whiskers_loss_speedup.png}
-\caption{Within-dataset whisker summaries for regression. The upper half of the figure reports dataset-level median speedups for selected methods, and the lower half reports the corresponding dataset-level median RMSE losses. Each point represents one benchmark dataset, ordered within each method panel. Horizontal whiskers indicate \(\pm 0.5\) times the empirical interquartile range over the 100 repeated runs.}
+\suppwideimage{supp_figure_09_within_whiskers_loss_speedup.png}
+\caption{Regression entry medians and half-interquartile-range whiskers for speedup and relative RMSE loss over 100 seeded repetitions on fixed folds. The six methods with the highest entry-level speedup win rates are shown.}
 \label{fig:supp_within_regression}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_10_within_whiskers_loss_speedup.png}
-\caption{Within-dataset whisker summaries for classification with Gini impurity. As in Supplementary Figure~\ref{fig:supp_within_regression}, the upper half reports dataset-level median speedups and the lower half reports dataset-level median F1 losses for a selected subset of methods. Each point is one dataset and the whiskers indicate \(\pm 0.5\) times the empirical interquartile range across the 100 repeated runs.}
+\suppwideimage{supp_figure_10_within_whiskers_loss_speedup.png}
+\caption{Gini-classification entry medians and half-interquartile-range whiskers for speedup and weighted-F1 loss over 100 seeded repetitions on fixed folds. The six methods with the highest entry-level speedup win rates are shown.}
 \label{fig:supp_within_gini}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_11_within_whiskers_loss_speedup.png}
-\caption{Within-dataset whisker summaries for classification with entropy impurity. The upper half reports dataset-level median speedups and the lower half reports dataset-level median F1 losses, with points corresponding to datasets and whiskers indicating \(\pm 0.5\) times the empirical interquartile range over the 100 repeated runs.}
+\suppwideimage{supp_figure_11_within_whiskers_loss_speedup.png}
+\caption{Entropy-classification entry medians and half-interquartile-range whiskers for speedup and weighted-F1 loss over 100 seeded repetitions on fixed folds. The six methods with the highest entry-level speedup win rates are shown.}
 \label{fig:supp_within_entropy}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_13_gain_landscape.png}
-\caption{Exhaustive gain-landscape diagnostics by task. Each box summarizes one benchmark task using dataset-level medians of internal-node diagnostics computed under exhaustive split search. The left panel reports the proportion of admissible thresholds whose gain lies within 5\% or 10\% of the nodewise optimum, the middle panel reports the relative gap between the best gain and the median gain of a random admissible threshold, and the right panel reports the contiguous width of the near-optimal region on the winning covariate.}
+\suppwideimage{supp_figure_13_gain_landscape.png}
+\caption{Exhaustive gain-landscape diagnostics by task: prevalence of near-optimal thresholds, relative best-to-random gain gap, and contiguous near-optimal width on the winning feature. Boxes summarize dataset-level medians.}
 \label{fig:supp_gain_landscape}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_14_effort_loss.png}
-\caption{Effort--loss comparison by task. Each faint point represents one benchmark dataset summarized by the median over 100 runs for a given method, and each large white-edged marker represents the corresponding cross-dataset centroid. The horizontal axis reports the median percentage of gain evaluations saved relative to the exhaustive splitter, and the vertical axis reports the corresponding median predictive loss. Faint dashed frontiers summarize the dataset-level Pareto envelope, and darker solid frontiers summarize the centroid-level envelope. Only one \(S_{\mathrm{par}}\) representative, \(S_{\mathrm{par}}(\sqrt{n},q=0.75)\), is shown.}
+\suppwideimage{supp_figure_14_effort_loss.png}
+\caption{Gain-evaluation effort saved versus predictive loss for the validated methods. Small points are paired-seed entry medians, large markers are equal-weight centroids, and lines are Pareto envelopes.}
 \label{fig:supp_effort_loss}
-\end{figure}
+\end{figure*}
 
-\newpage
+\clearpage
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\suppwideimage{SUPP_FIGURES/supp_figure_15_time_effort_calibration.png}
-\caption{Calibration of wall-clock savings against split-search effort. Each faint point represents one benchmark dataset summarized by the median over 100 runs for a given method, and each large white-edged marker represents the corresponding cross-dataset centroid. The top row compares median percentage time saved with median percentage total effort saved, where total effort is measured through the number of gain evaluations per tree. The bottom row compares median percentage time saved with median percentage effort saved per split call. Faint dashed frontiers summarize the dataset-level Pareto envelope, and darker solid frontiers summarize the centroid-level envelope. Only one \(S_{\mathrm{par}}\) representative, \(S_{\mathrm{par}}(\sqrt{n},q=0.75)\), is shown.}
+\suppwideimage{supp_figure_15_time_effort_calibration.png}
+\caption{Wall-clock time saved versus recorded total-tree gain-evaluation effort saved for the validated methods. Small points are paired-seed entry medians and large markers are equal-weight centroids.}
 \label{fig:supp_time_effort}
-\end{figure}
+\end{figure*}
+
+\clearpage
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
 
 \end{document}

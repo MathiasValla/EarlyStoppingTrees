@@ -1,0 +1,24 @@
+\begin{table*}[t]
+\centering
+\caption{Friedman tests across the 10 revision-designated representative methods. $N$ is the number of complete datasets and $W$ is Kendall's coefficient.}
+\label{tab:inference-friedman}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Task & Metric & $N$ & $\chi^2_F$ & df & $p$ & Kendall $W$ \\
+\midrule
+Regression & Time saved & 113 & 923.99 & 9 & $4.18\times 10^{-193}$ & 0.909 \\
+ & Predictive loss & 113 & 730.58 & 9 & $1.84\times 10^{-151}$ & 0.718 \\
+ & Effort saved & 113 & 980.82 & 9 & $2.35\times 10^{-205}$ & 0.964 \\
+\addlinespace
+Classification (Gini) & Time saved & 122 & 803.13 & 9 & $4.52\times 10^{-167}$ & 0.731 \\
+ & Predictive loss & 122 & 384.92 & 9 & $2.26\times 10^{-77}$ & 0.351 \\
+ & Effort saved & 122 & 808.81 & 9 & $2.70\times 10^{-168}$ & 0.737 \\
+\addlinespace
+Classification (Entropy) & Time saved & 122 & 809.79 & 9 & $1.66\times 10^{-168}$ & 0.738 \\
+ & Predictive loss & 122 & 425.51 & 9 & $4.91\times 10^{-86}$ & 0.388 \\
+ & Effort saved & 122 & 808.00 & 9 & $4.03\times 10^{-168}$ & 0.736 \\
+\bottomrule
+\end{tabular}
+\end{table*}

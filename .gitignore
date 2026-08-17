@@ -19,6 +19,8 @@ examples/early_stop_trees/figures/
 examples/early_stop_trees/analysis_additional/
 examples/early_stop_trees/analysis_gain_landscape/
 examples/early_stop_trees/__pycache__/
+RESEARCH_ARTICLE/SUPPLEMENTARY_DATA/*.tar.gz
+RESEARCH_ARTICLE/PATREC_SUBMISSION/
 .pymon
 .coverage.*
 

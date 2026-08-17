@@ -1,322 +1,221 @@
 % !TeX program = pdflatex
-\documentclass[preprint,12pt]{elsarticle}
+\documentclass[longtitle,final,3p,times]{elsarticle}
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{amsmath,amssymb,mathtools}
 \usepackage{booktabs}
 \usepackage{graphicx}
-\graphicspath{{/mnt/data/}}
+\usepackage{prletters}
 \usepackage{hyperref}
 \usepackage{microtype}
 \microtypesetup{expansion=false}
 \usepackage{url}
 \usepackage{adjustbox}
 \usepackage{float}
+\newfloat{algorithm}{tbp}{loa}
+\floatname{algorithm}{Algorithm}
 \renewcommand{\ttdefault}{cmtt}
+\setcounter{topnumber}{2}
+\setcounter{dbltopnumber}{2}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.8}
 
 \hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
 \journal{Pattern Recognition Letters}
 
-\newtheorem{proposition}{Proposition}
-
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\node}{\mathcal{N}}
-\newcommand{\calJ}{\mathcal{J}}
-\newcommand{\calS}{\mathcal{S}}
 \newcommand{\Imp}{I}
 \newcommand{\gain}{G}
-\newcommand{\n}{n}
 \newcommand{\nL}{n_{\mathrm L}}
 \newcommand{\nR}{n_{\mathrm R}}
-\newcommand{\K}{K}
-
-\begin{filecontents*}{references.bib}
-@book{breiman1984cart,
-  author    = {Leo Breiman and Jerome H. Friedman and Richard A. Olshen and Charles J. Stone},
-  title     = {Classification and Regression Trees},
-  publisher = {Wadsworth},
-  address   = {Belmont, CA},
-  year      = {1984}
-}
-
-@article{breiman2001rf,
-  author  = {Leo Breiman},
-  title   = {Random Forests},
-  journal = {Machine Learning},
-  volume  = {45},
-  number  = {1},
-  pages   = {5--32},
-  year    = {2001},
-  doi     = {10.1023/A:1010933404324}
-}
-
-@article{geurts2006extra,
-  author  = {Pierre Geurts and Damien Ernst and Louis Wehenkel},
-  title   = {Extremely Randomized Trees},
-  journal = {Machine Learning},
-  volume  = {63},
-  number  = {1},
-  pages   = {3--42},
-  year    = {2006},
-  doi     = {10.1007/s10994-006-6226-1}
-}
-
-@article{gilbertmosteller1966,
-  author  = {John P. Gilbert and Frederick Mosteller},
-  title   = {Recognizing the Maximum of a Sequence},
-  journal = {Journal of the American Statistical Association},
-  volume  = {61},
-  number  = {313},
-  pages   = {35--73},
-  year    = {1966},
-  doi     = {10.1080/01621459.1966.10502008}
-}
-
-@article{ferguson1989secretary,
-  author  = {Thomas S. Ferguson},
-  title   = {Who Solved the Secretary Problem?},
-  journal = {Statistical Science},
-  volume  = {4},
-  number  = {3},
-  pages   = {282--296},
-  year    = {1989},
-  doi     = {10.1214/ss/1177012493}
-}
-
-@inproceedings{nuti2023single,
-  author    = {Pranav Nuti and Jan Vondr{\'a}k},
-  title     = {Secretary Problems: The Power of a Single Sample},
-  booktitle = {Proceedings of the 2023 ACM-SIAM Symposium on Discrete Algorithms},
-  pages     = {2015--2029},
-  year      = {2023},
-  publisher = {SIAM},
-  doi       = {10.1137/1.9781611977554.ch77}
-}
-
-@inproceedings{rubinstein2020samples,
-  author    = {Aviad Rubinstein and Jack Z. Wang and S. Matthew Weinberg},
-  title     = {Optimal Single-Choice Prophet Inequalities from Samples},
-  booktitle = {11th Innovations in Theoretical Computer Science Conference (ITCS 2020)},
-  series    = {LIPIcs},
-  volume    = {151},
-  pages     = {60:1--60:10},
-  year      = {2020},
-  publisher = {Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
-  doi       = {10.4230/LIPIcs.ITCS.2020.60}
-}
-
-@article{samuelcahn1984,
-  author  = {Ester Samuel-Cahn},
-  title   = {Comparison of Threshold Stop Rules and Maximum for Independent Nonnegative Random Variables},
-  journal = {The Annals of Probability},
-  volume  = {12},
-  number  = {4},
-  pages   = {1213--1216},
-  year    = {1984},
-  doi     = {10.1214/aop/1176993150}
-}
-
-@article{laurentmassart2000,
-  author  = {B{\'e}atrice Laurent and Pascal Massart},
-  title   = {Adaptive Estimation of a Quadratic Functional by Model Selection},
-  journal = {The Annals of Statistics},
-  volume  = {28},
-  number  = {5},
-  pages   = {1302--1338},
-  year    = {2000},
-  doi     = {10.1214/aos/1015957395}
-}
-
-@article{romano2022pmlb,
-  author  = {Joseph D. Romano and Trang T. Le and William La Cava and John T. Gregg and Daniel J. Goldberg and Natasha L. Ray and Praneel Chakraborty and Daniel Himmelstein and Weixuan Fu and Jason H. Moore},
-  title   = {PMLB v1.0: an open-source dataset collection for benchmarking machine learning methods},
-  journal = {Bioinformatics},
-  volume  = {38},
-  number  = {3},
-  pages   = {878--880},
-  year    = {2022},
-  doi     = {10.1093/bioinformatics/btab665}
-}
-\end{filecontents*}
+\newcommand{\mainabstracttext}{Exhaustive CART split search evaluates every admissible feature--threshold candidate at each node. We study whether secretary-inspired exploration followed by feature-level stopping can reduce this work while preserving predictive performance. The evaluated rules combine random-threshold exploration, exact within-feature scans, a blockwise rank-inspired heuristic, and a two-pass prophet-style heuristic. We compare complete depth-limited single-tree estimators with exhaustive CART and extremely randomized-tree baselines on 113 regression and 122 classification entries from PMLB, using fixed fivefold partitions and 100 estimator seeds. A paired hierarchical analysis separates within-entry randomization from variation across benchmark entries. Under the task-specific endpoints and margins used here, incomplete search met the displayed constraints more often for retained classification entries than for regression entries. Reductions in recorded gain evaluations did not consistently yield proportional wall-clock differences. Exact-feature stopping provided a conservative cross-task compromise; extremely randomized trees showed larger observed time savings with greater predictive loss. These results motivate matched ensemble experiments but do not establish a universal speedup.}
 
 \begin{document}
-
-\begin{frontmatter}
-
-\title{Secretary-Style Split Search for Decision Trees}
-
-\author[inst1]{Mathias Valla}
-\address[inst1]{Chaire DIALog, Institut Louis Bachelier, Paris, France}
-
-\begin{abstract}
-Exhaustive CART split search can dominate training time on continuous tabular data because every admissible covariate--threshold pair is evaluated at each node. We study secretary-style split-search rules that inspect candidates online and stop according to split-level, nested, covariate-level, parametric, or blockwise rank-inspired criteria. Using 100 repeated runs on 113 regression datasets and 122 classification datasets from PMLB, we compare these rules with the exhaustive \texttt{scikit-learn} splitter and extremely randomized trees (ERT) baselines. After aligning exploration with ERT-style continuous threshold draws and optimizing exact selection, the simple split-level secretary and prophet rules preserve predictive accuracy much better than in earlier implementations but offer little runtime gain. The clearest practical compromises are instead covariate-level secretary search and ERT baselines, especially in classification. Secretary-style split search is therefore a family of task-dependent time--accuracy trade-offs rather than a universal replacement for exhaustive or ERT-style search.
-\end{abstract}
-
-\begin{keyword}
-decision trees \sep CART \sep secretary problem \sep randomized split search \sep benchmark evaluation \sep computational efficiency
-\end{keyword}
-
-\end{frontmatter}
+\thispagestyle{PRlettersTitle}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+\twocolumn[{%
+\begin{@twocolumnfalse}
+\begin{flushleft}
+\vspace*{5.1pc}
+{\Large Secretary-style split search for decision trees\par}\vskip8pt
+{\normalsize Mathias Valla$^{*}$\par\vskip4pt}
+{\footnotesize\itshape Chaire DIALog, Institut Louis Bachelier, 28 Place de la Bourse, 75002 Paris, France\par}\vskip6pt
+\vspace*{-\baselineskip}%
+\rule{.8\textwidth}{.2pt}\vskip4pt
+\parbox[t]{.92\textwidth}{\footnotesize\textbf{ABSTRACT}\par\smallskip\noindent\mainabstracttext\par\smallskip\textit{Keywords:} decision trees; split selection; secretary problem; early stopping; extremely randomized trees\par}\par\vskip4pt
+\rule{.8\textwidth}{.2pt}\vspace*{1.5pc}
+\end{flushleft}
+\end{@twocolumnfalse}
+}]
+\footnotetext[1]{Corresponding author: \href{mailto:mathias.valla@gmail.com}{mathias.valla@gmail.com}}
+\gdef\thefootnote{\arabic{footnote}}
 
 \section{Introduction}
 \label{sec:introduction}
 
-Classification and regression trees remain widely used for tabular data because they combine flexibility, interpretability, and strong empirical performance \cite{breiman1984cart}. Their standard induction rule is greedy: at each internal node, CART evaluates candidate covariate--threshold pairs and selects the split maximizing the impurity decrease. For continuous covariates, the number of admissible thresholds can be large, so exhaustive split search may dominate training time.
+Classification and regression trees recursively select local feature--threshold splits that maximize impurity reduction \cite{breiman1984cart,quinlan1986induction}. Continuous predictors can provide many admissible boundaries, making exhaustive split search a material part of training \cite{fayyad1992continuous}. Random forests restrict the features considered at a node, while extremely randomized trees (ERT) additionally sample cut points \cite{breiman2001rf,geurts2006extra}.
 
-This raises a basic question: is it always necessary to evaluate all admissible splits in order to grow an accurate tree? In many nodes, only a small subset of candidates attains gains close to the optimum. Existing randomized tree procedures exploit this idea indirectly. Random forests subsample covariates \cite{breiman2001rf}, and extremely randomized trees (ERT) randomize threshold choice \cite{geurts2006extra}. These methods, however, are not formulated as stopping rules on a stream of candidate gains.
+Prior acceleration strategies act at different levels. They prune underperforming features, compress or approximate candidate representations, or reduce the data processed during boosted-tree induction \cite{appel2013quickly,chen2016xgboost,ke2017lightgbm}. Streaming and dynamic trees instead decide splits from bounded-memory, approximate, or updateable summaries \cite{domingos2000vfdt,bressan2024dynamic,pham2025streams,tatti2025approximating}. Our setting is distinct: all node data are already in memory, every accepted gain is evaluated on the full node sample, and the algorithm decides how many features and exact thresholds to inspect before stopping.
 
-We recast split search as a secretary-style online selection problem. In the classical secretary problem, items arrive sequentially in random order and the decision maker must stop online to select a highly ranked item \cite{gilbertmosteller1966,ferguson1989secretary}. The classical skip rule, with asymptotic success probability $1/e$, shows that a short exploration phase can be followed by a simple acceptance rule with a nontrivial guarantee \cite{gilbertmosteller1966,ferguson1989secretary}. More recent work has introduced rank-adaptive rules based on the availability of a single sample, including the block-rank family \cite{nuti2023single}. These ideas suggest a natural analogue for tree induction: if covariates and thresholds are explored in random order, split selection becomes a stopping problem on a stream of exact impurity gains.
+Classical secretary rules explore a random prefix and accept the first subsequent record \cite{gilbertmosteller1966,ferguson1989secretary}; sample-based secretary and prophet results provide related threshold constructions \cite{nuti2023single,rubinstein2020samples}. Their guarantees do not transfer directly here: split candidates are grouped by feature, exact thresholds within a feature are sorted rather than randomly ordered, exploration fallbacks are retained, and some procedures revisit the node. We therefore use the terms \emph{secretary-inspired}, \emph{rank-inspired}, and \emph{prophet-style} as design descriptions, not theorem claims.
 
-We study four secretary-style split-search strategies for CART, ranging from split-level stopping to covariate-level stopping and model-based calibration, and also include a blockwise rank-inspired variant and a one-sample prophet-style baseline.
+We formulate and implement feature-ordered CART split-search rules that combine sampled-threshold exploration with exact selection. We compare them with exhaustive CART and ERT in complete trees, measuring wall-clock fit time and gain-evaluation effort. Paired multi-dataset inference treats datasets as the experimental units and reports hierarchical confidence intervals and tolerance-based reliability. The analysis includes both favorable and unfavorable time--prediction trade-offs.
 
-The contribution is empirical and methodological rather than theoretical. We benchmark the proposed rules against the standard exhaustive \texttt{scikit-learn} splitter and against ERT-style random-threshold baselines \cite{geurts2006extra} on a large collection of regression and classification datasets from the PMLB benchmark suite \cite{romano2022pmlb}. The goal is to characterize the time--accuracy trade-off, quantify the variability induced by randomized split exploration, and identify which stopping rules offer the best practical compromise at the single-tree level before studying ensembles built from the same splitters.
+Every fitted estimator in this study is a complete recursively grown tree, not a root split or stump. Fivefold evaluation fits five such trees for each method and seed. We deliberately isolate the within-node splitter before bagging introduces bootstrap resampling, aggregation, tree count, feature subsampling, and parallelism. Globally optimized tree methods jointly alter topology and split selection and therefore address a different estimand \cite{bertsimas2017optimal,babbar2025split}.
 
 \section{Methods}
 \label{sec:methods}
 
-\subsection{Split-search setting}
-\label{subsec:setup}
+\subsection{Split search and stopping rules}
 
-Consider a node $\node$ containing $\n$ observations $\{(X_i,Y_i)\}_{i=1}^{\n}$ with $X_i\in\R^p$. Let $\calJ=\{1,\dots,p\}$ be the set of covariates, and let $\calS_j$ be the set of admissible thresholds for covariate $j$. A candidate split is a pair $(j,s)$ with $s\in\calS_j$, producing children of sizes $(\nL,\nR)$. For an impurity $\Imp$, the gain of split $(j,s)$ is
+At a node \(\node\) with \(n\) samples, let \(m\) be the pre-scan feature budget after excluding features already known to be constant from ancestor nodes, and let \(C_j\) be the number of distinct adjacent-value boundaries on feature \(j\). Further constant features can be discovered during the node scan. For impurity \(\Imp\), a split \((j,s)\) has gain
 \begin{equation}
-\label{eq:generic_gain}
-\gain_{j,s}
-=
-\Imp(\node)
--
-\frac{\nL}{\n}\Imp(\node_L)
--
-\frac{\nR}{\n}\Imp(\node_R).
+\gain_{j,s}=\Imp(\node)-\frac{\nL}{n}\Imp(\node_L)
+-\frac{\nR}{n}\Imp(\node_R).
+\label{eq:gain}
 \end{equation}
-For regression, $\Imp$ is the mean squared error impurity. For classification, we consider Gini and entropy impurities \cite{breiman1984cart}. Once a candidate threshold is chosen, its gain is computed exactly on the full node data. In the optimized implementations studied here, randomness comes from the order in which covariates are visited and, for split-level exploration, from ERT-style continuous threshold draws within visited covariates.
+Regression uses mean-squared-error impurity; classification uses Gini or entropy. An exact feature scan sorts node samples by that feature and updates the criterion incrementally across admissible boundaries.
 
-To study early stopping, we impose a random order on visited covariates and use simple node-size-dependent exploration budgets. In the experiments, the exploration budget at a node is parameterized as a function of node size $\n$, with schedules of order $\n/e$, $0.1\n$, $\log \n$, and $\sqrt{\n}$. The acceptance stage then combines these randomized exploration draws with exact within-covariate scans.
-
-\subsection{Stopping rules}
-\label{subsec:strategies}
-
-Method $S$ uses a random covariate order together with a split-level exploration budget. A subset of visited covariates is used for exploration; on each such covariate, a small number of ERT-style continuous thresholds is sampled and the best resulting gain updates the exploration maximum. Subsequent covariates are then scanned exactly, and the first covariate whose best exact split beats the exploration maximum is accepted. If no such covariate appears, the best exploration split is returned. This is the optimized tree-split analogue of the classical skip--then--accept secretary rule \cite{gilbertmosteller1966,ferguson1989secretary}.
-
-Method $S_{\mathrm{all}}$ applies the secretary rule at the covariate level. For a visited covariate $j$, its score is
+The early-stop trees use all available features in this benchmark. Features are drawn without replacement in random order. An exploration fraction \(f\) gives a target of
 \[
-V_j=\max_{s\in\calS_j}\gain_{j,s}.
+r=\max\{1,\min[m,\operatorname{round}(fm)]\}
 \]
-Covariates are processed in random order, and a secretary rule is applied to the sequence $(V_j)$. When a covariate is accepted, the best threshold within that covariate is returned. This method is more expensive than $S$ for each inspected covariate, but it preserves exact within-covariate optimization.
+non-constant features encountered in that order. A feature found constant at the current node is skipped without reducing this target. The archived schedules are \(f=1/e\), \(f=0.1\), \(f=1/\log N\) using full-dataset size \(N\), and \(f=1/\sqrt n\) recomputed at each node. These are feature-prefix fractions, not candidate counts proportional to \(n\). For \(S^2\), \(f\) controls only the outer feature prefix; its inner sampled-threshold fraction is fixed at \(1/e\).
 
-Method $S^2$ introduces a nested secretary structure. The outer rule is applied to covariates in random order. For each visited covariate $j$, an inner exploration phase samples a small number of ERT-style continuous thresholds, and an exact within-covariate scan then returns the best threshold whose gain exceeds the inner exploration level. This yields a realized score $\tilde V_j$ for the covariate, and the outer rule is then applied to the sequence $(\tilde V_j)$. The outer stage selects the covariate and the inner stage selects the threshold.
+The sampled-threshold rule \(S(f)\) draws approximately \(fC_j\) continuous thresholds over each exploration feature's observed range and sets \(\tau\) to the best sampled gain. Each later feature is scanned exactly; the method accepts the first feature whose best qualifying split exceeds \(\tau\). Thus, stopping is at the feature level, not at the first qualifying threshold. The exact-feature rule \(S_{\mathrm{all}}(f)\) instead uses the exact maximum of every visited feature in both phases. The calibration ablation \(S^2(f)\) samples thresholds on each exploration feature and then performs a complete exact scan above the sampled level; it can therefore evaluate more gains than exhaustive search on an exploration feature.
 
-Method $S_{\mathrm{par}}$ is a model-based variant. For a given covariate $j$, a small number of continuous random thresholds is first evaluated exactly, yielding gain samples used to fit a working distributional model or an empirical upper quantile. A covariate-specific acceptance threshold is then derived from this fit, and the covariate is represented by the first exact threshold whose gain exceeds the fitted level. The goal is to use a small number of exact evaluations to calibrate a conservative acceptance rule, especially in regression where the gain law is analytically tractable under Gaussian assumptions.
+The blockwise rank-inspired heuristic scans sorted exact boundaries in blocks of \(\lfloor\sqrt n\rfloor\), represents each block by its maximum, and independently assigns it to exploration with probability \(1/e\) or to selection otherwise. This is not the block-rank algorithm of Nuti and Vondr\'ak \cite{nuti2023single}. The prophet-style heuristic first draws one ERT-style continuous threshold per feature, sets \(\tau\) to their maximum gain, then replays the feature order and exact-scans until a feature has a qualifying split. ERT draws one continuous threshold per selected feature and returns the best sampled split \cite{geurts2006extra}. Detailed, code-linked pseudocode for every rule is given in Supplementary Section~S2.
 
-Inspired by the block-rank algorithm of Nuti and Vondr\'ak \cite{nuti2023single}, we also evaluate a blockwise rank-inspired heuristic. For a visited covariate, admissible thresholds are scanned in contiguous blocks of size about $\sqrt{\n}$, each block is summarized by its exact best gain, and a secretary-style rule is applied to the resulting stream of block maxima. This is not intended as a literal transcription of the original block-rank schedule, but rather as a tree-specific blockwise analogue motivated by the same idea of using coarser rank information than full exhaustive search.
+\begin{algorithm}[!t]
+\centering
+\fbox{\begin{minipage}{0.94\columnwidth}
+\footnotesize
+\textbf{Input:} node samples, randomized pre-scan feature budget
+\((j_1,\ldots,j_m)\), exploration fraction \(f\).\par
+1. Set \(r\leftarrow\operatorname{clamp}(\operatorname{round}(fm),1,m)\),
+\(\tau\leftarrow-\infty\), and fallback \(\leftarrow\varnothing\).\par
+2. Traverse the randomized budget; skip features found constant without advancing \(t\). For each encountered non-constant feature \(j_t\):\par
+\hspace*{1em}a. If \(t\le r\), compute the variant's exploration score on
+\(j_t\); if it exceeds \(\tau\), update \(\tau\) and the fallback.\par
+\hspace*{1em}b. Otherwise, exact-scan \(j_t\) for the variant's qualifying
+score; return it as soon as the feature qualifies.\par
+3. Return the exploration fallback if no later feature qualifies.
+\end{minipage}}
+\caption{Common feature-ordered framework for \(S\), \(S_{\mathrm{all}}\), and \(S^2\).}
+\label{alg:common}
+\end{algorithm}
 
-We also include a one-sample prophet-style baseline. For each visited covariate, one ERT-style continuous threshold is sampled and evaluated exactly, and the maximum of these gains is used as an empirical acceptance threshold. A second pass then scans the visited covariates exactly and returns the first covariate admitting a split above this threshold, with the original exploration split used as a fallback if no such covariate appears. This baseline is motivated by prophet inequalities from samples \cite{rubinstein2020samples,samuelcahn1984}.
+\subsection{Computational scope}
 
-\subsection{Motivating heuristics}
-\label{subsec:theory}
+At a fixed node, exhaustive CART evaluates at most \(\sum_j C_j\) gains and sorts every visited feature, giving a comparison-scale cost
+\(O(mn\log n+\sum_j C_j)\). ERT avoids sorting and evaluates at most \(m\) gains, with \(O(mn)\) partition work. The gain counts of \(S\), \(S_{\mathrm{all}}\), and the blockwise heuristic do not exceed exhaustive search at the same node, although their sorting and control-flow costs remain. The extra sampled evaluations in \(S^2\) can exceed that reference; the prophet-style rule adds a full min/max and partition pass before exact replay. Full-tree effort need not preserve node-level ordering because different splits create different descendants.
 
-This subsection is motivational only. We do not attempt a formal analysis of tree induction under secretary-style exploration, and the paper's contribution remains empirical and methodological.
+The recorded effort metric counts admissible proxy-gain evaluations. It excludes sorting, candidate counting, min/max passes, random-threshold sorting, partitioning, calibration, memory traffic, and final split application. CART and ERT effort is reconstructed for successful internal-node searches, whereas early-stop counters also include failed split calls that produce leaves. The total-tree effort comparisons are therefore conservative diagnostics for early stopping; per-call normalization is not reported. Effort saved and wall-clock time saved remain complementary rather than interchangeable outcomes.
 
-The classical secretary problem shows that, under a random arrival order, a simple skip-then-accept rule with exploration length of order $N/e$ is asymptotically optimal for selecting the best item \cite{gilbertmosteller1966,ferguson1989secretary}. This is the only theoretical fact used directly in the benchmark design: it motivates the default $n/e$ exploration schedule that we treat as the representative secretary-style setting in the main comparison.
+\section{Experimental design}
+\label{sec:experimental}
 
-The parametric variant $S_{\mathrm{par}}$ is motivated first by regression. Under homoscedastic Gaussian errors, the reduction in residual sum of squares associated with a fixed split is proportional to a \(\chi^2_1\) variable, so the corresponding regression gain admits a simple positive law after rescaling. This motivates fitting a working gain distribution from a small sample of exact evaluations and using it to calibrate a conservative acceptance threshold. For classification, no equally clean finite-sample law is available, but chi-square- or gamma-like approximations remain natural heuristics under standard asymptotics \cite{laurentmassart2000}. In the present paper, however, this idea is used only as a practical calibration device; we do not derive guarantees for the resulting stopping rule.
+\subsection{Benchmark and reproducibility}
 
-All methods were implemented in a common open-source package built around a modified tree splitter, with identical tree-growing hyperparameters across methods. This ensures that the observed differences are attributable to split-search rules rather than to other changes in the induction procedure.
+We analyzed dense, finite-valued PMLB entries \cite{romano2022pmlb} that completed the archived protocol. The retained corpus contains 113 regression and 122 classification entries; Gini and entropy use the same classification corpus. Table~\ref{tab:datasets} reports quartiles and ranges, and the supplement provides a machine-readable inventory. The exact sharded invocation was not retained; because the executable default applies \(np\leq10^6\), the archive cannot verify that this cap was disabled.
+
+\begin{table}[!b]
+\centering
+\caption{Retained PMLB datasets: Q1/median/Q3, with ranges in parentheses.}
+\label{tab:datasets}
+\resizebox{\columnwidth}{!}{\input{dataset_benchmark_summary.tex}}
+\end{table}
+
+Each method used the same deterministic fivefold partitions and common tree settings, including \texttt{max\_depth=20}. For each method and seed, five fold-specific single trees were fitted and their outcomes averaged. Randomized estimators used seeds 42--141, giving 100 seeded repetitions on fixed folds; the folds are not independent replicates. ERT was evaluated with \(m_{\mathrm{try}}\in\{1,p/3,2p/3,p\}\). Reported fit time is estimator-only time from scikit-learn's cross-validation routine \cite{pedregosa2011scikit}. Methods were executed in a fixed CART-first order, so observed time contrasts include any systematic order effect. Regression performance is RMSE and classification performance is weighted F1.
+
+The archive records Python 3.10.18, NumPy 1.26.4, scikit-learn 1.7.2, treeple 0.10.3, and macOS 15.2 on ARM64 with eight CPUs. The benchmark host was an Apple M3 MacBook Air with 16~GB memory. The revised analysis bundle hashes all 300 raw run files and the audited benchmark, splitter, reference-splitter, build, analysis, and test sources. The exact temporary compiled extension and sharded shell invocation were not retained, so the supplement states this provenance limitation rather than asserting bitwise executable identity.
+
+\subsection{Estimands and inference}
+
+PMLB entries are the top-level experimental units \cite{demsar2006comparisons}. Within each entry, every method is paired with exhaustive CART by seed. An entry point is the median over its complete paired seed block. Time saved is
+\(100[1-1/\operatorname{median}(t_{\mathrm{CART}}/t_m)]\).
+Regression loss is
+\(100\operatorname{median}(1-\mathrm{RMSE}_{\mathrm{CART}}/\mathrm{RMSE}_m)\);
+classification loss is
+\(100\operatorname{median}(\mathrm{F1}_{\mathrm{CART}}-\mathrm{F1}_m)\)
+in F1 percentage points. One regression dataset, \texttt{564\_fried}, lacks seed 45 (run 4); that seed is excluded for all methods without imputation.
+
+We report paired two-stage percentile-bootstrap intervals with 10,000 replicates and analysis seed 20260810 \cite{efron1979bootstrap}. Seed identifiers are jointly resampled across methods within an entry, then complete entries are resampled with equal weight. Two-sided 95\% intervals cover entry medians, the equal-entry-weight mean of medians used as each centroid, and the cross-entry median. Revision-designated representatives are compared using Friedman tests and paired Wilcoxon tests versus exhaustive CART with Holm correction. A primary one-sided exact test asks whether more than half of entries simultaneously have positive median time saving and loss below the task-specific 1-unit margin; 0.5 and 2.5 form one multiplicity-adjusted sensitivity family. A family-balanced regression analysis groups related Friedman entries and exact aliases and reaches the same primary decision. Moving-block bootstraps assess timing dependence but cannot remove fixed method-order bias. PMLB is curated, so intervals quantify benchmark heterogeneity rather than universal population coverage.
 
 \section{Results}
 \label{sec:results}
 
-\subsection{Experimental protocol}
-\label{subsec:protocol}
-
-We compared secretary-style split search against the standard exhaustive splitter of \texttt{scikit-learn} and against ERT-style random-threshold baselines with \texttt{max\_features} set to \(1\), \(p/3\), \(2p/3\), and \(p\), on a broad collection of regression and classification datasets from the PMLB benchmark suite \cite{romano2022pmlb}. For each dataset, the same 5-fold cross-validation splits and tree hyperparameters were used across methods. Because the proposed procedures are randomized, each dataset--method pair was evaluated over 100 independent runs with different estimator seeds. After filtering to datasets that completed successfully under the common protocol, the final benchmark retained 113 regression datasets and 122 classification datasets for each impurity criterion.
-
-The primary computational metric is wall-clock training time. To make the timing results more interpretable, we also track split-search effort through the number of gain evaluations, either measured directly for the secretary-style splitters or reconstructed deterministically a posteriori for the exhaustive and ERT baselines. Predictive performance is measured by RMSE in regression and by F1-score in classification; effort plots, reliability summaries, and additional visualizations are reported in the supplementary material. Results are normalized relative to the exhaustive splitter through a speedup factor and a relative loss metric. Because different splitters can induce different tree shapes, total tree-level effort can occasionally exceed the exhaustive baseline on a minority of datasets even when the node-level rule evaluates fewer gains on any given feature.
-
-\begin{table}[t]
+\begin{figure*}[!t]
 \centering
-\caption{Summary of the PMLB benchmark used in the study.}
-\label{tab:datasets}
-\begin{adjustbox}{max width=\textwidth}
-\input{TABLES/dataset_benchmark_summary.tex}
-\end{adjustbox}
-\end{table}
-
-
-\subsection{Global trade-off}
-\label{subsec:main_results}
-
-Figure~\ref{fig:pareto_main} summarizes the main Pareto comparison between speedup and predictive degradation. Each point corresponds to one dataset summarized by the median over the 100 runs, and the larger method markers summarize cross-dataset centroids. Size-stratified versions of the same Pareto comparison are reported in Supplementary Figure~S1. Three conclusions are immediate: the time--accuracy trade-off depends strongly on the task; the strongest speed-oriented baselines remain the ERT family; and the optimized split-level secretary rules now lie much closer to the exhaustive baseline in predictive loss than in runtime.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=1\linewidth]{MAIN_FIGURES/figure1_pareto_all.png}
-\caption{Global Pareto comparison of exhaustive, secretary-style, and ERT-style split-search methods. Each point represents one dataset summarized by the median over 100 runs. The horizontal axis reports the median percentage of training time saved relative to the exhaustive \texttt{scikit-learn} splitter, and the vertical axis reports the median percentage loss relative to the same baseline. Left: regression with RMSE loss. Middle: classification with Gini impurity and F1 loss. Right: classification with entropy impurity and F1 loss. Large white-edged markers indicate cross-dataset centroids, and faint Pareto frontiers summarize the dataset-level and centroid-level envelopes.}
+\includegraphics[width=\textwidth]{MAIN_FIGURES/figure1_pareto_all}
+\caption{Time saved and predictive loss relative to exhaustive CART. Small points are paired-seed entry medians; large points are equal-weight entry centroids with marginal 95\% hierarchical bootstrap intervals.}
 \label{fig:pareto_main}
-\end{figure}
+\end{figure*}
 
-Table~\ref{tab:summary_results} reports a representative benchmark summary. For the secretary families, we use the theoretically motivated $n/e$ schedule; for the parametric strategy, we report the single representative \(S_{\mathrm{par}}(\sqrt{n},q=0.75)\), which remains Pareto-optimal in the screened summaries; and for ERT we report all four \texttt{max\_features} budgets. In addition to centroid time saved and loss, the table reports gain-evaluation effort saved, which helps separate algorithmic budget reductions from residual implementation overhead.
+\subsection{Time--prediction trade-offs}
+
+Figure~\ref{fig:pareto_main} separates conservative low-loss methods from aggressively randomized baselines. Under the chosen task-specific endpoints and margins, incomplete search met constraints more often among retained classification entries than regression entries. The exact-feature rule \(S_{\mathrm{all}}(1/e)\) provides a conservative secretary-inspired compromise across tasks, while ERT shows larger observed time savings at greater predictive loss. The sampled \(S(1/e)\) and prophet-style rules often reduce gain evaluations substantially, but their additional sorting or replay is not accompanied by a proportional wall-clock difference.
 
 \input{TABLES/table1_main.tex}
 
-The centroid time-saved column corresponds to the horizontal coordinate of the large markers in Figure~\ref{fig:pareto_main}. The differences between Figure~\ref{fig:pareto_main} and Supplementary Figures~S13--S14 should therefore be interpreted mainly as implementation effects: gain-evaluation effort can decrease substantially even when the realized wall-clock savings remain more modest.
+Table~\ref{tab:summary_results} reports the same named estimands and their 95\% hierarchical intervals. Classification losses are absolute weighted-F1 percentage points; regression losses are relative RMSE percentages, so their numerical magnitudes are not directly comparable. The archived parametric calibration screen is omitted from the main analysis because the revision audit found defects in both its regression and classification calibration; it is retained only as a supplementary implementation audit. This exclusion is conditional on the original all-method complete-case corpus, and its possible influence on corpus inclusion cannot be reconstructed.
 
-The regression benchmark remains unfavorable to aggressive approximation, but the optimized split-level rules change the interpretation. The strongest speed-oriented baselines are still the ERT variants, which save about \(54\%\) to \(71\%\) of training time at substantial RMSE degradation. Among secretary-style rules, the clearest low-loss compromise is now \(S_{\mathrm{all}}(n/e)\), with centroid time saved \(16.4\%\) and median loss \(1.81\%\). The optimized \(S(n/e)\) rule and the one-sample prophet save \(15.7\%\) and \(30.1\%\) of time at median losses \(3.88\%\) and \(6.43\%\), respectively. The earlier predictive gap of the split-level rules was therefore not purely algorithmic, but the new benchmark also shows that large reductions in gain evaluations do not automatically translate into proportional wall-clock savings.
+For regression, the equal-entry-weight mean observed time-saving estimate for \(S_{\mathrm{all}}(1/e)\) was 16.44\% (95\% interval 15.45--17.20), with 2.67\% mean RMSE loss (1.97--3.46). In classification, the corresponding time-saving estimates were 12.74\% (11.31--14.07) for Gini and 12.59\% (11.20--13.85) for entropy, while mean F1 losses were 0.07 (-0.12--0.25) and 0.03 (-0.17--0.20) percentage points. ERT with \(m_{\mathrm{try}}=p\) showed about 38\% mean time saving in both classification tasks, with mean F1 losses 0.42 (-0.03--0.91) and 0.40 (0.02--0.75) percentage points. These time contrasts retain the fixed-order caveat.
 
-The classification results remain more favorable than the regression results, but they also sharpen the distinction between quality-preserving and speed-preserving approximations. The optimized split-level secretary and prophet variants now achieve very small median losses, yet they still do not deliver the largest wall-clock gains. In both Gini and entropy classification, \(S_{\mathrm{all}}(n/e)\) is the strongest low-loss secretary-style compromise, with centroid time saved about \(12.6\%\) to \(12.7\%\) and median loss \(0.03\%\) to \(0.06\%\). The optimized \(S(n/e)\) rule saves \(10.9\%\) of time for Gini and \(12.6\%\) for entropy at about \(0.10\%\) median loss, while the one-sample prophet reaches \(16.6\%\) and \(17.2\%\) with median losses \(0.03\%\) and \(0.09\%\). The selected parametric representative \(S_{\mathrm{par}}(\sqrt{n},q=0.75)\) remains Pareto-optimal in the screened summaries and saves about \(19.5\%\) to \(19.7\%\) of time, but it remains less reliable than \(S_{\mathrm{all}}(n/e)\). Supplementary Figure~S2 still shows that \(S_{\mathrm{par}}\) is most interesting on the smaller classification datasets rather than as a global default.
-
-A plausible explanation for the strong task asymmetry observed in the benchmark is that classification impurities are more tolerant to approximate split search than regression impurity. For Gini and entropy, many nearby thresholds can induce very similar child class proportions and therefore nearly equivalent impurity reductions. In such cases, partial random exploration may still identify a split whose downstream predictive effect is close to that of the exhaustive optimum. By contrast, regression gains based on MSE appear to depend more sharply on the precise threshold location, because small changes in the partition can alter child means and variances continuously and hence affect the final predictions more directly. Supplementary Figure~S12 examines this interpretation directly under exhaustive search by comparing the mass of thresholds within 5\% and 10\% of the nodewise optimum, the gap between the best gain and the median random-threshold gain, and the width of the near-optimal region on the winning covariate. The resulting comparison remains more nuanced than a single scalar notion of flatness: some diagnostics are larger for regression, whereas the best-versus-random gap is larger for classification. This suggests that the empirical advantage of classification is not explained by one universal notion of broader near-optimal threshold regions alone, and likely reflects a combination of impurity geometry, competition across covariates, downstream loss sensitivity, and the cost of exact replay.
-
-\subsection{Reliability and dataset structure}
-\label{subsec:reliability}
-
-Figure~\ref{fig:reliability} complements the centroid-based summaries by showing reliability under explicit operating constraints. The dominant pattern is not that faster methods are automatically reliable. Under the reliability criteria considered here and on the present benchmark, the most reliable secretary-style procedures are \(S_{\mathrm{all}}(n/e)\), then \(S^2(n/e)\), and then \(S(n/e)\), whereas block-rank and the ERT baselines achieve speed more aggressively but with much weaker reliability under strict loss constraints. In classification, ERT(\(p\)) is consistently less reliable than those three secretary-style rules, and block-rank is substantially less reliable still. Size-stratified loss-only reliability curves are reported in Supplementary Figure~S6, and the full grid of joint success probabilities over all datasets is reported in Supplementary Figure~S7.
-
-\begin{figure}[H]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=1\linewidth]{MAIN_FIGURES/figure4_success_combined.png}
-\caption{Reliability summaries for secretary-style split-search methods. Top row: empirical probability of achieving a predictive loss below a tolerance \(\varepsilon\). Bottom panels: empirical probability of simultaneously achieving at least a prescribed time saving and a predictive loss below a prescribed tolerance. Separate panels are shown for regression, classification with Gini impurity, and classification with entropy impurity. Size-stratified and method-specific variants are reported in the supplementary material.}
+\includegraphics[width=0.98\textwidth]{MAIN_FIGURES/figure4_success_combined}
+\caption{Entry-level reliability under specified time-saving and predictive-loss constraints. Bands show 95\% hierarchical bootstrap intervals for joint success.}
 \label{fig:reliability}
-\end{figure}
+\end{figure*}
 
-The reliability ranking therefore differs from the speed ranking. On the present benchmark, \(S_{\mathrm{all}}(n/e)\) is the most reliable method overall, followed by \(S^2(n/e)\) and \(S(n/e)\); these procedures keep losses under control much more consistently than block-rank or the ERT baselines. In regression, \(S_{\mathrm{all}}(n/e)\) and \(S^2(n/e)\) form the strongest high-reliability tier, with \(S(n/e)\) behind them. Block-rank remains interesting as a speed-oriented compromise, but not as a high-reliability default. Supplementary Figures~S3--S5 report task-specific ridgeline summaries of within-dataset variability, and Supplementary Figures~S9--S11 provide complementary whisker summaries of the same repeated-run variability.
+\subsection{Reliability and observed regimes}
 
-\begin{figure}[H]
+Figure~\ref{fig:reliability} gives every entry equal weight rather than pooling seed rows. At required time savings of 0\% or 10\% on this benchmark, \(S_{\mathrm{all}}(1/e)\), \(S^2(1/e)\), and \(S(1/e)\) are the leading secretary-style variants; their ordering depends on task and loss tolerance. At higher required savings, prophet-style and randomized methods can rank ahead. Supplementary Figures~S3--S7 report within-entry variability and size-stratified reliability.
+
+In the primary simultaneous-success tests, no regression alternative was supported after Holm correction. For both classification criteria, \(S^2(1/e)\), \(S_{\mathrm{all}}(1/e)\), and ERT with \(m_{\mathrm{try}}=p\) were supported. At the stricter 0.5-unit sensitivity, \(S_{\mathrm{all}}(1/e)\) remained supported for both criteria and \(S^2(1/e)\) was additionally supported for Gini. Full counts and adjusted tests are reported in Supplementary Table~S4.
+
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=1\linewidth]{MAIN_FIGURES/figure3_regime_combined.png}
-\caption{Regime maps as a function of dataset size and dimensionality. Each point is a benchmark dataset represented in the \((\log_{10} n,\log_{10} p)\) plane and colored by the split-search strategy that achieves the largest median speedup among methods whose median loss does not exceed a fixed tolerance \(\tau\). Columns correspond to \(\tau=0.5\%,1\%,2.5\%\). Rows correspond to regression, classification with Gini impurity, and classification with entropy impurity.}
+\includegraphics[width=\textwidth]{MAIN_FIGURES/figure3_regime_combined}
+\caption{Tolerance-constrained regime maps. Columns show regression, Gini classification, and entropy classification; rows show margins 0.5, 1, and 2.5, measured as bounded-relative-RMSE percentages for regression and weighted-F1 percentage points for classification. Each entry is colored by its fastest admissible method; pale regions are descriptive 7-nearest-neighbor interpolation.}
 \label{fig:dataset_structure}
-\end{figure}
+\end{figure*}
 
-Figure~\ref{fig:dataset_structure} shows that the usefulness of secretary-style split search depends on dataset structure. The colors do not identify the method with the smallest loss or the largest time saving separately; they identify the fastest method among those that satisfy the displayed loss tolerance. This is why exhaustive search can remain optimal in some regions despite zero loss, and why ERT with \(m_{\mathrm{try}}=1\) is not always selected despite being the fastest raw baseline. Classification tasks are clearly more favorable than regression tasks. Within classification, and under the tighter tolerances \(\tau=0.5\%\), \(1\%\), and \(2.5\%\), covariate-level secretary rules dominate larger portions of the regime map than split-level secretary rules. In regression, exhaustive split search remains the safest choice on much of the benchmark, and secretary-style rules are only competitive in more limited regions.
+Figure~\ref{fig:dataset_structure} colors each observed entry by the fastest method whose paired-seed median loss meets the displayed margin. Exhaustive CART is always feasible at zero loss; ERT with \(m_{\mathrm{try}}=1\) can be fastest yet inadmissible because of loss. Under these task-specific endpoints, classification contains broader regions where early stopping or ERT satisfies tight margins, whereas regression more often retains exhaustive or conservative exact-feature search. The interpolated background is descriptive, not a validated decision rule for unseen datasets.
 
-\subsection{Sensitivity and negative result for the parametric strategy}
-\label{subsec:ablation}
+\section{Discussion and conclusion}
+\label{sec:discussion}
 
-We examined four exploration schedules based on node size: $\n/e$, $0.1\n$, $\log \n$, and $\sqrt{\n}$. The full results are reported in the supplementary material. Changing the schedule affects the quantitative trade-off more than the qualitative ranking. For $S$ and $S^2$, more aggressive schedules produce slightly larger wall-clock savings at the price of slightly worse predictive degradation. For \(S_{\mathrm{all}}\), the $n/e$ schedule consistently provides the best compromise, especially in classification, which justifies its use as the default representative in the main text. The corresponding size-stratified Pareto analyses, reliability summaries, and effort comparisons are reported in Supplementary Figures~S1, S6, S7, S13, and S14.
+This study evaluates local split-search mechanisms with uncertainty estimates and reports both favorable and unfavorable results. Reduced gain counts alone are insufficient: sorting, candidate counting, partitioning, calibration, replay, and changed tree topology can dominate observed fit time. This explains differences between Figure~\ref{fig:pareto_main} and the effort analyses in Supplementary Figures~S13--S14 without equating the two metrics.
 
-The parametric secretary method $S_{\mathrm{par}}$ was evaluated in an initial screening study over a grid of fitting sample sizes and quantile levels. Most configurations are dominated in practice: the cost of fitting the working model outweighs any benefit from early stopping, especially in regression and on larger classification datasets. The representative retained in the main text, \(S_{\mathrm{par}}(\sqrt{n},q=0.75)\), remains Pareto-optimal in the screened summaries and remains interesting primarily on smaller classification datasets. Even there, its global performance is less robust than the strongest ERT and \(S_{\mathrm{all}}\) baselines. This mostly negative result shows that probabilistic calibration is not useful by itself when the fitting overhead is too large relative to the gain-computation cost.
+The implementation audit also narrows the theoretical interpretation. Randomization occurs over features, while exact thresholds are scanned in sorted value order; exploration fallbacks and revisits violate classical irrevocability. No classical secretary or prophet approximation ratio is claimed. \(S^2\) is a calibration ablation rather than a cheaper nested stopping rule, and the blockwise method is rank-inspired rather than the published block-rank algorithm.
 
-For orientation, the supplementary material is organized as follows: Supplementary Figure~S1 gives the size-stratified Pareto comparison; Supplementary Figure~S2 gives the \(S_{\mathrm{par}}\) screening study; Supplementary Figures~S3--S5 give the ridgeline summaries; Supplementary Figures~S6--S7 give the reliability and joint-success plots; Supplementary Figure~S8 gives the tolerance-constrained quickest-method regime maps in the \((\log n,p/n)\) plane; Supplementary Figures~S9--S11 give the within-dataset whisker summaries; Supplementary Figure~S12 gives exhaustive gain-landscape diagnostics for the regression--classification asymmetry; and Supplementary Figures~S13--S14 compare split-search effort across methods and against wall-clock savings.
+The evidence is conditional on dense PMLB datasets that completed the protocol, one hardware/software configuration, fixed folds, and complete depth-limited individual trees. Timing rankings can change with implementation and processor. The benchmark does not establish ensemble behavior. A matched bagging study is a logical next step because aggregation may attenuate occasional suboptimal splits and repeated node-level savings may accumulate. Such a study must measure resampling, tree count, feature subsampling, aggregation, and parallel execution directly.
 
-\section{Conclusion, limitations, and outlook}
-\label{sec:conclusion}
+Secretary-inspired split search is therefore not a universal substitute for exhaustive CART. On this benchmark, exact-feature stopping is the clearest conservative candidate for ensemble study, while ERT occupies a complementary speed-oriented regime. More broadly, the useful choice depends on task, loss tolerance, and whether reduced gain-evaluation effort converts into measured time on the target implementation.
 
-This paper asked whether exhaustive CART split search can be replaced, at least in part, by secretary-style sequential selection without incurring an unacceptable loss in predictive performance. The answer depends strongly on both the stopping rule and the prediction task, and it also depends on implementation details. After aligning exploration with ERT-style continuous threshold draws and optimizing the exact-selection phase, the simple secretary and prophet variants preserve predictive performance much more closely than in the earlier implementation, but they do so with little wall-clock gain. The methods that still offer the clearest practical speedups are the ERT baselines and the covariate-level strategy \(S_{\mathrm{all}}\), whereas block-rank is better viewed as a speed-oriented but comparatively unreliable compromise.
+\section*{Data and code availability}
+The source datasets are publicly available through PMLB. The retained-entry inventory, inferential summaries, implemented methods, and scripts used to run the benchmark and generate every reported figure and table are available in the \href{https://github.com/MathiasValla/EarlyStoppingTrees}{GitHub repository}. The archived per-seed benchmark outputs accompany the revision as supplementary data.
 
-The study reveals a clear task asymmetry. Regression trees are much less tolerant to incomplete split exploration than classification trees if one insists on real time savings. On the regression benchmarks considered here, the only low-loss secretary-style variants are effectively near-exhaustive in runtime, whereas the faster methods incur substantial loss. In classification, by contrast, the losses of several approximate methods remain modest enough to make the time--accuracy trade-off practically interesting. This suggests that the value of approximate split search depends both on the impurity criterion and on how efficiently a given stopping rule can convert reduced gain-evaluation effort into actual runtime savings.
+\section*{Funding}
+This work was supported through the Research Chair DIALog under the aegis of the Risk Foundation, a joint initiative by Universit\'e Paris-Dauphine PSL and CNP Assurances. The author was solely responsible for the study design, analysis, interpretation, manuscript preparation, and decision to submit.
 
-A second important outcome is mostly negative but informative. The parametric secretary variant $S_{\mathrm{par}}$, although statistically motivated by gain-distribution approximations, is not competitive globally once fitting overhead is taken into account. One low-overhead configuration remains interesting on small classification datasets, but overall the family is less robust than the strongest ERT and \(S_{\mathrm{all}}\) baselines. This cautions against assuming that a principled probabilistic calibration will automatically lead to an effective split-search procedure.
+\section*{Declaration of competing interest}
+The author declares no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
 
-The study is limited to single trees, benchmark datasets, and a deliberately small family of stopping rules, and is intended primarily as an empirical characterization rather than a complete theory. This restriction is deliberate: understanding the time--loss trade-off for a single tree is a necessary first step before one can interpret what these splitters might contribute inside larger ensembles.
-
-A natural next step is to study the same split-search rules in bagging and boosting, but this remains genuine future work rather than a claim of the present paper. Because split-search cost is incurred at every node and across many trees, even moderate node-level savings may accumulate into substantial end-to-end gains, and ensembling may damp the predictive effect of occasional suboptimal splits. At the same time, those ensemble-level effects cannot be interpreted cleanly without first understanding the single-tree regime studied here. A second direction is methodological: the performance of the block-rank rule suggests that adaptive rank-based or sample-based stopping rules may be preferable to the classical secretary rule in this context. Overall, secretary-style split search is not a universal replacement for exhaustive CART search, but in favorable settings, especially in classification, it offers a simple and interpretable way to trade split-search time against predictive performance.
-
-\section*{Code availability}
-The implementation and the scripts used to reproduce the experiments are available at \href{https://github.com/MathiasValla/EarlyStoppingTrees}{https://github.com/MathiasValla/EarlyStoppingTrees}.
+\section*{CRediT authorship contribution statement}
+Mathias Valla: Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data curation, Writing -- original draft, Writing -- review and editing, Visualization, and Project administration.
 
 \section*{Acknowledgments}
-Work conducted within the Research Chair DIALog under the aegis of the Risk Foundation, a joint initiative by Universit\'e Paris-Dauphine PSL and CNP Assurances
+Work conducted within the Research Chair DIALog under the aegis of the Risk Foundation, a joint initiative by Universit\'e Paris-Dauphine PSL and CNP Assurances.
+
+\section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
+During preparation of this revision, the author used OpenAI Codex to assist with language editing, source-code review, and preparation of analysis scripts. The author reviewed and edited the resulting material as needed and takes full responsibility for the content of the article.
 
 \bibliographystyle{elsarticle-num}
 \bibliography{references}

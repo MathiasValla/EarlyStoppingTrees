@@ -1,0 +1,28 @@
+task,task_label,method_key,method,loss_margin_pct,n_complete_datasets,runtime_n_positive,runtime_n_non_ties,loss_n_below_margin,loss_n_non_ties,joint_n_success,joint_n_failure,joint_success_pvalue_holm,supports_primary_joint_claim_0.05
+regression,Regression,secretary|1overe,S (f=1/e),1.0,113,112,113,31,113,30,83,1.0,False
+regression,Regression,double_secretary|1overe,S^2 (f=1/e),1.0,113,96,113,42,113,39,74,1.0,False
+regression,Regression,secretary_all|1overe,S_all (f=1/e),1.0,113,113,113,36,113,36,77,1.0,False
+regression,Regression,block_rank|,Rank-inspired,1.0,113,113,113,11,113,11,102,1.0,False
+regression,Regression,prophet_1sample|,Prophet-style,1.0,113,109,113,23,113,20,93,1.0,False
+regression,Regression,extra_tree|max_features=1,ERT (m_try=1),1.0,113,113,113,8,113,8,105,1.0,False
+regression,Regression,extra_tree|max_features=1over3,ERT (m_try=p/3),1.0,113,113,113,10,113,10,103,1.0,False
+regression,Regression,extra_tree|max_features=2over3,ERT (m_try=2p/3),1.0,113,113,113,15,113,15,98,1.0,False
+regression,Regression,extra_tree|max_features=all,ERT (m_try=p),1.0,113,113,113,23,113,23,90,1.0,False
+classification_gini,Classification (Gini),secretary|1overe,S (f=1/e),1.0,122,90,122,96,122,72,50,0.1704680667695258,False
+classification_gini,Classification (Gini),double_secretary|1overe,S^2 (f=1/e),1.0,122,110,122,107,122,97,25,1.3294775519110573e-10,True
+classification_gini,Classification (Gini),secretary_all|1overe,S_all (f=1/e),1.0,122,118,122,109,122,105,17,5.163552959949649e-16,True
+classification_gini,Classification (Gini),block_rank|,Rank-inspired,1.0,122,122,122,43,122,43,79,1.0,False
+classification_gini,Classification (Gini),prophet_1sample|,Prophet-style,1.0,122,80,122,97,122,55,67,1.0,False
+classification_gini,Classification (Gini),extra_tree|max_features=1,ERT (m_try=1),1.0,122,121,122,28,122,27,95,1.0,False
+classification_gini,Classification (Gini),extra_tree|max_features=1over3,ERT (m_try=p/3),1.0,122,120,122,48,122,47,75,1.0,False
+classification_gini,Classification (Gini),extra_tree|max_features=2over3,ERT (m_try=2p/3),1.0,122,121,122,61,122,60,62,1.0,False
+classification_gini,Classification (Gini),extra_tree|max_features=all,ERT (m_try=p),1.0,122,119,122,87,122,85,37,5.771376502420518e-05,True
+classification_entropy,Classification (Entropy),secretary|1overe,S (f=1/e),1.0,122,89,122,95,122,72,50,0.1704680667695258,False
+classification_entropy,Classification (Entropy),double_secretary|1overe,S^2 (f=1/e),1.0,122,105,122,108,122,92,30,6.586886280925003e-08,True
+classification_entropy,Classification (Entropy),secretary_all|1overe,S_all (f=1/e),1.0,122,118,122,109,122,106,16,8.17765242318372e-17,True
+classification_entropy,Classification (Entropy),block_rank|,Rank-inspired,1.0,122,119,122,36,122,36,86,1.0,False
+classification_entropy,Classification (Entropy),prophet_1sample|,Prophet-style,1.0,122,83,122,95,122,61,61,1.0,False
+classification_entropy,Classification (Entropy),extra_tree|max_features=1,ERT (m_try=1),1.0,122,121,122,24,122,24,98,1.0,False
+classification_entropy,Classification (Entropy),extra_tree|max_features=1over3,ERT (m_try=p/3),1.0,122,118,122,47,122,47,75,1.0,False
+classification_entropy,Classification (Entropy),extra_tree|max_features=2over3,ERT (m_try=2p/3),1.0,122,118,122,60,122,59,63,1.0,False
+classification_entropy,Classification (Entropy),extra_tree|max_features=all,ERT (m_try=p),1.0,122,117,122,88,122,85,37,5.771376502420518e-05,True

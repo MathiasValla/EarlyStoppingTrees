@@ -28,10 +28,8 @@ from benchmark_results_utils import (
     load_all,
     SECRETARY_SPLITTERS,
     SECRETARY_SPLITTERS_NO_PAR,
-    SPAR_REPRESENTATIVE_KEY,
     per_dataset_median_iqr,
     get_variant_method_order_and_colors,
-    keep_secretary_par_representative,
     plot_grouped_variant_legend,
 )
 
@@ -68,7 +66,6 @@ FIG1_DEFAULT_FAMILY_KEYS = frozenset(
         "secretary|1overe",
         "double_secretary|1overe",
         "secretary_all|1overe",
-        SPAR_REPRESENTATIVE_KEY,
         "block_rank|",
         "prophet_1sample|",
         "extra_tree|max_features=all",
@@ -104,12 +101,55 @@ def _time_saved_pct_and_error(speedup_median, speedup_iqr):
     s_low = np.maximum(s_med - 0.5 * iqr, 1e-6)
     s_high = s_med + 0.5 * iqr
     ts_med = 100.0 * (1.0 - 1.0 / np.maximum(s_med, 1e-6))
-    ts_low = 100.0 * (1.0 - 1.0 / np.maximum(s_high, 1e-6))  # smaller speedup -> less time saved
-    ts_high = 100.0 * (1.0 - 1.0 / np.maximum(s_low, 1e-6))
+    ts_low = 100.0 * (1.0 - 1.0 / np.maximum(s_low, 1e-6))
+    ts_high = 100.0 * (1.0 - 1.0 / np.maximum(s_high, 1e-6))
     # Ensure non-negative error bar lengths
     xerr_left = np.maximum(ts_med - ts_low, 0.0)
     xerr_right = np.maximum(ts_high - ts_med, 0.0)
     return ts_med, xerr_left, xerr_right
+
+
+def _load_centroid_intervals(inference_dir: Path | None) -> dict:
+    """Load hierarchical 95% intervals for Figure 1 centroid coordinates."""
+    if inference_dir is None:
+        return {}
+    path = inference_dir / "global_intervals.csv"
+    if not path.is_file():
+        raise FileNotFoundError(f"Missing inferential results: {path}")
+    frame = pd.read_csv(path)
+    required = {
+        "task",
+        "method_key",
+        "metric",
+        "estimand",
+        "estimate",
+        "hierarchical_ci_low",
+        "hierarchical_ci_high",
+    }
+    missing = sorted(required - set(frame.columns))
+    if missing:
+        raise ValueError(f"{path} is missing columns: {missing}")
+    frame = frame[frame["estimand"] == "centroid_mean"].copy()
+    intervals = {}
+    for (task, method_key), group in frame.groupby(["task", "method_key"]):
+        rows = group.set_index("metric")
+        if not {"time_saved_pct", "predictive_loss_pct"}.issubset(rows.index):
+            continue
+        time = rows.loc["time_saved_pct"]
+        loss = rows.loc["predictive_loss_pct"]
+        intervals[(str(task), str(method_key))] = {
+            "x": (
+                float(time["estimate"]),
+                float(time["hierarchical_ci_low"]),
+                float(time["hierarchical_ci_high"]),
+            ),
+            "y": (
+                float(loss["estimate"]),
+                float(loss["hierarchical_ci_low"]),
+                float(loss["hierarchical_ci_high"]),
+            ),
+        }
+    return intervals
 
 
 def _pareto_envelope(x: np.ndarray, y: np.ndarray) -> tuple:
@@ -319,8 +359,11 @@ def _plot_pareto_panel(
 
     ax.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
     ax.axvline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
-    ax.set_xlabel("Median % time saved vs best")
-    ax.set_ylabel("Median % loss vs best")
+    ax.set_xlabel("Training time saved (%)")
+    if str(loss_col).startswith("loss_rmse_bounded"):
+        ax.set_ylabel("Bounded RMSE loss (%)")
+    else:
+        ax.set_ylabel("Weighted-F1 loss (percentage points)")
     ax.set_title(title)
     ax.grid(True, alpha=0.3)
     # Center on center of mass (equal weight per point)
@@ -348,6 +391,8 @@ def _plot_pareto_panel_centroids(
     flagship_style: bool = False,
     show_title: bool = True,
     y_limits=None,
+    centroid_intervals=None,
+    inference_task: str | None = None,
 ):
     """
     One panel: centroid per method + 2D density (KDE) with opacity fading; individual points on top.
@@ -426,6 +471,28 @@ def _plot_pareto_panel_centroids(
             w_safe = np.ones_like(w_safe)
         cx = np.average(x, weights=w_safe)
         cy = np.average(y, weights=w_safe)
+        if centroid_intervals and inference_task is not None:
+            interval = centroid_intervals.get((inference_task, str(method)))
+            if interval is not None:
+                x_est, x_low, x_high = interval["x"]
+                y_est, y_low, y_high = interval["y"]
+                if not (np.isclose(cx, x_est, atol=1e-8) and np.isclose(cy, y_est, atol=1e-8)):
+                    raise ValueError(
+                        f"Centroid mismatch for {inference_task}/{method}: "
+                        f"figure=({cx}, {cy}), inference=({x_est}, {y_est})"
+                    )
+                ax.errorbar(
+                    cx,
+                    cy,
+                    xerr=[[max(0.0, cx - x_low)], [max(0.0, x_high - cx)]],
+                    yerr=[[max(0.0, cy - y_low)], [max(0.0, y_high - cy)]],
+                    fmt="none",
+                    ecolor=to_rgba(color, 0.9),
+                    elinewidth=1.15,
+                    capsize=2.0,
+                    capthick=1.0,
+                    zorder=2,
+                )
         cent_s = 80
         ax.scatter(
             cx,
@@ -450,8 +517,11 @@ def _plot_pareto_panel_centroids(
                 x_c, y_c = _pareto_envelope_smooth(cent_df["x"].to_numpy(), cent_df["y"].to_numpy())
                 ax.plot(x_c, y_c, "-", color="black", linewidth=1.8, alpha=0.30, zorder=4)
 
-    ax.set_xlabel("Median % time saved vs best")
-    ax.set_ylabel("Median % loss vs best")
+    ax.set_xlabel("Training time saved (%)")
+    if str(loss_col).startswith("loss_rmse_bounded"):
+        ax.set_ylabel("Bounded RMSE loss (%)")
+    else:
+        ax.set_ylabel("Weighted-F1 loss (percentage points)")
     if show_title and title:
         ax.set_title(title)
     ax.grid(True, alpha=0.3)
@@ -621,7 +691,7 @@ def _save_supp_figure1_pareto_large_small(
         mode="expand",
     )
     out = SUPP_DIR / "supp_figure_01_pareto_large_small.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight")
+    fig.savefig(out, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved {out}")
 
@@ -738,7 +808,7 @@ def _save_supp_figure1_secretary_par_triple(indir: Path):
         mode="expand",
     )
     out = SUPP_DIR / "supp_figure_02_secretary_par_all_large_small.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight")
+    fig.savefig(out, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved {out}")
 
@@ -776,16 +846,24 @@ def main():
         action="store_true",
         help="Do not write merged supplementary PNGs to SUPP_FIGURES/ (supp_figure_01, supp_figure_02).",
     )
+    parser.add_argument(
+        "--inference-dir",
+        type=Path,
+        default=None,
+        help="Directory containing global_intervals.csv for centroid 95%% intervals.",
+    )
     args = parser.parse_args()
 
     indir = Path(args.indir) if args.indir is not None else BENCHMARK_DIR
+    centroid_intervals = _load_centroid_intervals(args.inference_dir)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     flagship_style = False
     if args.variants_of is None:
-        # Flagship figure: all main variants, plus one selected S_par representative in classification.
-        data = load_all(indir, exclude_secretary_par=False, by_variant=True)
+        # Flagship figure: all non-parametric methods. S_par remains a
+        # supplementary exploratory calibration ablation.
+        data = load_all(indir, exclude_secretary_par=True, by_variant=True)
         reg_summary = data["regression_summary"]
         clf_gini_summary = data["classification_gini_summary"]
         clf_entropy_summary = data["classification_entropy_summary"]
@@ -796,14 +874,12 @@ def main():
         if clf_entropy_summary is None:
             raise FileNotFoundError("No classification entropy summary (run-level CSVs missing?)")
 
-        reg_summary = _add_dataset_info(reg_summary[reg_summary["splitter"] != "secretary_par"].copy(), data["regression_run"])
+        reg_summary = _add_dataset_info(reg_summary, data["regression_run"])
         clf_gini_summary = _add_dataset_info(
-            keep_secretary_par_representative(clf_gini_summary),
-            data["classification_gini_run"],
+            clf_gini_summary, data["classification_gini_run"]
         )
         clf_entropy_summary = _add_dataset_info(
-            keep_secretary_par_representative(clf_entropy_summary),
-            data["classification_entropy_run"],
+            clf_entropy_summary, data["classification_entropy_run"]
         )
 
         for summ in (reg_summary, clf_gini_summary, clf_entropy_summary):
@@ -811,7 +887,7 @@ def main():
             summ["method_key"] = summ["splitter"].astype(str) + "|" + v.fillna("").astype(str)
 
         method_order, method_colors, method_labels = get_variant_method_order_and_colors(
-            reg_summary, clf_gini_summary, clf_entropy_summary, include_secretary_par=True
+            reg_summary, clf_gini_summary, clf_entropy_summary, include_secretary_par=False
         )
         out_prefix = "figure1_pareto"
         flagship_style = True
@@ -883,6 +959,8 @@ def main():
                 flagship_style=flagship_style,
                 show_title=False,
                 y_limits=_loss_axis_limits("loss_rmse_bounded_median"),
+                centroid_intervals=centroid_intervals if tag == "all" else None,
+                inference_task="regression",
             )
             _plot_pareto_panel_centroids(
                 ax_g,
@@ -897,6 +975,8 @@ def main():
                 flagship_style=flagship_style,
                 show_title=False,
                 y_limits=_loss_axis_limits("loss_f1_median"),
+                centroid_intervals=centroid_intervals if tag == "all" else None,
+                inference_task="classification_gini",
             )
             _plot_pareto_panel_centroids(
                 ax_e,
@@ -911,6 +991,8 @@ def main():
                 flagship_style=flagship_style,
                 show_title=False,
                 y_limits=_loss_axis_limits("loss_f1_median"),
+                centroid_intervals=centroid_intervals if tag == "all" else None,
+                inference_task="classification_entropy",
             )
             for ax, col_title in zip(
                 (ax_r, ax_g, ax_e),

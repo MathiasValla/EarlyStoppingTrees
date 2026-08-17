@@ -1,0 +1,15 @@
+\begin{thebibliography}{1}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{cochran1934quadratic}
+W.~G. Cochran, The distribution of quadratic forms in a normal system, with
+  applications to the analysis of covariance, Mathematical Proceedings of the
+  Cambridge Philosophical Society 30~(2) (1934) 178--191.
+\newblock \href {https://doi.org/10.1017/S0305004100016595}
+  {\path{doi:10.1017/S0305004100016595}}.
+
+\end{thebibliography}

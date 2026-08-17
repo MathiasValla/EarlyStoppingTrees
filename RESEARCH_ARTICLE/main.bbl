@@ -9,6 +9,17 @@
 L.~Breiman, J.~H. Friedman, R.~A. Olshen, C.~J. Stone, Classification and
   Regression Trees, Wadsworth, Belmont, CA, 1984.
 
+\bibitem{quinlan1986induction}
+J.~R. Quinlan, Induction of decision trees, Machine Learning 1 (1986) 81--106.
+\newblock \href {https://doi.org/10.1007/BF00116251}
+  {\path{doi:10.1007/BF00116251}}.
+
+\bibitem{fayyad1992continuous}
+U.~M. Fayyad, K.~B. Irani, On the handling of continuous-valued attributes in
+  decision tree generation, Machine Learning 8 (1992) 87--102.
+\newblock \href {https://doi.org/10.1007/BF00994007}
+  {\path{doi:10.1007/BF00994007}}.
+
 \bibitem{breiman2001rf}
 L.~Breiman, Random forests, Machine Learning 45~(1) (2001) 5--32.
 \newblock \href {https://doi.org/10.1023/A:1010933404324}
@@ -19,6 +30,51 @@ P.~Geurts, D.~Ernst, L.~Wehenkel, Extremely randomized trees, Machine Learning
   63~(1) (2006) 3--42.
 \newblock \href {https://doi.org/10.1007/s10994-006-6226-1}
   {\path{doi:10.1007/s10994-006-6226-1}}.
+
+\bibitem{appel2013quickly}
+R.~Appel, T.~Fuchs, P.~Doll{\'a}r, P.~Perona, Quickly boosting decision
+  trees---pruning underachieving features early, in: Proceedings of the 30th
+  International Conference on Machine Learning, Vol.~28 of Proceedings of
+  Machine Learning Research, 2013, pp. 594--602.
+
+\bibitem{chen2016xgboost}
+T.~Chen, C.~Guestrin, {XGBoost}: A scalable tree boosting system, in:
+  Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
+  Discovery and Data Mining, ACM, 2016, pp. 785--794.
+\newblock \href {https://doi.org/10.1145/2939672.2939785}
+  {\path{doi:10.1145/2939672.2939785}}.
+
+\bibitem{ke2017lightgbm}
+G.~Ke, Q.~Meng, T.~Finley, T.~Wang, W.~Chen, W.~Ma, Q.~Ye, T.-Y. Liu,
+  {LightGBM}: A highly efficient gradient boosting decision tree, in: Advances
+  in Neural Information Processing Systems, Vol.~30, 2017.
+
+\bibitem{domingos2000vfdt}
+P.~Domingos, G.~Hulten, Mining high-speed data streams, in: Proceedings of the
+  Sixth ACM SIGKDD International Conference on Knowledge Discovery and Data
+  Mining, ACM, 2000, pp. 71--80.
+\newblock \href {https://doi.org/10.1145/347090.347107}
+  {\path{doi:10.1145/347090.347107}}.
+
+\bibitem{bressan2024dynamic}
+M.~Bressan, M.~Sozio, Fully-dynamic approximate decision trees with worst-case
+  update time guarantees, in: Proceedings of the 41st International Conference
+  on Machine Learning, Vol. 235 of Proceedings of Machine Learning Research,
+  2024, pp. 4517--4541.
+
+\bibitem{pham2025streams}
+H.~Pham, H.~Ta, H.~T. Vu, Constructing decision trees from data streams, in:
+  2025 IEEE International Symposium on Information Theory, IEEE, 2025, pp.
+  1--6.
+\newblock \href {https://doi.org/10.1109/ISIT63088.2025.11195218}
+  {\path{doi:10.1109/ISIT63088.2025.11195218}}.
+
+\bibitem{tatti2025approximating}
+N.~Tatti, Approximating splits for decision trees quickly in sparse data
+  streams, in: Proceedings of the 2025 SIAM International Conference on Data
+  Mining, SIAM, 2025, pp. 647--655.
+\newblock \href {https://doi.org/10.1137/1.9781611978520.69}
+  {\path{doi:10.1137/1.9781611978520.69}}.
 
 \bibitem{gilbertmosteller1966}
 J.~P. Gilbert, F.~Mosteller, Recognizing the maximum of a sequence, Journal of
@@ -39,14 +95,6 @@ P.~Nuti, J.~Vondr{\'a}k, Secretary problems: The power of a single sample, in:
 \newblock \href {https://doi.org/10.1137/1.9781611977554.ch77}
   {\path{doi:10.1137/1.9781611977554.ch77}}.
 
-\bibitem{romano2022pmlb}
-J.~D. Romano, T.~T. Le, W.~L. Cava, J.~T. Gregg, D.~J. Goldberg, N.~L. Ray,
-  P.~Chakraborty, D.~Himmelstein, W.~Fu, J.~H. Moore, Pmlb v1.0: an open-source
-  dataset collection for benchmarking machine learning methods, Bioinformatics
-  38~(3) (2022) 878--880.
-\newblock \href {https://doi.org/10.1093/bioinformatics/btab665}
-  {\path{doi:10.1093/bioinformatics/btab665}}.
-
 \bibitem{rubinstein2020samples}
 A.~Rubinstein, J.~Z. Wang, S.~M. Weinberg, Optimal single-choice prophet
   inequalities from samples, in: 11th Innovations in Theoretical Computer
@@ -55,17 +103,41 @@ A.~Rubinstein, J.~Z. Wang, S.~M. Weinberg, Optimal single-choice prophet
 \newblock \href {https://doi.org/10.4230/LIPIcs.ITCS.2020.60}
   {\path{doi:10.4230/LIPIcs.ITCS.2020.60}}.
 
-\bibitem{samuelcahn1984}
-E.~Samuel-Cahn, Comparison of threshold stop rules and maximum for independent
-  nonnegative random variables, The Annals of Probability 12~(4) (1984)
-  1213--1216.
-\newblock \href {https://doi.org/10.1214/aop/1176993150}
-  {\path{doi:10.1214/aop/1176993150}}.
+\bibitem{bertsimas2017optimal}
+D.~Bertsimas, J.~Dunn, Optimal classification trees, Machine Learning 106
+  (2017) 1039--1082.
+\newblock \href {https://doi.org/10.1007/s10994-017-5633-9}
+  {\path{doi:10.1007/s10994-017-5633-9}}.
 
-\bibitem{laurentmassart2000}
-B.~Laurent, P.~Massart, Adaptive estimation of a quadratic functional by model
-  selection, The Annals of Statistics 28~(5) (2000) 1302--1338.
-\newblock \href {https://doi.org/10.1214/aos/1015957395}
-  {\path{doi:10.1214/aos/1015957395}}.
+\bibitem{babbar2025split}
+V.~Babbar, H.~McTavish, C.~Rudin, M.~Seltzer, Near-optimal decision trees in a
+  {SPLIT} second, in: Proceedings of the 42nd International Conference on
+  Machine Learning, Vol. 267 of Proceedings of Machine Learning Research, 2025,
+  pp. 2114--2175.
+
+\bibitem{romano2022pmlb}
+J.~D. Romano, T.~T. Le, W.~L. Cava, J.~T. Gregg, D.~J. Goldberg,
+  P.~Chakraborty, N.~L. Ray, D.~Himmelstein, W.~Fu, J.~H. Moore, Pmlb v1.0: an
+  open-source dataset collection for benchmarking machine learning methods,
+  Bioinformatics 38~(3) (2022) 878--880.
+\newblock \href {https://doi.org/10.1093/bioinformatics/btab727}
+  {\path{doi:10.1093/bioinformatics/btab727}}.
+
+\bibitem{pedregosa2011scikit}
+F.~Pedregosa, G.~Varoquaux, A.~Gramfort, V.~Michel, B.~Thirion, O.~Grisel,
+  M.~Blondel, P.~Prettenhofer, R.~Weiss, V.~Dubourg, J.~VanderPlas, A.~Passos,
+  D.~Cournapeau, M.~Brucher, M.~Perrot, {\'E}.~Duchesnay, Scikit-learn: Machine
+  learning in python, Journal of Machine Learning Research 12 (2011)
+  2825--2830.
+
+\bibitem{demsar2006comparisons}
+J.~Dem{\v{s}}ar, Statistical comparisons of classifiers over multiple data
+  sets, Journal of Machine Learning Research 7 (2006) 1--30.
+
+\bibitem{efron1979bootstrap}
+B.~Efron, Bootstrap methods: Another look at the jackknife, The Annals of
+  Statistics 7~(1) (1979) 1--26.
+\newblock \href {https://doi.org/10.1214/aos/1176344552}
+  {\path{doi:10.1214/aos/1176344552}}.
 
 \end{thebibliography}

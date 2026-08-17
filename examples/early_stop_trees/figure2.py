@@ -235,8 +235,9 @@ def main():
             xlabel="% time saved vs best",
             method_order=method_order,
             method_colors=method_colors,
-            show_ridge_labels=True,
+            show_ridge_labels=False,
         )
+        axes[0].set_ylabel("Datasets ordered by n x p")
         _ridgeline_panel(
             axes[1],
             run_df,
@@ -272,7 +273,7 @@ def main():
             }
             if tag in supp_names:
                 supp_path = SUPP_DIR / supp_names[tag]
-                fig.savefig(supp_path, bbox_inches="tight", dpi=200)
+                fig.savefig(supp_path, bbox_inches="tight", dpi=600)
                 print(f"Saved {supp_path.name}")
         plt.close(fig)
         print(f"Saved figure2_ridgelines_{tag}.pdf and figure2_ridgelines_{tag}.png")

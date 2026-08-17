@@ -65,7 +65,6 @@ def main() -> int:
         "supp_figure_03_ridgelines_regression.png",
         "supp_figure_04_ridgelines_classification_gini.png",
         "supp_figure_05_ridgelines_classification_entropy.png",
-        "supp_figure_06_success_joint_large_small.png",
         "supp_figure_07_success_loss_only_large_small.png",
         "supp_figure_08_predicted_regime_maps.png",
         "supp_figure_09_within_whiskers_loss_speedup.png",

@@ -20,7 +20,6 @@ from matplotlib.gridspec import GridSpec
 from benchmark_results_utils import (
     add_method_key,
     get_variant_method_order_and_colors,
-    keep_secretary_par_representative,
     load_all,
     per_dataset_median_iqr,
     plot_grouped_variant_legend,
@@ -46,25 +45,21 @@ def _prepare_run_df(df: pd.DataFrame, loss_col: str) -> pd.DataFrame:
     if df is None or df.empty:
         return None
     df = add_method_key(df)
-    required = [loss_col, "speedup", "effort_saved_total", "effort_saved_per_split"]
+    required = [loss_col, "speedup", "effort_saved_total"]
     for col in required:
         if col not in df.columns:
             return None
     df["loss_pct"] = 100.0 * pd.to_numeric(df[loss_col], errors="coerce")
     df["time_saved_pct"] = _time_saved_pct(df["speedup"])
     df["effort_saved_total_pct"] = 100.0 * pd.to_numeric(df["effort_saved_total"], errors="coerce")
-    df["effort_saved_per_split_pct"] = 100.0 * pd.to_numeric(
-        df["effort_saved_per_split"], errors="coerce"
-    )
     return df
 
 
 def _load_all_runs(indir: Path):
-    data = load_all(indir, exclude_secretary_par=False, by_variant=True)
+    data = load_all(indir, exclude_secretary_par=True, by_variant=True)
     out = {}
     for task_key, _, loss_col in TASK_CONFIGS:
         run_df = data.get(f"{task_key}_run")
-        run_df = keep_secretary_par_representative(run_df)
         out[task_key] = _prepare_run_df(run_df, loss_col)
     return out
 
@@ -176,7 +171,7 @@ def _build_method_palette(task_summaries):
     summaries = [df for df in task_summaries if df is not None and not df.empty]
     if not summaries:
         return [], {}, []
-    return get_variant_method_order_and_colors(*summaries, include_secretary_par=True)
+    return get_variant_method_order_and_colors(*summaries, include_secretary_par=False)
 
 
 def plot_effort_loss(indir: Path):
@@ -216,7 +211,7 @@ def plot_effort_loss(indir: Path):
     )
 
     out = SUPP_DIR / "supp_figure_14_effort_loss.png"
-    fig.savefig(out, dpi=300, bbox_inches="tight")
+    fig.savefig(out, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved {out}")
 
@@ -227,19 +222,14 @@ def plot_time_effort(indir: Path):
         _dataset_summary(runs[task_key], ["time_saved_pct", "effort_saved_total_pct"])
         for task_key, _, _ in TASK_CONFIGS
     ]
-    per_split_summaries = [
-        _dataset_summary(runs[task_key], ["time_saved_pct", "effort_saved_per_split_pct"])
-        for task_key, _, _ in TASK_CONFIGS
-    ]
-    method_order, method_colors, method_labels = _build_method_palette(total_summaries + per_split_summaries)
+    method_order, method_colors, method_labels = _build_method_palette(total_summaries)
 
-    fig = plt.figure(figsize=(14, 8.2), layout="constrained")
-    gs = GridSpec(3, 3, figure=fig, height_ratios=[1, 1, 0.56], hspace=0.10, wspace=0.08)
-    axes_top = [fig.add_subplot(gs[0, j]) for j in range(3)]
-    axes_bottom = [fig.add_subplot(gs[1, j]) for j in range(3)]
-    ax_leg = fig.add_subplot(gs[2, :])
+    fig = plt.figure(figsize=(14, 5.8), layout="constrained")
+    gs = GridSpec(2, 3, figure=fig, height_ratios=[1, 0.56], hspace=0.08, wspace=0.08)
+    axes = [fig.add_subplot(gs[0, j]) for j in range(3)]
+    ax_leg = fig.add_subplot(gs[1, :])
 
-    for ax, (_, title, _), summary in zip(axes_top, TASK_CONFIGS, total_summaries):
+    for ax, (_, title, _), summary in zip(axes, TASK_CONFIGS, total_summaries):
         _scatter_panel(
             ax,
             summary,
@@ -249,20 +239,8 @@ def plot_time_effort(indir: Path):
             method_order,
             method_colors,
         )
-    for ax, (_, title, _), summary in zip(axes_bottom, TASK_CONFIGS, per_split_summaries):
-        _scatter_panel(
-            ax,
-            summary,
-            "time_saved_pct",
-            "effort_saved_per_split_pct",
-            title,
-            method_order,
-            method_colors,
-        )
-
-    axes_top[0].set_ylabel("Median total effort saved (%)")
-    axes_bottom[0].set_ylabel("Median per-split effort saved (%)")
-    for ax in axes_top + axes_bottom:
+    axes[0].set_ylabel("Median recorded effort saved (%)")
+    for ax in axes:
         ax.set_xlabel("Median wall-clock time saved (%)")
 
     plot_grouped_variant_legend(
@@ -275,7 +253,7 @@ def plot_time_effort(indir: Path):
     )
 
     out = SUPP_DIR / "supp_figure_15_time_effort_calibration.png"
-    fig.savefig(out, dpi=300, bbox_inches="tight")
+    fig.savefig(out, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved {out}")
 

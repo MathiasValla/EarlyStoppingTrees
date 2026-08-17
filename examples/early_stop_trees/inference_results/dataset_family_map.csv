@@ -1,0 +1,358 @@
+task,dataset,family_id,family_size,grouping_rule
+regression,1027_ESL,1027_ESL,1,singleton PMLB entry
+regression,1028_SWD,1028_SWD,1,singleton PMLB entry
+regression,1029_LEV,1029_LEV,1,singleton PMLB entry
+regression,1030_ERA,1030_ERA,1,singleton PMLB entry
+regression,1089_USCrime,1089_USCrime,1,singleton PMLB entry
+regression,1096_FacultySalaries,1096_FacultySalaries,1,singleton PMLB entry
+regression,1193_BNG_lowbwt,1193_BNG_lowbwt,1,singleton PMLB entry
+regression,1199_BNG_echoMonths,1199_BNG_echoMonths,1,singleton PMLB entry
+regression,197_cpu_act,cpu_act_alias,2,exact duplicate PMLB aliases grouped together
+regression,201_pol,201_pol,1,singleton PMLB entry
+regression,210_cloud,210_cloud,1,singleton PMLB entry
+regression,215_2dplanes,215_2dplanes,1,singleton PMLB entry
+regression,218_house_8L,218_house_8L,1,singleton PMLB entry
+regression,225_puma8NH,225_puma8NH,1,singleton PMLB entry
+regression,227_cpu_small,cpu_small_alias,2,exact duplicate PMLB aliases grouped together
+regression,228_elusage,228_elusage,1,singleton PMLB entry
+regression,229_pwLinear,229_pwLinear,1,singleton PMLB entry
+regression,230_machine_cpu,230_machine_cpu,1,singleton PMLB entry
+regression,294_satellite_image,294_satellite_image,1,singleton PMLB entry
+regression,344_mv,344_mv,1,singleton PMLB entry
+regression,4544_GeographicalOriginalofMusic,4544_GeographicalOriginalofMusic,1,singleton PMLB entry
+regression,485_analcatdata_vehicle,485_analcatdata_vehicle,1,singleton PMLB entry
+regression,503_wind,503_wind,1,singleton PMLB entry
+regression,505_tecator,505_tecator,1,singleton PMLB entry
+regression,519_vinnie,519_vinnie,1,singleton PMLB entry
+regression,522_pm10,522_pm10,1,singleton PMLB entry
+regression,523_analcatdata_neavote,523_analcatdata_neavote,1,singleton PMLB entry
+regression,527_analcatdata_election2000,527_analcatdata_election2000,1,singleton PMLB entry
+regression,529_pollen,529_pollen,1,singleton PMLB entry
+regression,537_houses,537_houses,1,singleton PMLB entry
+regression,542_pollution,542_pollution,1,singleton PMLB entry
+regression,547_no2,547_no2,1,singleton PMLB entry
+regression,556_analcatdata_apnea2,556_analcatdata_apnea2,1,singleton PMLB entry
+regression,557_analcatdata_apnea1,557_analcatdata_apnea1,1,singleton PMLB entry
+regression,560_bodyfat,560_bodyfat,1,singleton PMLB entry
+regression,561_cpu,561_cpu,1,singleton PMLB entry
+regression,562_cpu_small,cpu_small_alias,2,exact duplicate PMLB aliases grouped together
+regression,564_fried,564_fried,1,singleton PMLB entry
+regression,573_cpu_act,cpu_act_alias,2,exact duplicate PMLB aliases grouped together
+regression,574_house_16H,574_house_16H,1,singleton PMLB entry
+regression,579_fri_c0_250_5,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,581_fri_c3_500_25,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,582_fri_c1_500_25,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,583_fri_c1_1000_50,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,584_fri_c4_500_25,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,586_fri_c3_1000_25,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,588_fri_c4_1000_100,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,589_fri_c2_1000_25,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,590_fri_c0_1000_50,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,591_fri_c1_100_10,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,592_fri_c4_1000_25,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,593_fri_c1_1000_10,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,594_fri_c2_100_5,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,595_fri_c0_1000_10,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,596_fri_c2_250_5,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,597_fri_c2_500_5,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,598_fri_c0_1000_25,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,599_fri_c2_1000_5,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,601_fri_c1_250_5,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,602_fri_c3_250_10,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,603_fri_c0_250_50,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,604_fri_c4_500_10,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,605_fri_c2_250_25,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,606_fri_c2_1000_10,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,607_fri_c4_1000_50,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,608_fri_c3_1000_10,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,609_fri_c0_1000_5,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,611_fri_c3_100_5,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,612_fri_c1_1000_5,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,613_fri_c3_250_5,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,615_fri_c4_250_10,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,616_fri_c4_500_50,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,617_fri_c3_500_5,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,618_fri_c3_1000_50,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,620_fri_c1_1000_25,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,621_fri_c0_100_10,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,622_fri_c2_1000_50,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,623_fri_c4_1000_10,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,624_fri_c0_100_5,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,626_fri_c2_500_50,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,627_fri_c2_500_10,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,628_fri_c3_1000_5,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,631_fri_c1_500_5,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,633_fri_c0_500_25,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,634_fri_c2_100_10,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,635_fri_c0_250_10,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,637_fri_c1_500_50,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,641_fri_c1_500_10,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,643_fri_c2_500_25,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,644_fri_c4_250_25,friedman_generator_c4,9,related Friedman synthetic entries grouped by generator c0-c4
+regression,645_fri_c3_500_50,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,646_fri_c3_500_10,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,647_fri_c1_250_10,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,648_fri_c1_250_50,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,649_fri_c0_500_5,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,650_fri_c0_500_50,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,651_fri_c0_100_25,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,653_fri_c0_250_25,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,654_fri_c0_500_10,friedman_generator_c0,15,related Friedman synthetic entries grouped by generator c0-c4
+regression,656_fri_c1_100_5,friedman_generator_c1,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,657_fri_c2_250_10,friedman_generator_c2,13,related Friedman synthetic entries grouped by generator c0-c4
+regression,658_fri_c3_250_25,friedman_generator_c3,12,related Friedman synthetic entries grouped by generator c0-c4
+regression,659_sleuth_ex1714,659_sleuth_ex1714,1,singleton PMLB entry
+regression,663_rabe_266,663_rabe_266,1,singleton PMLB entry
+regression,665_sleuth_case2002,665_sleuth_case2002,1,singleton PMLB entry
+regression,666_rmftsa_ladata,666_rmftsa_ladata,1,singleton PMLB entry
+regression,678_visualizing_environmental,678_visualizing_environmental,1,singleton PMLB entry
+regression,690_visualizing_galaxy,690_visualizing_galaxy,1,singleton PMLB entry
+regression,695_chatfield_4,695_chatfield_4,1,singleton PMLB entry
+regression,706_sleuth_case1202,706_sleuth_case1202,1,singleton PMLB entry
+regression,712_chscase_geyser1,712_chscase_geyser1,1,singleton PMLB entry
+regression,banana,banana,1,singleton PMLB entry
+regression,titanic,titanic,1,singleton PMLB entry
+classification_gini,GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1,GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1,1,singleton PMLB entry
+classification_gini,GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1,GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1,1,singleton PMLB entry
+classification_gini,GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1,GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1,1,singleton PMLB entry
+classification_gini,GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_50_EDM_2_001,GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_50_EDM_2_001,1,singleton PMLB entry
+classification_gini,GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_75_EDM_2_001,GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_75_EDM_2_001,1,singleton PMLB entry
+classification_gini,Hill_Valley_with_noise,Hill_Valley_with_noise,1,singleton PMLB entry
+classification_gini,Hill_Valley_without_noise,Hill_Valley_without_noise,1,singleton PMLB entry
+classification_gini,adult,adult,1,singleton PMLB entry
+classification_gini,agaricus_lepiota,agaricus_lepiota,1,singleton PMLB entry
+classification_gini,allbp,allbp,1,singleton PMLB entry
+classification_gini,allhyper,allhyper,1,singleton PMLB entry
+classification_gini,allhypo,allhypo,1,singleton PMLB entry
+classification_gini,allrep,allrep,1,singleton PMLB entry
+classification_gini,analcatdata_aids,analcatdata_aids,1,singleton PMLB entry
+classification_gini,analcatdata_asbestos,analcatdata_asbestos,1,singleton PMLB entry
+classification_gini,analcatdata_authorship,analcatdata_authorship,1,singleton PMLB entry
+classification_gini,analcatdata_bankruptcy,analcatdata_bankruptcy,1,singleton PMLB entry
+classification_gini,analcatdata_boxing1,analcatdata_boxing1,1,singleton PMLB entry
+classification_gini,analcatdata_boxing2,analcatdata_boxing2,1,singleton PMLB entry
+classification_gini,analcatdata_creditscore,analcatdata_creditscore,1,singleton PMLB entry
+classification_gini,analcatdata_cyyoung8092,analcatdata_cyyoung8092,1,singleton PMLB entry
+classification_gini,analcatdata_cyyoung9302,analcatdata_cyyoung9302,1,singleton PMLB entry
+classification_gini,analcatdata_dmft,analcatdata_dmft,1,singleton PMLB entry
+classification_gini,analcatdata_fraud,analcatdata_fraud,1,singleton PMLB entry
+classification_gini,analcatdata_germangss,analcatdata_germangss,1,singleton PMLB entry
+classification_gini,analcatdata_happiness,analcatdata_happiness,1,singleton PMLB entry
+classification_gini,analcatdata_japansolvent,analcatdata_japansolvent,1,singleton PMLB entry
+classification_gini,analcatdata_lawsuit,analcatdata_lawsuit,1,singleton PMLB entry
+classification_gini,ann_thyroid,ann_thyroid,1,singleton PMLB entry
+classification_gini,appendicitis,appendicitis,1,singleton PMLB entry
+classification_gini,backache,backache,1,singleton PMLB entry
+classification_gini,balance_scale,balance_scale,1,singleton PMLB entry
+classification_gini,biomed,biomed,1,singleton PMLB entry
+classification_gini,breast_cancer,breast_cancer,1,singleton PMLB entry
+classification_gini,bupa,bupa,1,singleton PMLB entry
+classification_gini,calendarDOW,calendarDOW,1,singleton PMLB entry
+classification_gini,car_evaluation,car_evaluation,1,singleton PMLB entry
+classification_gini,cars,cars,1,singleton PMLB entry
+classification_gini,chess,chess,1,singleton PMLB entry
+classification_gini,churn,churn,1,singleton PMLB entry
+classification_gini,clean1,clean1,1,singleton PMLB entry
+classification_gini,cloud,cloud,1,singleton PMLB entry
+classification_gini,coil2000,coil2000,1,singleton PMLB entry
+classification_gini,collins,collins,1,singleton PMLB entry
+classification_gini,confidence,confidence,1,singleton PMLB entry
+classification_gini,corral,corral,1,singleton PMLB entry
+classification_gini,dermatology,dermatology,1,singleton PMLB entry
+classification_gini,dis,dis,1,singleton PMLB entry
+classification_gini,dna,dna,1,singleton PMLB entry
+classification_gini,ecoli,ecoli,1,singleton PMLB entry
+classification_gini,flags,flags,1,singleton PMLB entry
+classification_gini,glass2,glass2,1,singleton PMLB entry
+classification_gini,haberman,haberman,1,singleton PMLB entry
+classification_gini,hayes_roth,hayes_roth,1,singleton PMLB entry
+classification_gini,hepatitis,hepatitis,1,singleton PMLB entry
+classification_gini,hypothyroid,hypothyroid,1,singleton PMLB entry
+classification_gini,ionosphere,ionosphere,1,singleton PMLB entry
+classification_gini,iris,iris,1,singleton PMLB entry
+classification_gini,irish,irish,1,singleton PMLB entry
+classification_gini,kr_vs_kp,kr_vs_kp,1,singleton PMLB entry
+classification_gini,krkopt,krkopt,1,singleton PMLB entry
+classification_gini,labor,labor,1,singleton PMLB entry
+classification_gini,led24,led24,1,singleton PMLB entry
+classification_gini,led7,led7,1,singleton PMLB entry
+classification_gini,letter,letter,1,singleton PMLB entry
+classification_gini,lupus,lupus,1,singleton PMLB entry
+classification_gini,lymphography,lymphography,1,singleton PMLB entry
+classification_gini,magic,magic,1,singleton PMLB entry
+classification_gini,mfeat_factors,mfeat_factors,1,singleton PMLB entry
+classification_gini,mfeat_fourier,mfeat_fourier,1,singleton PMLB entry
+classification_gini,mfeat_karhunen,mfeat_karhunen,1,singleton PMLB entry
+classification_gini,mfeat_morphological,mfeat_morphological,1,singleton PMLB entry
+classification_gini,mfeat_pixel,mfeat_pixel,1,singleton PMLB entry
+classification_gini,mfeat_zernike,mfeat_zernike,1,singleton PMLB entry
+classification_gini,mofn_3_7_10,mofn_3_7_10,1,singleton PMLB entry
+classification_gini,molecular_biology_promoters,molecular_biology_promoters,1,singleton PMLB entry
+classification_gini,monk1,monk1,1,singleton PMLB entry
+classification_gini,monk2,monk2,1,singleton PMLB entry
+classification_gini,monk3,monk3,1,singleton PMLB entry
+classification_gini,movement_libras,movement_libras,1,singleton PMLB entry
+classification_gini,mushroom,mushroom,1,singleton PMLB entry
+classification_gini,mux6,mux6,1,singleton PMLB entry
+classification_gini,new_thyroid,new_thyroid,1,singleton PMLB entry
+classification_gini,nursery,nursery,1,singleton PMLB entry
+classification_gini,optdigits,optdigits,1,singleton PMLB entry
+classification_gini,page_blocks,page_blocks,1,singleton PMLB entry
+classification_gini,parity5,parity5,1,singleton PMLB entry
+classification_gini,parity5+5,parity5+5,1,singleton PMLB entry
+classification_gini,pendigits,pendigits,1,singleton PMLB entry
+classification_gini,penguins,penguins,1,singleton PMLB entry
+classification_gini,phoneme,phoneme,1,singleton PMLB entry
+classification_gini,postoperative_patient_data,postoperative_patient_data,1,singleton PMLB entry
+classification_gini,prnn_crabs,prnn_crabs,1,singleton PMLB entry
+classification_gini,prnn_synth,prnn_synth,1,singleton PMLB entry
+classification_gini,profb,profb,1,singleton PMLB entry
+classification_gini,ring,ring,1,singleton PMLB entry
+classification_gini,saheart,saheart,1,singleton PMLB entry
+classification_gini,satimage,satimage,1,singleton PMLB entry
+classification_gini,schizo,schizo,1,singleton PMLB entry
+classification_gini,segmentation,segmentation,1,singleton PMLB entry
+classification_gini,shuttle,shuttle,1,singleton PMLB entry
+classification_gini,sonar,sonar,1,singleton PMLB entry
+classification_gini,soybean,soybean,1,singleton PMLB entry
+classification_gini,spambase,spambase,1,singleton PMLB entry
+classification_gini,spect,spect,1,singleton PMLB entry
+classification_gini,spectf,spectf,1,singleton PMLB entry
+classification_gini,splice,splice,1,singleton PMLB entry
+classification_gini,tae,tae,1,singleton PMLB entry
+classification_gini,texture,texture,1,singleton PMLB entry
+classification_gini,threeOf9,threeOf9,1,singleton PMLB entry
+classification_gini,tic_tac_toe,tic_tac_toe,1,singleton PMLB entry
+classification_gini,tokyo1,tokyo1,1,singleton PMLB entry
+classification_gini,twonorm,twonorm,1,singleton PMLB entry
+classification_gini,vehicle,vehicle,1,singleton PMLB entry
+classification_gini,vowel,vowel,1,singleton PMLB entry
+classification_gini,waveform_21,waveform_21,1,singleton PMLB entry
+classification_gini,waveform_40,waveform_40,1,singleton PMLB entry
+classification_gini,wine_quality_red,wine_quality_red,1,singleton PMLB entry
+classification_gini,wine_quality_white,wine_quality_white,1,singleton PMLB entry
+classification_gini,wine_recognition,wine_recognition,1,singleton PMLB entry
+classification_gini,xd6,xd6,1,singleton PMLB entry
+classification_gini,yeast,yeast,1,singleton PMLB entry
+classification_entropy,GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1,GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1,1,singleton PMLB entry
+classification_entropy,GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1,GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1,1,singleton PMLB entry
+classification_entropy,GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1,GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1,1,singleton PMLB entry
+classification_entropy,GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_50_EDM_2_001,GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_50_EDM_2_001,1,singleton PMLB entry
+classification_entropy,GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_75_EDM_2_001,GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_75_EDM_2_001,1,singleton PMLB entry
+classification_entropy,Hill_Valley_with_noise,Hill_Valley_with_noise,1,singleton PMLB entry
+classification_entropy,Hill_Valley_without_noise,Hill_Valley_without_noise,1,singleton PMLB entry
+classification_entropy,adult,adult,1,singleton PMLB entry
+classification_entropy,agaricus_lepiota,agaricus_lepiota,1,singleton PMLB entry
+classification_entropy,allbp,allbp,1,singleton PMLB entry
+classification_entropy,allhyper,allhyper,1,singleton PMLB entry
+classification_entropy,allhypo,allhypo,1,singleton PMLB entry
+classification_entropy,allrep,allrep,1,singleton PMLB entry
+classification_entropy,analcatdata_aids,analcatdata_aids,1,singleton PMLB entry
+classification_entropy,analcatdata_asbestos,analcatdata_asbestos,1,singleton PMLB entry
+classification_entropy,analcatdata_authorship,analcatdata_authorship,1,singleton PMLB entry
+classification_entropy,analcatdata_bankruptcy,analcatdata_bankruptcy,1,singleton PMLB entry
+classification_entropy,analcatdata_boxing1,analcatdata_boxing1,1,singleton PMLB entry
+classification_entropy,analcatdata_boxing2,analcatdata_boxing2,1,singleton PMLB entry
+classification_entropy,analcatdata_creditscore,analcatdata_creditscore,1,singleton PMLB entry
+classification_entropy,analcatdata_cyyoung8092,analcatdata_cyyoung8092,1,singleton PMLB entry
+classification_entropy,analcatdata_cyyoung9302,analcatdata_cyyoung9302,1,singleton PMLB entry
+classification_entropy,analcatdata_dmft,analcatdata_dmft,1,singleton PMLB entry
+classification_entropy,analcatdata_fraud,analcatdata_fraud,1,singleton PMLB entry
+classification_entropy,analcatdata_germangss,analcatdata_germangss,1,singleton PMLB entry
+classification_entropy,analcatdata_happiness,analcatdata_happiness,1,singleton PMLB entry
+classification_entropy,analcatdata_japansolvent,analcatdata_japansolvent,1,singleton PMLB entry
+classification_entropy,analcatdata_lawsuit,analcatdata_lawsuit,1,singleton PMLB entry
+classification_entropy,ann_thyroid,ann_thyroid,1,singleton PMLB entry
+classification_entropy,appendicitis,appendicitis,1,singleton PMLB entry
+classification_entropy,backache,backache,1,singleton PMLB entry
+classification_entropy,balance_scale,balance_scale,1,singleton PMLB entry
+classification_entropy,biomed,biomed,1,singleton PMLB entry
+classification_entropy,breast_cancer,breast_cancer,1,singleton PMLB entry
+classification_entropy,bupa,bupa,1,singleton PMLB entry
+classification_entropy,calendarDOW,calendarDOW,1,singleton PMLB entry
+classification_entropy,car_evaluation,car_evaluation,1,singleton PMLB entry
+classification_entropy,cars,cars,1,singleton PMLB entry
+classification_entropy,chess,chess,1,singleton PMLB entry
+classification_entropy,churn,churn,1,singleton PMLB entry
+classification_entropy,clean1,clean1,1,singleton PMLB entry
+classification_entropy,cloud,cloud,1,singleton PMLB entry
+classification_entropy,coil2000,coil2000,1,singleton PMLB entry
+classification_entropy,collins,collins,1,singleton PMLB entry
+classification_entropy,confidence,confidence,1,singleton PMLB entry
+classification_entropy,corral,corral,1,singleton PMLB entry
+classification_entropy,dermatology,dermatology,1,singleton PMLB entry
+classification_entropy,dis,dis,1,singleton PMLB entry
+classification_entropy,dna,dna,1,singleton PMLB entry
+classification_entropy,ecoli,ecoli,1,singleton PMLB entry
+classification_entropy,flags,flags,1,singleton PMLB entry
+classification_entropy,glass2,glass2,1,singleton PMLB entry
+classification_entropy,haberman,haberman,1,singleton PMLB entry
+classification_entropy,hayes_roth,hayes_roth,1,singleton PMLB entry
+classification_entropy,hepatitis,hepatitis,1,singleton PMLB entry
+classification_entropy,hypothyroid,hypothyroid,1,singleton PMLB entry
+classification_entropy,ionosphere,ionosphere,1,singleton PMLB entry
+classification_entropy,iris,iris,1,singleton PMLB entry
+classification_entropy,irish,irish,1,singleton PMLB entry
+classification_entropy,kr_vs_kp,kr_vs_kp,1,singleton PMLB entry
+classification_entropy,krkopt,krkopt,1,singleton PMLB entry
+classification_entropy,labor,labor,1,singleton PMLB entry
+classification_entropy,led24,led24,1,singleton PMLB entry
+classification_entropy,led7,led7,1,singleton PMLB entry
+classification_entropy,letter,letter,1,singleton PMLB entry
+classification_entropy,lupus,lupus,1,singleton PMLB entry
+classification_entropy,lymphography,lymphography,1,singleton PMLB entry
+classification_entropy,magic,magic,1,singleton PMLB entry
+classification_entropy,mfeat_factors,mfeat_factors,1,singleton PMLB entry
+classification_entropy,mfeat_fourier,mfeat_fourier,1,singleton PMLB entry
+classification_entropy,mfeat_karhunen,mfeat_karhunen,1,singleton PMLB entry
+classification_entropy,mfeat_morphological,mfeat_morphological,1,singleton PMLB entry
+classification_entropy,mfeat_pixel,mfeat_pixel,1,singleton PMLB entry
+classification_entropy,mfeat_zernike,mfeat_zernike,1,singleton PMLB entry
+classification_entropy,mofn_3_7_10,mofn_3_7_10,1,singleton PMLB entry
+classification_entropy,molecular_biology_promoters,molecular_biology_promoters,1,singleton PMLB entry
+classification_entropy,monk1,monk1,1,singleton PMLB entry
+classification_entropy,monk2,monk2,1,singleton PMLB entry
+classification_entropy,monk3,monk3,1,singleton PMLB entry
+classification_entropy,movement_libras,movement_libras,1,singleton PMLB entry
+classification_entropy,mushroom,mushroom,1,singleton PMLB entry
+classification_entropy,mux6,mux6,1,singleton PMLB entry
+classification_entropy,new_thyroid,new_thyroid,1,singleton PMLB entry
+classification_entropy,nursery,nursery,1,singleton PMLB entry
+classification_entropy,optdigits,optdigits,1,singleton PMLB entry
+classification_entropy,page_blocks,page_blocks,1,singleton PMLB entry
+classification_entropy,parity5,parity5,1,singleton PMLB entry
+classification_entropy,parity5+5,parity5+5,1,singleton PMLB entry
+classification_entropy,pendigits,pendigits,1,singleton PMLB entry
+classification_entropy,penguins,penguins,1,singleton PMLB entry
+classification_entropy,phoneme,phoneme,1,singleton PMLB entry
+classification_entropy,postoperative_patient_data,postoperative_patient_data,1,singleton PMLB entry
+classification_entropy,prnn_crabs,prnn_crabs,1,singleton PMLB entry
+classification_entropy,prnn_synth,prnn_synth,1,singleton PMLB entry
+classification_entropy,profb,profb,1,singleton PMLB entry
+classification_entropy,ring,ring,1,singleton PMLB entry
+classification_entropy,saheart,saheart,1,singleton PMLB entry
+classification_entropy,satimage,satimage,1,singleton PMLB entry
+classification_entropy,schizo,schizo,1,singleton PMLB entry
+classification_entropy,segmentation,segmentation,1,singleton PMLB entry
+classification_entropy,shuttle,shuttle,1,singleton PMLB entry
+classification_entropy,sonar,sonar,1,singleton PMLB entry
+classification_entropy,soybean,soybean,1,singleton PMLB entry
+classification_entropy,spambase,spambase,1,singleton PMLB entry
+classification_entropy,spect,spect,1,singleton PMLB entry
+classification_entropy,spectf,spectf,1,singleton PMLB entry
+classification_entropy,splice,splice,1,singleton PMLB entry
+classification_entropy,tae,tae,1,singleton PMLB entry
+classification_entropy,texture,texture,1,singleton PMLB entry
+classification_entropy,threeOf9,threeOf9,1,singleton PMLB entry
+classification_entropy,tic_tac_toe,tic_tac_toe,1,singleton PMLB entry
+classification_entropy,tokyo1,tokyo1,1,singleton PMLB entry
+classification_entropy,twonorm,twonorm,1,singleton PMLB entry
+classification_entropy,vehicle,vehicle,1,singleton PMLB entry
+classification_entropy,vowel,vowel,1,singleton PMLB entry
+classification_entropy,waveform_21,waveform_21,1,singleton PMLB entry
+classification_entropy,waveform_40,waveform_40,1,singleton PMLB entry
+classification_entropy,wine_quality_red,wine_quality_red,1,singleton PMLB entry
+classification_entropy,wine_quality_white,wine_quality_white,1,singleton PMLB entry
+classification_entropy,wine_recognition,wine_recognition,1,singleton PMLB entry
+classification_entropy,xd6,xd6,1,singleton PMLB entry
+classification_entropy,yeast,yeast,1,singleton PMLB entry

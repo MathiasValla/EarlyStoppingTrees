@@ -1,25 +1,12 @@
 #!/usr/bin/env python
-"""
-Table 1. Global summary by method.
-
-For each method and each task (Regression, Gini, Entropy), report:
-- centroid time saved across datasets
-- median total effort saved across datasets (% gain evaluations saved versus best)
-- median predictive loss across datasets (%)
-- 90th percentile predictive loss (%)
-- proportion of datasets for which loss stays below a fixed tolerance
-- proportion of datasets for which speedup exceeds a fixed threshold.
-
-Output: CSV and optionally LaTeX in tables/ (table1_*.csv).
-"""
+"""Global benchmark summaries with hierarchical confidence intervals."""
+import argparse
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from benchmark_results_utils import (
-    SPAR_REPRESENTATIVE_KEY,
-    keep_secretary_par_representative,
     load_all,
     method_display_label,
 )
@@ -28,12 +15,6 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_DIR = SCRIPT_DIR / "benchmark_results"
 OUT_DIR = SCRIPT_DIR / "tables"
 ARTICLE_TABLE_DIR = SCRIPT_DIR.parents[1] / "RESEARCH_ARTICLE" / "TABLES"
-
-# Fixed tolerance and threshold for the proportion columns
-LOSS_TOLERANCE = 0.05   # 5% loss (loss in [0,1] so 0.05)
-SPEEDUP_THRESHOLD_PCT = 20  # P(speedup ≥ 20%) -> speedup >= 1.20
-SPEEDUP_THRESHOLD = 1.0 + SPEEDUP_THRESHOLD_PCT / 100.0
-
 
 MAIN_TABLE_ROWS = [
     ("Regression", "best", ""),
@@ -50,7 +31,6 @@ MAIN_TABLE_ROWS = [
     ("Classification (Gini)", "secretary", "1overe"),
     ("Classification (Gini)", "double_secretary", "1overe"),
     ("Classification (Gini)", "secretary_all", "1overe"),
-    ("Classification (Gini)", "secretary_par", SPAR_REPRESENTATIVE_KEY.split("|", 1)[1]),
     ("Classification (Gini)", "block_rank", ""),
     ("Classification (Gini)", "prophet_1sample", ""),
     ("Classification (Gini)", "extra_tree", "max_features=1"),
@@ -61,7 +41,6 @@ MAIN_TABLE_ROWS = [
     ("Classification (Entropy)", "secretary", "1overe"),
     ("Classification (Entropy)", "double_secretary", "1overe"),
     ("Classification (Entropy)", "secretary_all", "1overe"),
-    ("Classification (Entropy)", "secretary_par", SPAR_REPRESENTATIVE_KEY.split("|", 1)[1]),
     ("Classification (Entropy)", "block_rank", ""),
     ("Classification (Entropy)", "prophet_1sample", ""),
     ("Classification (Entropy)", "extra_tree", "max_features=1"),
@@ -71,8 +50,36 @@ MAIN_TABLE_ROWS = [
 ]
 
 
-def _global_summary_one_task(summary: pd.DataFrame, loss_col: str) -> pd.DataFrame:
-    """Per (splitter, variant): centroid time saved, effort saved, loss (%), P90 loss (%), P(loss ≤ τ), P(speedup ≥ threshold)."""
+def _inference_row(
+    inference: pd.DataFrame,
+    *,
+    task: str,
+    method_key: str,
+    metric: str,
+    estimand: str,
+) -> pd.Series:
+    rows = inference[
+        (inference["task"] == task)
+        & (inference["method_key"] == method_key)
+        & (inference["metric"] == metric)
+        & (inference["estimand"] == estimand)
+    ]
+    if len(rows) != 1:
+        raise ValueError(
+            f"Expected one inference row for {task}/{method_key}/{metric}/{estimand}, "
+            f"found {len(rows)}"
+        )
+    return rows.iloc[0]
+
+
+def _global_summary_one_task(
+    summary: pd.DataFrame,
+    loss_col: str,
+    *,
+    inference: pd.DataFrame,
+    task_key: str,
+) -> pd.DataFrame:
+    """Summarize centroid and cross-dataset-median estimands with 95% CIs."""
     if summary is None or summary.empty:
         return pd.DataFrame()
     summary = summary.dropna(subset=["speedup_median", loss_col]).copy()
@@ -89,23 +96,60 @@ def _global_summary_one_task(summary: pd.DataFrame, loss_col: str) -> pd.DataFra
         if pd.isna(v):
             v = ""
         method_label = method_display_label(s, v)
+        method_key = f"{s}|{v}"
         sp = sub["speedup_median"].values
         centroid_time_saved_pct = np.nanmean(100.0 * (1.0 - 1.0 / sp))
-        loss = sub[loss_col].values
-        loss_pct = 100.0 * loss
-        effort_saved_total_pct = np.nan
-        if "effort_saved_total_median" in sub.columns:
-            effort_saved_total_pct = 100.0 * np.median(sub["effort_saved_total_median"].values)
+        time_row = _inference_row(
+            inference,
+            task=task_key,
+            method_key=method_key,
+            metric="time_saved_pct",
+            estimand="centroid_mean",
+        )
+        loss_centroid_row = _inference_row(
+            inference,
+            task=task_key,
+            method_key=method_key,
+            metric="predictive_loss_pct",
+            estimand="centroid_mean",
+        )
+        loss_median_row = _inference_row(
+            inference,
+            task=task_key,
+            method_key=method_key,
+            metric="predictive_loss_pct",
+            estimand="cross_dataset_median",
+        )
+        effort_median_row = _inference_row(
+            inference,
+            task=task_key,
+            method_key=method_key,
+            metric="effort_saved_pct",
+            estimand="cross_dataset_median",
+        )
+        if not np.isclose(
+            centroid_time_saved_pct, float(time_row["estimate"]), atol=1e-8
+        ):
+            raise ValueError(
+                f"Time centroid mismatch for {task_key}/{method_key}: "
+                f"summary={centroid_time_saved_pct}, inference={time_row['estimate']}"
+            )
         rows.append({
             "method": method_label,
             "splitter": s,
             "variant": v,
-            "centroid_time_saved_pct": centroid_time_saved_pct,
-            "median_effort_saved_total_pct": effort_saved_total_pct,
-            "median_loss_pct": np.median(loss_pct),
-            "p90_loss_pct": np.percentile(loss_pct, 90),
-            "p_loss_below_tol": np.mean(loss <= LOSS_TOLERANCE),
-            "p_speedup_above_thr": np.mean(sp >= SPEEDUP_THRESHOLD),
+            "centroid_time_saved_pct": float(time_row["estimate"]),
+            "centroid_time_saved_ci_low": float(time_row["hierarchical_ci_low"]),
+            "centroid_time_saved_ci_high": float(time_row["hierarchical_ci_high"]),
+            "centroid_loss_pct": float(loss_centroid_row["estimate"]),
+            "centroid_loss_ci_low": float(loss_centroid_row["hierarchical_ci_low"]),
+            "centroid_loss_ci_high": float(loss_centroid_row["hierarchical_ci_high"]),
+            "median_loss_pct": float(loss_median_row["estimate"]),
+            "median_loss_ci_low": float(loss_median_row["hierarchical_ci_low"]),
+            "median_loss_ci_high": float(loss_median_row["hierarchical_ci_high"]),
+            "median_effort_saved_pct": float(effort_median_row["estimate"]),
+            "median_effort_saved_ci_low": float(effort_median_row["hierarchical_ci_low"]),
+            "median_effort_saved_ci_high": float(effort_median_row["hierarchical_ci_high"]),
         })
     return pd.DataFrame(rows)
 
@@ -114,26 +158,26 @@ def _article_method_label(splitter: str, variant: str) -> str:
     if splitter == "best":
         return "Exhaustive"
     if splitter == "secretary":
-        return rf"$S$ ({'n/e' if variant == '1overe' else variant})"
+        return rf"$S$ ({'f=1/e' if variant == '1overe' else variant})"
     if splitter == "double_secretary":
-        return rf"$S^2$ ({'n/e' if variant == '1overe' else variant})"
+        return rf"$S^2$ ({'f=1/e' if variant == '1overe' else variant})"
     if splitter == "secretary_all":
-        return rf"$S_{{\mathrm{{all}}}}$ ({'n/e' if variant == '1overe' else variant})"
+        return rf"$S_{{\mathrm{{all}}}}$ ({'f=1/e' if variant == '1overe' else variant})"
     if splitter == "secretary_par":
         fields = dict(part.split("=", 1) for part in variant.split(",") if "=" in part)
         samples = fields.get("samples", "")
         quantile = fields.get("q", "")
         sample_label = {
-            "sqrt_n": r"$\sqrt{n}$",
-            "ln_n": r"$\ln(n)$",
-            "1overe": "n/e",
-            "0.1n": "0.1n",
+            "sqrt_n": r"$\rho=N^{-1/2}$",
+            "ln_n": r"$B=\operatorname{round}(\log N)$",
+            "1overe": r"$\rho=1/e$",
+            "0.1n": r"$\rho=0.1$",
         }.get(samples, samples)
         return rf"$S_{{\mathrm{{par}}}}$ ({sample_label}, q={quantile})"
     if splitter == "block_rank":
-        return "Block-rank"
+        return "Rank-inspired"
     if splitter == "prophet_1sample":
-        return "1-sample prophet"
+        return "Prophet-style"
     if splitter == "extra_tree":
         mtry = {
             "max_features=1": "1",
@@ -153,23 +197,19 @@ def _write_article_main_table(raw_tables: dict[str, pd.DataFrame]) -> None:
         "Classification (Entropy)": raw_tables["entropy"],
     }
     lines = [
-        r"\begin{table}[t]",
+        r"\begin{table*}[t]",
         r"\centering",
         (
-            r"\caption{Representative global summary by method after the final 100-run no-limit benchmark. "
-            r"The $n/e$ schedule is used for the secretary families, "
-            r"$S_{\mathrm{par}}(\sqrt{n},q=0.75)$ is the single parametric representative shown in the main comparison, "
-            r"and ERT denotes extremely randomized trees with four $m_{\mathrm{try}}$ budgets. "
-            r"Centroid time saved is the horizontal centroid of the dataset-level median points shown in Figure~1, expressed relative to the exhaustive \texttt{scikit-learn} splitter. "
-            r"Effort saved is the percentage reduction in gain evaluations relative to exhaustive split search. "
-            r"Loss is expressed in percent.}"
+            r"\caption{Representative-method summaries with hierarchical 95\% bootstrap intervals. "
+            r"Centroids average entry-level run medians; classification losses are weighted-F1 "
+            r"percentage points and all other entries are percentages.}"
         ),
         r"\label{tab:summary_results}",
         r"\begin{adjustbox}{max width=\textwidth}",
         r"\scriptsize",
-        r"\begin{tabular}{llrrrrrr}",
+        r"\begin{tabular}{llllll}",
         r"\toprule",
-        r"Task & Method & Centroid time saved (\%) & Median effort saved (\%) & Median loss (\%) & 90th pct.\ loss (\%) & $P(\mathrm{loss}\le 5\%)$ & $P(\mathrm{speedup}\ge 20\%)$ \\",
+        r"Task & Method & Centroid time saved & Centroid loss & Median loss & Median effort saved \\",
         r"\midrule",
     ]
 
@@ -188,12 +228,10 @@ def _write_article_main_table(raw_tables: dict[str, pd.DataFrame]) -> None:
                 [
                     task,
                     _article_method_label(splitter, variant),
-                    f"{row['centroid_time_saved_pct']:.2f}",
-                    f"{row['median_effort_saved_total_pct']:.2f}",
-                    f"{row['median_loss_pct']:.3f}",
-                    f"{row['p90_loss_pct']:.3f}",
-                    f"{row['p_loss_below_tol']:.3f}",
-                    f"{row['p_speedup_above_thr']:.3f}",
+                    _format_interval(row, "centroid_time_saved", 2),
+                    _format_interval(row, "centroid_loss", 2),
+                    _format_interval(row, "median_loss", 2),
+                    _format_interval(row, "median_effort_saved", 2),
                 ]
             )
             + r" \\"
@@ -204,35 +242,53 @@ def _write_article_main_table(raw_tables: dict[str, pd.DataFrame]) -> None:
             r"\bottomrule",
             r"\end{tabular}",
             r"\end{adjustbox}",
-            r"\end{table}",
+            r"\end{table*}",
         ]
     )
     (ARTICLE_TABLE_DIR / "table1_main.tex").write_text("\n".join(lines) + "\n")
 
 
+def _format_interval(row: pd.Series, stem: str, digits: int) -> str:
+    estimate = row[f"{stem}_pct"]
+    low = row[f"{stem}_ci_low"]
+    high = row[f"{stem}_ci_high"]
+    return f"{estimate:.{digits}f} [{low:.{digits}f}, {high:.{digits}f}]"
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--inference-dir",
+        type=Path,
+        default=SCRIPT_DIR / "inference_results",
+        help="Directory containing global_intervals.csv.",
+    )
+    args = parser.parse_args()
+    inference_path = args.inference_dir / "global_intervals.csv"
+    if not inference_path.is_file():
+        raise FileNotFoundError(f"Missing inferential results: {inference_path}")
+    inference = pd.read_csv(inference_path)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    data = load_all(BENCHMARK_DIR, exclude_secretary_par=False, by_variant=True)
+    data = load_all(BENCHMARK_DIR, exclude_secretary_par=True, by_variant=True)
 
     regression_summary = data["regression_summary"]
-    if regression_summary is not None:
-        regression_summary = regression_summary[regression_summary["splitter"] != "secretary_par"].copy()
-
-    gini_summary = keep_secretary_par_representative(data["classification_gini_summary"])
-    entropy_summary = keep_secretary_par_representative(data["classification_entropy_summary"])
+    gini_summary = data["classification_gini_summary"]
+    entropy_summary = data["classification_entropy_summary"]
 
     configs = [
-        ("regression", regression_summary, "loss_rmse_bounded_median", "Regression"),
-        ("gini", gini_summary, "loss_f1_median", "Classification (Gini)"),
-        ("entropy", entropy_summary, "loss_f1_median", "Classification (Entropy)"),
+        ("regression", regression_summary, "loss_rmse_bounded_median", "Regression", "regression"),
+        ("gini", gini_summary, "loss_f1_median", "Classification (Gini)", "classification_gini"),
+        ("entropy", entropy_summary, "loss_f1_median", "Classification (Entropy)", "classification_entropy"),
     ]
 
     all_tables = []
     raw_tables = {}
-    for tag, summary, loss_col, task_label in configs:
+    for tag, summary, loss_col, task_label, task_key in configs:
         if summary is None:
             continue
-        df = _global_summary_one_task(summary, loss_col)
+        df = _global_summary_one_task(
+            summary, loss_col, inference=inference, task_key=task_key
+        )
         if df.empty:
             continue
         raw_tables[tag] = df.copy()
@@ -242,20 +298,32 @@ def main():
             "task",
             "method",
             "centroid_time_saved_pct",
-            "median_effort_saved_total_pct",
+            "centroid_time_saved_ci_low",
+            "centroid_time_saved_ci_high",
+            "centroid_loss_pct",
+            "centroid_loss_ci_low",
+            "centroid_loss_ci_high",
             "median_loss_pct",
-            "p90_loss_pct",
-            "p_loss_below_tol",
-            "p_speedup_above_thr",
+            "median_loss_ci_low",
+            "median_loss_ci_high",
+            "median_effort_saved_pct",
+            "median_effort_saved_ci_low",
+            "median_effort_saved_ci_high",
         ]
         df = df[[c for c in cols if c in df.columns]]
         df = df.rename(columns={
             "centroid_time_saved_pct": "centroid_time_saved_%",
-            "median_effort_saved_total_pct": "median_effort_saved_%",
+            "centroid_time_saved_ci_low": "centroid_time_saved_ci_low",
+            "centroid_time_saved_ci_high": "centroid_time_saved_ci_high",
+            "centroid_loss_pct": "centroid_loss_%",
+            "centroid_loss_ci_low": "centroid_loss_ci_low",
+            "centroid_loss_ci_high": "centroid_loss_ci_high",
             "median_loss_pct": "median_loss_%",
-            "p90_loss_pct": "p90_loss_%",
-            "p_loss_below_tol": f"P(loss≤{int(LOSS_TOLERANCE*100)}%)",
-            "p_speedup_above_thr": f"P(speedup≥{SPEEDUP_THRESHOLD_PCT}%)",
+            "median_loss_ci_low": "median_loss_ci_low",
+            "median_loss_ci_high": "median_loss_ci_high",
+            "median_effort_saved_pct": "median_effort_saved_%",
+            "median_effort_saved_ci_low": "median_effort_saved_ci_low",
+            "median_effort_saved_ci_high": "median_effort_saved_ci_high",
         })
         out_csv = OUT_DIR / f"table1_{tag}.csv"
         df.to_csv(out_csv, index=False, float_format="%.4g")

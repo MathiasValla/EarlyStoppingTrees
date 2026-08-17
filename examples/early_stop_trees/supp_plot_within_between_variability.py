@@ -30,14 +30,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from analysis_utils import TASKS, load_task, method_sort_key
+from benchmark_results_utils import method_display_label
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SUPP_DIR = SCRIPT_DIR / "SUPP_FIGURES"
 
 SUPP_WHISKER_PNG = {
     "regression": "supp_figure_09_within_whiskers_loss_speedup.png",
-    "classification_entropy": "supp_figure_10_within_whiskers_loss_speedup.png",
-    "classification_gini": "supp_figure_11_within_whiskers_loss_speedup.png",
+    "classification_gini": "supp_figure_10_within_whiskers_loss_speedup.png",
+    "classification_entropy": "supp_figure_11_within_whiskers_loss_speedup.png",
 }
 
 
@@ -100,7 +101,14 @@ def _plot_within_whiskers(
             capsize=1,
         )
         ax.axvline(baseline_x, color="#bbbbbb", linewidth=1.0)
-        ax.set_ylabel(mk, rotation=0, ha="right", va="center", labelpad=28)
+        splitter, _, variant = mk.partition("|")
+        ax.set_ylabel(
+            method_display_label(splitter, variant),
+            rotation=0,
+            ha="right",
+            va="center",
+            labelpad=28,
+        )
         ax.set_yticks([])
         ax.grid(True, axis="x", alpha=0.2)
 
@@ -158,7 +166,14 @@ def _plot_within_whiskers_merged_png(
                 capsize=1,
             )
             ax.axvline(baseline_x, color="#bbbbbb", linewidth=1.0)
-            ax.set_ylabel(mk, rotation=0, ha="right", va="center", labelpad=28)
+            splitter, _, variant = mk.partition("|")
+            ax.set_ylabel(
+                method_display_label(splitter, variant),
+                rotation=0,
+                ha="right",
+                va="center",
+                labelpad=28,
+            )
             ax.set_yticks([])
             ax.grid(True, axis="x", alpha=0.2)
         axes_list[0].set_title(block_label, fontsize=15, fontweight="bold", pad=26)
@@ -182,7 +197,7 @@ def _plot_within_whiskers_merged_png(
     )
 
     outpath.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(outpath, dpi=200, bbox_inches="tight")
+    fig.savefig(outpath, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 

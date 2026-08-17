@@ -109,7 +109,7 @@ def main():
     if df.empty:
         raise ValueError(f"No rows found in {dataset_path}")
 
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5), constrained_layout=True)
+    fig, axes = plt.subplots(1, 3, figsize=(13, 5.1), constrained_layout=False)
     _grouped_boxplot(
         axes[0],
         df,
@@ -139,10 +139,17 @@ def main():
         plt.Line2D([0], [0], color=COLORS["10"], lw=8, alpha=0.75, label="within 10% of best"),
         plt.Line2D([0], [0], color=COLORS["gap"], lw=8, alpha=0.75, label="relative median gap"),
     ]
-    fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False)
+    fig.subplots_adjust(left=0.07, right=0.99, top=0.92, bottom=0.29, wspace=0.32)
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.04),
+        ncol=3,
+        frameon=False,
+    )
 
     outpath = outdir / OUT_NAME
-    fig.savefig(outpath, dpi=200, bbox_inches="tight")
+    fig.savefig(outpath, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"Wrote {outpath}")
 

@@ -1,48 +1,46 @@
-\begin{table}[t]
+\begin{table*}[t]
 \centering
-\caption{Representative global summary by method after the final 100-run no-limit benchmark. The $n/e$ schedule is used for the secretary families, $S_{\mathrm{par}}(\sqrt{n},q=0.75)$ is the single parametric representative shown in the main comparison, and ERT denotes extremely randomized trees with four $m_{\mathrm{try}}$ budgets. Centroid time saved is the horizontal centroid of the dataset-level median points shown in Figure~1, expressed relative to the exhaustive \texttt{scikit-learn} splitter. Effort saved is the percentage reduction in gain evaluations relative to exhaustive split search. Loss is expressed in percent.}
+\caption{Representative-method summaries with hierarchical 95\% bootstrap intervals. Centroids average entry-level run medians; classification losses are weighted-F1 percentage points and all other entries are percentages.}
 \label{tab:summary_results}
 \begin{adjustbox}{max width=\textwidth}
 \scriptsize
-\begin{tabular}{llrrrrrr}
+\begin{tabular}{llllll}
 \toprule
-Task & Method & Centroid time saved (\%) & Median effort saved (\%) & Median loss (\%) & 90th pct.\ loss (\%) & $P(\mathrm{loss}\le 5\%)$ & $P(\mathrm{speedup}\ge 20\%)$ \\
+Task & Method & Centroid time saved & Centroid loss & Median loss & Median effort saved \\
 \midrule
-Regression & Exhaustive & 0.00 & 0.00 & 0.000 & 0.000 & 1.000 & 0.000 \\
-Regression & $S$ (n/e) & 15.67 & 46.85 & 3.881 & 10.546 & 0.593 & 0.442 \\
-Regression & $S^2$ (n/e) & 5.46 & 1.88 & 1.752 & 6.717 & 0.814 & 0.009 \\
-Regression & $S_{\mathrm{all}}$ (n/e) & 16.44 & 17.42 & 1.812 & 6.642 & 0.832 & 0.425 \\
-Regression & Block-rank & 60.46 & 90.76 & 31.907 & 55.316 & 0.159 & 0.947 \\
-Regression & 1-sample prophet & 30.13 & 58.38 & 6.432 & 15.475 & 0.434 & 0.743 \\
-Regression & ERT ($m_{\mathrm{try}}=1$) & 71.05 & 98.93 & 36.675 & 60.558 & 0.115 & 0.965 \\
-Regression & ERT ($m_{\mathrm{try}}=p/3$) & 66.59 & 96.70 & 28.366 & 44.535 & 0.150 & 0.965 \\
-Regression & ERT ($m_{\mathrm{try}}=2p/3$) & 60.50 & 92.95 & 15.232 & 28.983 & 0.221 & 0.956 \\
-Regression & ERT ($m_{\mathrm{try}}=p$) & 54.04 & 88.80 & 8.462 & 16.287 & 0.354 & 0.903 \\
+Regression & Exhaustive & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] \\
+Regression & $S$ (f=1/e) & 15.67 [14.10, 16.96] & 4.66 [3.56, 5.84] & 3.88 [2.88, 4.90] & 46.85 [45.87, 47.47] \\
+Regression & $S^2$ (f=1/e) & 5.46 [4.45, 6.27] & 2.67 [1.92, 3.49] & 1.75 [1.33, 2.56] & 1.88 [0.35, 3.56] \\
+Regression & $S_{\mathrm{all}}$ (f=1/e) & 16.44 [15.45, 17.20] & 2.67 [1.97, 3.46] & 1.81 [1.39, 2.38] & 17.42 [16.47, 18.57] \\
+Regression & Rank-inspired & 60.46 [55.74, 65.03] & 31.33 [27.29, 35.35] & 31.91 [24.87, 39.28] & 90.76 [88.18, 92.08] \\
+Regression & Prophet-style & 30.13 [26.74, 33.27] & 7.12 [5.83, 8.17] & 6.43 [4.28, 8.17] & 58.38 [55.99, 60.49] \\
+Regression & ERT ($m_{\mathrm{try}}=1$) & 71.05 [66.02, 75.71] & 36.02 [31.88, 40.02] & 36.67 [30.65, 44.01] & 98.93 [98.51, 99.08] \\
+Regression & ERT ($m_{\mathrm{try}}=p/3$) & 66.59 [61.86, 71.00] & 26.15 [22.85, 29.34] & 28.37 [23.89, 33.25] & 96.70 [96.47, 96.97] \\
+Regression & ERT ($m_{\mathrm{try}}=2p/3$) & 60.50 [55.99, 64.78] & 15.08 [12.85, 17.36] & 15.23 [12.05, 17.85] & 92.95 [92.33, 93.53] \\
+Regression & ERT ($m_{\mathrm{try}}=p$) & 54.04 [49.62, 58.16] & 7.86 [6.20, 9.25] & 8.46 [6.59, 10.23] & 88.80 [87.67, 89.54] \\
 \midrule
-Classification (Gini) & Exhaustive & 0.00 & 0.00 & 0.000 & 0.000 & 1.000 & 0.000 \\
-Classification (Gini) & $S$ (n/e) & 10.89 & 42.45 & 0.101 & 1.722 & 0.992 & 0.361 \\
-Classification (Gini) & $S^2$ (n/e) & 6.13 & -1.10 & 0.045 & 1.091 & 0.992 & 0.025 \\
-Classification (Gini) & $S_{\mathrm{all}}$ (n/e) & 12.74 & 15.27 & 0.033 & 1.072 & 0.992 & 0.328 \\
-Classification (Gini) & $S_{\mathrm{par}}$ ($\sqrt{n}$, q=0.75) & 19.74 & 42.77 & 0.250 & 2.824 & 0.943 & 0.426 \\
-Classification (Gini) & Block-rank & 45.89 & 71.89 & 2.675 & 14.638 & 0.639 & 0.738 \\
-Classification (Gini) & 1-sample prophet & 16.64 & 41.50 & 0.030 & 1.820 & 0.984 & 0.418 \\
-Classification (Gini) & ERT ($m_{\mathrm{try}}=1$) & 54.19 & 96.34 & 4.573 & 21.931 & 0.525 & 0.803 \\
-Classification (Gini) & ERT ($m_{\mathrm{try}}=p/3$) & 49.04 & 89.25 & 1.736 & 7.923 & 0.779 & 0.779 \\
-Classification (Gini) & ERT ($m_{\mathrm{try}}=2p/3$) & 43.69 & 84.10 & 1.006 & 3.803 & 0.934 & 0.738 \\
-Classification (Gini) & ERT ($m_{\mathrm{try}}=p$) & 38.14 & 84.57 & 0.291 & 2.598 & 0.967 & 0.623 \\
+Classification (Gini) & Exhaustive & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] \\
+Classification (Gini) & $S$ (f=1/e) & 10.89 [8.38, 13.54] & 0.16 [-0.15, 0.50] & 0.10 [0.00, 0.24] & 42.45 [38.45, 45.32] \\
+Classification (Gini) & $S^2$ (f=1/e) & 6.13 [4.97, 7.08] & 0.11 [-0.07, 0.30] & 0.05 [0.00, 0.16] & -1.10 [-5.02, 0.74] \\
+Classification (Gini) & $S_{\mathrm{all}}$ (f=1/e) & 12.74 [11.31, 14.07] & 0.07 [-0.12, 0.25] & 0.03 [0.00, 0.11] & 15.27 [14.14, 16.27] \\
+Classification (Gini) & Rank-inspired & 45.89 [40.31, 51.20] & 5.69 [4.11, 7.45] & 2.67 [1.57, 3.61] & 71.89 [65.37, 75.59] \\
+Classification (Gini) & Prophet-style & 16.64 [10.11, 22.80] & 0.33 [0.05, 0.62] & 0.03 [0.00, 0.26] & 41.50 [31.74, 51.89] \\
+Classification (Gini) & ERT ($m_{\mathrm{try}}=1$) & 54.19 [48.08, 60.21] & 8.10 [6.39, 9.90] & 4.57 [3.22, 7.11] & 96.34 [92.80, 97.69] \\
+Classification (Gini) & ERT ($m_{\mathrm{try}}=p/3$) & 49.04 [43.17, 54.75] & 2.75 [1.99, 3.55] & 1.74 [1.28, 2.60] & 89.25 [83.75, 93.86] \\
+Classification (Gini) & ERT ($m_{\mathrm{try}}=2p/3$) & 43.69 [38.04, 49.27] & 1.05 [0.50, 1.63] & 1.01 [0.40, 1.33] & 84.10 [76.03, 90.52] \\
+Classification (Gini) & ERT ($m_{\mathrm{try}}=p$) & 38.14 [32.37, 43.74] & 0.42 [-0.03, 0.91] & 0.29 [0.00, 0.61] & 84.57 [77.92, 88.70] \\
 \midrule
-Classification (Entropy) & Exhaustive & 0.00 & 0.00 & 0.000 & 0.000 & 1.000 & 0.000 \\
-Classification (Entropy) & $S$ (n/e) & 12.59 & 41.95 & 0.100 & 1.490 & 1.000 & 0.410 \\
-Classification (Entropy) & $S^2$ (n/e) & 4.95 & -1.93 & 0.069 & 1.214 & 1.000 & 0.008 \\
-Classification (Entropy) & $S_{\mathrm{all}}$ (n/e) & 12.59 & 15.05 & 0.064 & 0.992 & 1.000 & 0.352 \\
-Classification (Entropy) & $S_{\mathrm{par}}$ ($\sqrt{n}$, q=0.75) & 19.47 & 42.17 & 0.523 & 2.741 & 0.943 & 0.426 \\
-Classification (Entropy) & Block-rank & 45.08 & 70.23 & 2.364 & 14.255 & 0.631 & 0.762 \\
-Classification (Entropy) & 1-sample prophet & 17.23 & 42.00 & 0.093 & 1.627 & 0.984 & 0.443 \\
-Classification (Entropy) & ERT ($m_{\mathrm{try}}=1$) & 54.73 & 95.82 & 4.430 & 21.948 & 0.516 & 0.811 \\
-Classification (Entropy) & ERT ($m_{\mathrm{try}}=p/3$) & 49.27 & 88.55 & 1.802 & 7.676 & 0.779 & 0.787 \\
-Classification (Entropy) & ERT ($m_{\mathrm{try}}=2p/3$) & 43.91 & 83.77 & 1.076 & 3.939 & 0.951 & 0.738 \\
-Classification (Entropy) & ERT ($m_{\mathrm{try}}=p$) & 38.61 & 83.46 & 0.486 & 2.303 & 0.975 & 0.631 \\
+Classification (Entropy) & Exhaustive & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] & 0.00 [0.00, 0.00] \\
+Classification (Entropy) & $S$ (f=1/e) & 12.59 [9.80, 15.29] & 0.08 [-0.20, 0.33] & 0.10 [0.00, 0.34] & 41.95 [38.18, 44.00] \\
+Classification (Entropy) & $S^2$ (f=1/e) & 4.95 [3.91, 5.81] & 0.09 [-0.08, 0.27] & 0.07 [0.00, 0.26] & -1.93 [-6.31, -0.48] \\
+Classification (Entropy) & $S_{\mathrm{all}}$ (f=1/e) & 12.59 [11.20, 13.85] & 0.03 [-0.17, 0.20] & 0.06 [0.00, 0.20] & 15.05 [13.63, 15.94] \\
+Classification (Entropy) & Rank-inspired & 45.08 [39.63, 50.43] & 5.81 [4.25, 7.59] & 2.36 [1.85, 3.95] & 70.23 [65.07, 73.62] \\
+Classification (Entropy) & Prophet-style & 17.23 [11.01, 23.36] & 0.18 [-0.12, 0.48] & 0.09 [0.00, 0.33] & 42.00 [30.92, 50.87] \\
+Classification (Entropy) & ERT ($m_{\mathrm{try}}=1$) & 54.73 [48.68, 60.48] & 8.26 [6.55, 10.11] & 4.43 [3.19, 7.51] & 95.82 [92.59, 97.24] \\
+Classification (Entropy) & ERT ($m_{\mathrm{try}}=p/3$) & 49.27 [43.40, 54.90] & 2.76 [2.04, 3.49] & 1.80 [1.28, 2.60] & 88.55 [82.45, 93.26] \\
+Classification (Entropy) & ERT ($m_{\mathrm{try}}=2p/3$) & 43.91 [38.27, 49.54] & 1.07 [0.59, 1.54] & 1.08 [0.67, 1.28] & 83.77 [74.12, 89.77] \\
+Classification (Entropy) & ERT ($m_{\mathrm{try}}=p$) & 38.61 [32.88, 44.36] & 0.40 [0.02, 0.75] & 0.49 [0.21, 0.64] & 83.46 [77.84, 87.50] \\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
-\end{table}
+\end{table*}

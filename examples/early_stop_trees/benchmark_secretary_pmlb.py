@@ -293,9 +293,9 @@ def _benchmark_metadata(splitters, n_runs, random_state):
             "cv_splitter": "Integer cv=N_FOLDS, so sklearn uses deterministic KFold / StratifiedKFold with shuffle=False.",
         },
         "effort_protocol": {
-            "early_stop": "Measured directly from splitter counters.",
-            "best": "Derived exactly a posteriori from fitted trees and fold-specific training data.",
-            "extra_tree": "Derived a posteriori as one random-threshold gain per sampled non-constant feature at a node.",
+            "early_stop": "Measured directly from splitter counters across all attempted node splits, including failed calls that produce leaves.",
+            "best": "Reconstructed a posteriori for successful internal-node searches from fitted trees and fold-specific training data.",
+            "extra_tree": "Reconstructed a posteriori for successful internal nodes as one random-threshold gain per sampled non-constant feature.",
         },
     }
 
@@ -390,12 +390,12 @@ def _enforce_common_classification_datasets(gini_rows, entropy_rows, *, label):
 def _secretary_par_grid(n_samples: int):
     """Return list of (p_thr_par, n_gain_samples_par, sample_mode_label) for secretary_par.
 
-    Samples modes:
+    Historical variant keys and their implemented root-dataset configuration:
       - 2 samples (cap)
       - 10 samples (cap)
-      - 10% of thresholds (p_thr_par = 0.1)
-      - sqrt(n) splits (p_thr_par = sqrt(n)/n, capped at 1)
-      - ln(n) samples (n_gain_samples_par = min(256, max(1, round(ln(n)))))
+      - sampling fraction rho=0.1 with cap B=256
+      - sampling fraction rho=1/sqrt(N_dataset) with cap B=256
+      - cap B=round(log(N_dataset)) with sampling fraction rho=1
     """
     out = []
     out.append((1.0, 2, "2"))
@@ -411,9 +411,13 @@ def _secretary_par_grid(n_samples: int):
 
 
 def _secretary_variants(n_samples: int):
-    """Return list of (split_search_dict, variant_label) for base secretary: 1/e, sqrt(n), ln(n), 10%.
+    """Return implemented exploration fractions and stable archive labels.
 
-    split_search uses secretary_threshold: "1/e", "sqrt_n", or a float (explore fraction).
+    For ``secretary`` the fraction controls both the random feature-prefix and
+    sampled-threshold budgets. For ``double_secretary`` it controls only the
+    outer feature prefix; the inner sampled-threshold fraction is fixed at 1/e.
+    ``sqrt_n`` uses the current node size; the numeric ``ln_n`` value is fixed
+    from the full dataset size for the entire tree.
     """
     out = []
     out.append(({}, "1overe"))  # default 1/e
