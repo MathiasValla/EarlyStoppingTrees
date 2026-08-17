@@ -724,7 +724,9 @@ class EarlyStopDecisionTreeRegressor(SimMatrixMixin, DecisionTreeRegressor):
             use_sqrt_n = False
             explore_frac = 0.36787944117144233  # 1/e
         secretary_kw = {"explore_frac": explore_frac, "use_sqrt_n": use_sqrt_n}
-        criterion_kind = "regression"
+        criterion_kind = (
+            "regression" if self.criterion == "squared_error" else None
+        )
         Klass = EARLY_STOP_DENSE_SPLITTERS[self.splitter]
         if self.splitter == "secretary_par":
             splitter = Klass(

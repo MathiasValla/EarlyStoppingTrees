@@ -247,6 +247,43 @@ def test_early_stop_parametric_stats_capture_sampling():
     assert stats["parametric_quantile_fits"] > 0
 
 
+def test_early_stop_parametric_normal_quantile_has_correct_tail_sign():
+    from treeple.tree._early_stop_splitter import _test_norm_ppf
+
+    lower = _test_norm_ppf(0.1)
+    upper = _test_norm_ppf(0.9)
+    assert lower < 0.0 < upper
+    assert upper == pytest.approx(-lower, rel=1e-12, abs=1e-12)
+
+
+def test_early_stop_parametric_regression_is_target_translation_invariant():
+    rng = np.random.RandomState(3)
+    X = rng.normal(size=(300, 6))
+    y = 20.0 * X[:, 0] + rng.normal(scale=0.01, size=X.shape[0])
+    params = {
+        "splitter": "secretary_par",
+        "max_depth": 3,
+        "random_state": 11,
+        "split_search": {
+            "n_gain_samples_par": 64,
+            "p_thr_par": 1.0,
+            "q_thr_par": 0.5,
+        },
+    }
+
+    reg = EarlyStopDecisionTreeRegressor(**params).fit(X, y)
+    translated = EarlyStopDecisionTreeRegressor(**params).fit(X, y + 1000.0)
+
+    np.testing.assert_array_equal(reg.tree_.feature, translated.tree_.feature)
+    np.testing.assert_allclose(reg.tree_.threshold, translated.tree_.threshold)
+    np.testing.assert_allclose(
+        translated.predict(X) - 1000.0,
+        reg.predict(X),
+        rtol=1e-10,
+        atol=1e-10,
+    )
+
+
 @pytest.mark.parametrize(
     "splitter",
     ["secretary", "secretary_all", "double_secretary", "block_rank", "prophet_1sample"],

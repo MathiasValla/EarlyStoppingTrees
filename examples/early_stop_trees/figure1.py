@@ -1073,7 +1073,6 @@ def main():
             method_labels,
             flagship_style=flagship_style,
         )
-        _save_supp_figure1_secretary_par_triple(indir)
 
 
 if __name__ == "__main__":

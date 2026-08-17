@@ -8,7 +8,8 @@ script also synchronizes them into ``RESEARCH_ARTICLE/SUPP_FIGURES``.
 
 Prerequisites (from ``examples/early_stop_trees/``):
 
-  python figure1.py              # main + supp 01–02 (use --no-supp to skip)
+  python figure1.py              # main + supp 01 (use --no-supp to skip)
+  python supp_plot_tree_comparison.py  # supp 02
   python figure4.py              # main + supp 06–07
   python figure2.py                # main + supp 03–05
   python supp_plot_predicted_regime_maps.py   # supp 08
@@ -20,7 +21,6 @@ Prerequisites (from ``examples/early_stop_trees/``):
 
   python figure3.py              # main text figure (not supp)
 
-Optional: ``python figure1.py --variants-of secretary_par`` for per-tag variant PDFs.
 """
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def main() -> int:
 
     expected_supp = [
         "supp_figure_01_pareto_large_small.png",
-        "supp_figure_02_secretary_par_all_large_small.png",
+        "supp_figure_02_tree_comparison.png",
         "supp_figure_03_ridgelines_regression.png",
         "supp_figure_04_ridgelines_classification_gini.png",
         "supp_figure_05_ridgelines_classification_entropy.png",

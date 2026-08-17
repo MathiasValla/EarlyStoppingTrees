@@ -10,7 +10,7 @@ from libc.math cimport exp, log, sqrt, fabs
 from libc.stdlib cimport qsort, malloc, free
 from libc.string cimport memcpy
 
-from .._lib.sklearn.tree._criterion cimport Criterion
+from .._lib.sklearn.tree._criterion cimport Criterion, RegressionCriterion
 from .._lib.sklearn.tree._partitioner cimport DensePartitioner, shift_missing_values_to_left_if_required
 from .._lib.sklearn.tree._splitter cimport SplitRecord, Splitter
 from .._lib.sklearn.tree._tree cimport ParentInfo
@@ -38,9 +38,14 @@ cdef inline float64_t _norm_ppf(float64_t p) noexcept nogil:
         q = 1.0 - p
     t = sqrt(-2.0 * log(q))
     z = t - (c0 + c1 * t + c2 * t * t) / (1.0 + d1 * t + d2 * t * t + d3 * t * t * t)
-    if p > 0.5:
+    if p < 0.5:
         z = -z
     return z
+
+
+def _test_norm_ppf(float64_t p):
+    """Private test hook for the C-level normal quantile approximation."""
+    return _norm_ppf(p)
 
 # Standard normal CDF Φ(z), A&S 26.2.17 style, nogil.
 cdef inline float64_t _norm_cdf(float64_t z) noexcept nogil:
@@ -150,6 +155,36 @@ cdef inline float64_t _quantile_parametric(
         return gains[min(empirical_idx, n - 1)]
     tau = mean + _norm_ppf(alpha) * std
     return tau
+
+
+cdef inline float64_t _mse_centered_proxy(Criterion criterion) noexcept nogil:
+    """Return the MSE split gain on a translation-invariant proxy scale."""
+    cdef float64_t centered_left
+    cdef float64_t centered_right
+    cdef float64_t gain = 0.0
+    cdef intp_t k
+    if (<RegressionCriterion>criterion).weighted_n_node_samples <= 0.0:
+        return 0.0
+    for k in range((<RegressionCriterion>criterion).n_outputs):
+        centered_left = (
+            (<RegressionCriterion>criterion).sum_left[k]
+            - (<RegressionCriterion>criterion).weighted_n_left
+            / (<RegressionCriterion>criterion).weighted_n_node_samples
+            * (<RegressionCriterion>criterion).sum_total[k]
+        )
+        centered_right = (
+            (<RegressionCriterion>criterion).sum_right[k]
+            - (<RegressionCriterion>criterion).weighted_n_right
+            / (<RegressionCriterion>criterion).weighted_n_node_samples
+            * (<RegressionCriterion>criterion).sum_total[k]
+        )
+        gain += (
+            centered_left * centered_left
+            / (<RegressionCriterion>criterion).weighted_n_left
+            + centered_right * centered_right
+            / (<RegressionCriterion>criterion).weighted_n_right
+        )
+    return gain
 
 
 cdef inline void _init_split_record(SplitRecord* s, intp_t start_pos) noexcept nogil:
@@ -460,6 +495,7 @@ cdef inline intp_t _draw_extratree_split_batch(
     float64_t* gain_buf,
     intp_t gain_buf_len,
     SplitRecord* best_in_feature,
+    int criterion_kind,
 ) noexcept nogil:
     """Sample continuous ExtraTree-style thresholds in one batch for a sorted feature.
 
@@ -529,7 +565,10 @@ cdef inline intp_t _draw_extratree_split_batch(
             prev_pos = pos
         if splitter.criterion.weighted_n_left < min_weight_leaf or splitter.criterion.weighted_n_right < min_weight_leaf:
             continue
-        cur_imp = splitter.criterion.proxy_impurity_improvement()
+        if criterion_kind == 1:
+            cur_imp = _mse_centered_proxy(splitter.criterion)
+        else:
+            cur_imp = splitter.criterion.proxy_impurity_improvement()
         splitter.n_gain_evaluations += 1
         if cur_imp > -INFINITY:
             cur.feature = feat
@@ -658,6 +697,7 @@ cdef inline bint _scan_feature_against_threshold(
     bint take_best,
     intp_t skip_pos,
     SplitRecord* out,
+    int criterion_kind,
 ) noexcept nogil:
     """Scan one sorted feature once, optionally skipping one position.
 
@@ -683,6 +723,8 @@ cdef inline bint _scan_feature_against_threshold(
             splitter.criterion.update(p)
             continue
         cur_imp = _eval_split(splitter, feat, p, start, end, min_weight_leaf, &cur)
+        if cur_imp > -INFINITY and criterion_kind == 1:
+            cur_imp = _mse_centered_proxy(splitter.criterion)
         if strict:
             if cur_imp <= tau:
                 continue
@@ -783,6 +825,7 @@ cdef inline float64_t _secretary_gain_one_feature_random_explore(
         NULL,
         0,
         out,
+        0,
     )
     if out.pos < end:
         max_explore = out.improvement
@@ -890,6 +933,7 @@ cdef inline intp_t _collect_gains_one_feature_random_sample(
         buf,
         buf_len,
         best_in_feature,
+        0,
     )
     return n
 
@@ -904,6 +948,7 @@ cdef inline intp_t _collect_gains_one_feature_fraction(
     intp_t buf_len,
     uint32_t* random_state,
     float64_t sample_prob,
+    int criterion_kind,
 ) noexcept nogil:
     """Collect gains from ExtraTree-style continuous threshold draws. The number of
     draws is a fraction of the distinct candidate thresholds, capped by buf_len."""
@@ -939,6 +984,7 @@ cdef inline intp_t _collect_gains_one_feature_fraction(
         buf,
         buf_len,
         NULL,
+        criterion_kind,
     )
     return n
 
@@ -951,6 +997,7 @@ cdef inline bint _first_split_above_threshold(
     float64_t min_weight_leaf,
     float64_t tau,
     SplitRecord* out,
+    int criterion_kind=0,
 ) noexcept nogil:
     """For one feature (filled and sorted), return the first split with gain >= tau."""
     return _scan_feature_against_threshold(
@@ -964,6 +1011,7 @@ cdef inline bint _first_split_above_threshold(
         0,
         -1,
         out,
+        criterion_kind,
     )
 
 
@@ -988,6 +1036,7 @@ cdef inline bint _first_split_strictly_above(
         0,
         -1,
         out,
+        0,
     )
 
 
@@ -1012,6 +1061,7 @@ cdef inline bint _best_split_above_threshold(
         1,
         -1,
         out,
+        0,
     )
 
 
@@ -1023,6 +1073,7 @@ cdef inline bint _best_split_strictly_above(
     float64_t min_weight_leaf,
     float64_t tau,
     SplitRecord* out,
+    int criterion_kind=0,
 ) noexcept nogil:
     """For one feature (filled and sorted), return the best split with gain > tau."""
     return _scan_feature_against_threshold(
@@ -1036,6 +1087,7 @@ cdef inline bint _best_split_strictly_above(
         1,
         -1,
         out,
+        criterion_kind,
     )
 
 
@@ -1062,6 +1114,7 @@ cdef inline bint _best_split_above_threshold_skip_pos(
         1,
         skip_pos,
         out,
+        0,
     )
 
 
@@ -1189,6 +1242,7 @@ cdef class SecretarySplitter(BaseEarlyStopSplitter):
                     NULL,
                     0,
                     &current_split,
+                    0,
                 )
                 cur_imp = current_split.improvement if current_split.pos < end else -INFINITY
                 if cur_imp > max_explore:
@@ -1241,7 +1295,7 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
         self.q_thr_par = q_thr_par
         n_par = int(kwargs.get("n_gain_samples_par", 256))
         self.n_gain_samples_par = min(max(n_par, 1), 256)
-        if criterion_kind == 'regression':
+        if criterion_kind == 'regression' and criterion.n_outputs == 1:
             self.criterion_kind = 1
         elif criterion_kind == 'classification':
             self.criterion_kind = 2
@@ -1280,7 +1334,7 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
         cdef uint32_t* random_state = &self.rand_r_state
         cdef float64_t impurity = parent.impurity
         cdef intp_t n_known_constants = parent.n_constant_features
-        cdef intp_t f_i, f_j, p, i
+        cdef intp_t f_i, f_j, p
         cdef intp_t n_visited = 0
         cdef intp_t n_found_constants = 0
         cdef intp_t n_drawn_constants = 0
@@ -1340,7 +1394,8 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
             if in_exploration:
                 n_feat_gains = _collect_gains_one_feature_fraction(
                     self, feat_best.feature, start, end, min_weight_leaf,
-                    &feat_buf[0], self.n_gain_samples_par, random_state, self.p_thr_par)
+                    &feat_buf[0], self.n_gain_samples_par, random_state,
+                    self.p_thr_par, self.criterion_kind)
                 if n_feat_gains > 0:
                     self.n_parametric_gain_samples += n_feat_gains
                     self.n_parametric_quantile_fits += 1
@@ -1353,14 +1408,19 @@ cdef class SecretaryParamSplitter(BaseEarlyStopSplitter):
                             &feat_buf[0], n_feat_gains, self.q_thr_par, self.criterion_kind,
                             empirical_idx)
                     if _first_split_above_threshold(
-                            self, feat_best.feature, start, end, min_weight_leaf, tau_j, &feat_best):
-                        reward_gain = self.criterion.proxy_impurity_improvement()
+                            self, feat_best.feature, start, end, min_weight_leaf,
+                            tau_j, &feat_best, self.criterion_kind):
+                        if self.criterion_kind == 1:
+                            reward_gain = _mse_centered_proxy(self.criterion)
+                        else:
+                            reward_gain = self.criterion.proxy_impurity_improvement()
                         if reward_gain > max_explore:
                             max_explore = reward_gain
                             best_split = feat_best
             else:
                 if _best_split_strictly_above(
-                        self, feat_best.feature, start, end, min_weight_leaf, max_explore, &feat_best):
+                        self, feat_best.feature, start, end, min_weight_leaf,
+                        max_explore, &feat_best, self.criterion_kind):
                     best_split = feat_best
                     break
 
