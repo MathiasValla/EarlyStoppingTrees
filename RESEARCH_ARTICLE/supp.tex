@@ -33,7 +33,7 @@
 }{%
   \smallskip\hrule\end{minipage}\par\medskip
 }
-\newcommand{\suppabstracttext}{This supplement gives pseudocode matched to the implementation, node-level cost bounds, benchmark and dataset details, and the paired hierarchical inferential protocol. It also reports a visual comparison of fitted trees and size-stratified, reliability, regime, within-dataset, gain-landscape, and effort diagnostics. The corrected parametric rule \(S_{\mathrm{par}}\) is specified as future work; no result or recommendation is attributed to its superseded implementation.}
+\newcommand{\suppabstracttext}{This supplement gives pseudocode matched to the implementation, node-level cost bounds, benchmark and dataset details, and the paired hierarchical inferential protocol. It also reports a visual comparison of fitted trees and size-stratified, reliability, regime, within-dataset, gain-landscape, and effort diagnostics. A separate corrected benchmark screens 20 configurations of the parametric rule \(S_{\mathrm{par}}\); none enters the full centroid effort--loss Pareto frontier.}
 
 \begin{document}
 
@@ -218,9 +218,9 @@ inequalities therefore do not apply.
 \small\textbf{Status of \(S_{\mathrm{par}}\).}
 The implementation now uses a translation-invariant regression gain and the
 correct normal-quantile direction for classification.  Automated checks cover
-both properties.  Results produced before these corrections are excluded from
-all figures, tables, tests, and recommendations.  The corrected rule is
-presented here as a reproducible direction for a new benchmark.
+both properties.  Results produced before these corrections are not used.  The
+corrected rule was rerun for 100 seeds on every retained entry; the screening
+below is descriptive and remains separate from the confirmatory comparison.
 \end{minipage}}
 \medskip
 
@@ -259,6 +259,47 @@ claim.  It evaluates the between-child sum of squares directly,
 does not change the mathematical score.  The classification normal law is also
 a working approximation rather than a distributional theorem.
 \end{suppalgorithm}
+
+\subsection{Corrected \(S_{\mathrm{par}}\) screening}
+\label{sec:supp_spar_results}
+
+The corrected benchmark evaluated 20 configurations: five sampled-gain
+budgets, \(B\in\{2,10,\operatorname{round}(\log N)\}\), or
+\(\rho\in\{0.1,1/\sqrt N\}\) with \(B=256\), crossed with
+\(q\in\{0.5,0.75,0.9,0.95\}\).  It used the same retained entries, fixed folds,
+tree constraints, and seeds 42--141 as the main benchmark.  Predictive loss
+and gain-evaluation effort are paired to exhaustive CART by entry and seed.
+
+Wall-clock measurements are not reported for this screening.  The corrected
+rule was run in August 2026 with NumPy 2.2.6, whereas the exhaustive reference
+timings were collected in April 2026 with NumPy 1.26.4.  Although the hardware,
+operating system, Python, scikit-learn, folds, and seeds match, the measurements
+are not contemporaneous and do not support a valid runtime comparison.
+
+After screening, \(S_{\mathrm{par}}(\rho=1/\sqrt N,q=0.9)\) was chosen for a
+compact display because it lies on the internal \(S_{\mathrm{par}}\)
+effort--loss frontier in all three tasks.  This choice is exploratory.  Values
+in brackets are 95\% entry-bootstrap intervals.
+
+\begin{center}
+\small
+\input{TABLES/spar_corrected_summary.tex}
+\end{center}
+
+The display configuration reduces recorded gain evaluations by 46.06\% in
+regression and about 23\% in classification, but its regression loss is
+11.19\%.  Across all 20 configurations, no point enters the full centroid
+effort--loss frontier (Figure~\ref{fig:supp_spar_screening}).  Thus the
+corrected experiment does not support \(S_{\mathrm{par}}\) as a competitive
+effort--prediction compromise.
+
+Three limitations govern this result.  First, the fixed-split Gaussian identity
+does not give a common law across candidate thresholds, so the fitted
+quantile remains heuristic.  Second, sampling, moment fitting, and exact replay
+can offset reductions in gain evaluations.  Third, the configuration grid was
+screened, so post-screening choices are not confirmatory.  Better
+distributional models or calibration schemes remain open directions, but the
+present evidence is negative.
 
 \section{Node-level cost and recorded effort}
 \label{sec:supp_complexity}
@@ -405,9 +446,11 @@ two-stage interval is the primary uncertainty summary.
 The revision reanalysis designates exhaustive CART plus nine alternatives:
 \(S(1/e)\), \(S^2(1/e)\), \(S_{\mathrm{all}}(1/e)\), the blockwise
 rank-inspired method, the prophet-style method, and ERT with
-\(m_{\mathrm{try}}\in\{1,p/3,2p/3,p\}\).  All other schedules and every
-\(S_{\mathrm{par}}\) configuration are excluded from empirical inference and
-recommendations; the corrected parametric rule has not yet been benchmarked.
+\(m_{\mathrm{try}}\in\{1,p/3,2p/3,p\}\).  All other schedules are exploratory.
+The corrected \(S_{\mathrm{par}}\) grid is screened separately in
+Section~\ref{sec:supp_spar_results}; it is excluded from confirmatory tests
+because its configurations were screened.  Its separate analysis reports only
+paired predictive loss and gain-evaluation effort.
 
 For the primary joint claim, an entry is successful only when its paired-seed
 median time saving is positive and its paired-seed median loss is below the
@@ -476,9 +519,8 @@ estimator seeds.  PMLB is not a probability sample, folds were fixed, and only
 fold means were stored.  The intervals therefore do not provide universal
 coverage over all tabular problems or uncertainty over newly drawn train--test
 partitions.  Marginal intervals over the exploratory method grid are not
-simultaneous confidence bands.  Because the original complete-case corpus was
-selected while \(S_{\mathrm{par}}\) was still included, its implementation defect
-could in principle have affected which entries survived that all-method gate.
+simultaneous confidence bands.  The corrected \(S_{\mathrm{par}}\) rerun uses
+the fixed retained corpus and therefore does not alter entry selection.
 
 \section{Reproducibility record}
 \label{sec:supp_reproducibility}
@@ -490,6 +532,9 @@ Apple M3 MacBook Air with 16~GB memory.  The metadata record five folds, seeds 4
 estimator-only timing boundary, splitter-specific effort accounting, and the
 treeple import path used during execution.  The exact sharded command was not
 recorded, so disabling of the driver's optional product cap is not asserted.
+The corrected \(S_{\mathrm{par}}\) campaign separately records NumPy 2.2.6,
+the same Python and scikit-learn versions, the same host, all 20 configurations,
+100 seeds, and complete coverage of the retained entries.
 
 The inference program validates unique dataset--seed--method rows, requires all
 ten confirmatory methods in every task, checks point estimates against the
@@ -624,6 +669,15 @@ revision analysis.
 \suppwideimage{supp_figure_15_time_effort_calibration.png}
 \caption{Wall-clock time saved versus recorded total-tree gain-evaluation effort saved for the validated methods. Small points are paired-seed entry medians and large markers are equal-weight centroids.}
 \label{fig:supp_time_effort}
+\end{figure*}
+
+\clearpage
+
+\begin{figure*}[p]
+\centering
+\suppwideimage{supp_figure_16_secretary_par_screening.png}
+\caption{Corrected \(S_{\mathrm{par}}\) effort--loss screening over 20 configurations for the three tasks. Gray points and lines show the validated-method context and frontier. Colors encode sampled-gain budget and markers encode \(q\); the outlined point is the exploratory display configuration.}
+\label{fig:supp_spar_screening}
 \end{figure*}
 
 \clearpage

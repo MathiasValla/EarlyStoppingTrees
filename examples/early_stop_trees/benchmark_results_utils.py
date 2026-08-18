@@ -84,7 +84,7 @@ EARLY_STOP_SPLITTERS = {
     "block_rank",
     "prophet_1sample",
 }
-SPAR_REPRESENTATIVE_KEY = "secretary_par|samples=sqrt_n,q=0.75"
+SPAR_REPRESENTATIVE_KEY = "secretary_par|samples=sqrt_n,q=0.9"
 
 # secretary_par (parametric) base color (must stay visually distinct from secretary/ERT).
 BASE_COLOR_SECRETARY_PAR = "#d95f02"

@@ -18,6 +18,7 @@ Prerequisites (from ``examples/early_stop_trees/``):
   python supp_plot_within_between_variability.py --task classification_entropy
   python analysis_gain_landscape.py
   python supp_plot_gain_landscape.py   # supp 13
+  python analysis_spar_corrected.py    # supp 15
 
   python figure3.py              # main text figure (not supp)
 
@@ -74,6 +75,7 @@ def main() -> int:
         "supp_figure_13_gain_landscape.png",
         "supp_figure_14_effort_loss.png",
         "supp_figure_15_time_effort_calibration.png",
+        "supp_figure_16_secretary_par_screening.png",
     ]
     print("--- SUPP_FIGURES/ (expected supplementary PNGs) ---")
     n_ok = 0

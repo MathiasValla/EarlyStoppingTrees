@@ -13,7 +13,7 @@ independent verification all agree.
 | E1 | Clarify the contribution. | State the same precise methodological and empirical contributions in the abstract, introduction, conclusion, and response letter; compare directly with prior split-search work. | A reader can identify the novelty without inferring it from the results for one method. | Closed |
 | E2 | Add full inferential statistical analysis and confidence intervals for medians and centroids. | Use datasets as experimental units; preserve within-dataset run pairing; report effect sizes, 95% paired hierarchical bootstrap intervals, and multiplicity-aware tests for revision-designated representatives. | Analysis code passed 22 direct tests; every main-text interval maps to the 10,000-replicate production export. | Closed |
 | E3 | Explain why the study uses one tree rather than a full reference tree. | State that every estimator is a complete recursively grown tree, not a stump; document the common growth settings; explain why single-tree analysis isolates split-search effects before ensemble aggregation; identify matched bagging as the principal future study rather than adding a post hoc ensemble experiment. | Main text and response cover both plausible readings of the comment without overstating ensemble implications. | Closed |
-| E4 | Improve figure readability and explanations. | Redesign Figure 3, enlarge final-size typography, use accessible colors, prefer vector output, and explain the tolerance-constrained winner rule directly. Audit all main and supplementary figures at final PDF size. | The compiled main paper and all 22 supplement pages were rendered and visually checked; no clipping or unreadable labels remain. Main Figures 2 and 3 are no taller than 4.35 inches and satisfy the half-page limit. | Closed |
+| E4 | Improve figure readability and explanations. | Redesign Figure 3, enlarge final-size typography, use accessible colors, prefer vector output, and explain the tolerance-constrained winner rule directly. Audit all main and supplementary figures at final PDF size. | The compiled main paper and all 23 supplement pages were rendered and visually checked; no clipping or unreadable labels remain. Main Figures 2 and 3 are no taller than 4.35 inches and satisfy the half-page limit. | Closed |
 | E5 | Clarify the apparent reference to a previous publication. | Remove "earlier implementations" and other development-history wording. State in the response that this referred to an internal implementation iteration, not a previous publication. | Abstract is self-contained and contains no unexplained comparison with prior work. | Closed |
 | E6 | Expand foundational and current literature. | Add only verified, directly relevant primary sources on CART, randomized and online trees, efficient/approximate split finding, optimal stopping, and multi-dataset statistical evaluation. | The main paper cites 22 directly relevant sources, each tied to a nearby claim. | Closed |
 | E7 | Add pseudocode and expand the method descriptions. | Add one unified main-paper algorithm and detailed supplement algorithms, including candidate order, exploration budget, threshold, acceptance, fallback, ties, and randomization. | Pseudocode and complexity bounds were independently checked against the Cython control flow and corrected where needed. | Closed |
@@ -37,7 +37,7 @@ independent verification all agree.
 
 | ID | Request | Planned evidence or change | Closure test | Status |
 |---|---|---|---|---|
-| R2.1 | Expand strategy descriptions for clarity and reproducibility. | Add unified notation, exact algorithms, parameter table, random-order semantics, fallback, and ties. | The main and supplementary algorithms now define every evaluated validated method and disclose the archived defective ablation. | Closed |
+| R2.1 | Expand strategy descriptions for clarity and reproducibility. | Add unified notation, exact algorithms, parameter table, random-order semantics, fallback, and ties. | The main and supplementary algorithms now define every validated method and the separately screened corrected parametric rule. | Closed |
 | R2.2 | Add computational-complexity analysis. | Separate sorting/scanning, random threshold generation, exact gain evaluations, expected stopping, worst-case work, and implementation overhead. | Complexity statements use defined variables and match actual control flow. | Closed |
 | R2.3 | Summarize dataset characteristics and relate them to effectiveness. | Addressed jointly with E8; quantify only benchmark-supported scenario associations. | Conclusions carry benchmark and task-specific endpoint qualifiers. | Closed |
 | R2.4 | Improve figure quality and color-label readability. | Addressed jointly with E4. | Main figures are vector; supplementary figures are 600 dpi; final PDF review passed. | Closed |
@@ -56,13 +56,13 @@ independent verification all agree.
 - Regression dataset `564_fried` lacks run 4; that block is excluded consistently or rerun, never imputed.
 - Gini and entropy results are analyzed separately unless their dependence is explicitly preserved.
 - Classification F1 loss is reported in percentage points, not as a relative percentage.
-- The archived S_par implementation is defective, excluded from confirmatory inference and recommendations, and retained only as a disclosed supplementary ablation.
+- The corrected S_par implementation was rerun separately for all 20 configurations and is reported only through predictive loss and gain-evaluation effort. It remains excluded from confirmatory inference and recommendations because no configuration entered the full effort-loss Pareto frontier.
 - Effect sizes and intervals lead; p-values are secondary and multiplicity corrected.
 - Inference is conditional on resampling this benchmark corpus and is not presented as population-wide coverage over all tabular problems.
 
 ## Chair Sign-Off Gates
 
-1. Freeze and validate the raw benchmark archive and estimands.
+1. Freeze and validate the benchmark inputs and estimands.
 2. Approve and independently test the inferential implementation.
 3. Approve implementation-faithful pseudocode and complexity claims.
 4. Approve dataset and reproducibility metadata.
@@ -75,6 +75,6 @@ independent verification all agree.
 
 - Proofread `main.pdf`, `supp.pdf`, and `response_to_reviewers.pdf` before upload.
 - Verify the funding-role, competing-interest, CRediT, and AI-use declarations as personal statements.
-- Replace the requested Gmail contact with a current institutional address in both the manuscript and Editorial Manager before submission. The present files retain Gmail because that was the author's explicit instruction, but the journal lists an institutional address as mandatory.
+- Confirm that `mathias.valla@gmail.com` is used consistently in both the manuscript and Editorial Manager, as chosen by the author.
 - Generate the official Elsevier declarations Word file from `DECLARATIONS_DRAFT.md`; the Markdown file is a checked source, not a substitute for the journal tool.
 - Build and inspect Editorial Manager's merged submission PDF before approval.

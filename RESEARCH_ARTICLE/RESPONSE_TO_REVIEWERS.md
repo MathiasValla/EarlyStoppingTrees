@@ -55,11 +55,11 @@ The main revisions are as follows.
    randomized trees, scalable and approximate split finding, online and dynamic
    trees, global tree optimization, multi-dataset statistical comparison, and
    recent split-construction research.
-10. We removed `S_par` from performance comparisons, inference,
-    recommendations, and theoretical claims. The current 100-run benchmark was
-    produced by a defective implementation and supports no performance claim
-    for corrected `S_par`. We corrected the calibration and added focused tests;
-    evaluating it under the full benchmark remains future work.
+10. We corrected `S_par`, added focused tests, and reran all 20 configurations
+    for 100 seeds on every retained entry. The Supplement reports this screening
+    separately. No corrected configuration enters the full effort-loss Pareto
+    frontier, so `S_par` is not recommended or included in the confirmatory
+    family.
 
 The responses below represent every editorial and reviewer comment. The
 editorial synthesis contains the full answers; repeated reviewer items refer
@@ -490,11 +490,11 @@ exceed the exhaustive exact-gain count. `S^2` can exceed it
 because it adds sampled gains before a full exact exploration-feature scan. The
 prophet-style rule has the safe bound `m + C_all`: it first evaluates one sampled
 gain per feature and then replays exact scans while skipping each sampled
-partition position. A future corrected `S_par` would add sampling, calibration,
-and replay work, but the current 100-run benchmark provides no performance
-estimate for that corrected method. Different selected splits can also create
-different descendants, so a fixed-node ordering need not hold for whole-tree
-effort.
+partition position. Corrected `S_par` adds sampling, calibration, and replay
+work. Its separate 100-run screening reduced recorded gain evaluations, but no
+configuration entered the full effort-loss Pareto frontier. Different selected
+splits can also create different descendants, so a fixed-node ordering need not
+hold for whole-tree effort.
 
 The effort metric is a search proxy, not a wall-clock complexity model. CART and
 ERT effort is reconstructed for successful internal-node searches, whereas
@@ -529,7 +529,7 @@ post-scaling type and legends, distinct method-family colors, redundant marker
 shapes, and lower-opacity backgrounds. We checked the compiled PDFs for
 overlaps, clipping, and legend placement.
 
-**Location.** Main manuscript, Figures 1 to 3. Supplement, Figures S1 to S14.
+**Location.** Main manuscript, Figures 1 to 3. Supplement, Figures S1 to S15.
 
 ## Response to Reviewer 3
 
@@ -555,23 +555,31 @@ target value was translated by the same amount. In classification, the normal
 inverse-CDF helper reversed the sign convention and mapped nominal upper
 quantiles to lower-tail values.
 
-The current benchmark therefore supports no performance estimate, Pareto
-position, reliability result, recommendation, or theoretical-validation claim
-for corrected `S_par`. The paper excludes `S_par` from the main comparison and
-confirmatory inference. Any output produced by the defective implementation is
-treated only as a diagnostic and not as evidence for the intended method.
+Results from that implementation are not used. The paper excludes `S_par` from
+the main comparison and confirmatory inference.
 
 A corrected implementation is now included. It evaluates the centered
 between-child sum of squares for regression, uses the correct normal-quantile
 direction in classification, and generates each sampled threshold vector once
 before a monotone scan. Focused tests cover quantile sign and symmetry,
 parametric sampling counters, and regression target-translation invariance. The
-corrected implementation still requires a new benchmark under the same paired
-protocol. No expected speed or predictive performance is claimed from the
-current 100-run results.
+corrected implementation was then rerun for all 20 configurations, 100 seeds,
+113 regression entries, and 122 classification entries under each impurity.
+No configuration enters the full centroid effort-loss Pareto frontier. The
+exploratory display configuration, `samples=sqrt_n,q=0.9`, saves
+46.06% of recorded gain evaluations in regression and about 23% in
+classification, but its regression loss is 11.19%.
+
+The corrected timing campaign used the same host, operating system, Python,
+scikit-learn, folds, and seeds, but was run later with NumPy 2.2.6 rather than
+1.26.4. The Supplement therefore does not report a wall-clock comparison for
+this screening. Predictive loss and gain-evaluation effort remain paired by
+entry and seed. The negative screening
+result is reported rather than omitted: corrected `S_par` is reproducible, but
+the tested calibration does not provide a competitive compromise.
 
 **Location.** Main manuscript, Sections 4.1 and 5. Supplement, the `S_par` status
-box and Algorithm S7.
+box, Algorithm S7, corrected screening subsection, and Figure S15.
 
 Before submission, we checked the numerical values, references, algorithms, and
 figures against the analysis output and compiled manuscripts. The author will

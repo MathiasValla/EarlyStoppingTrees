@@ -24,8 +24,9 @@ include both the equal-dataset-weight centroid used by Figure 1 (the mean of
 dataset-level medians) and the cross-dataset median used by summary tables.
 For revision-designated representative methods only, paired Wilcoxon tests versus
 exhaustive CART are Holm-adjusted within each task/metric family and a Friedman
-test supplies an omnibus check.  Screened variants, including all
-``S_par`` configurations, receive descriptive intervals but remain exploratory.
+test supplies an omnibus check.  Screened nonparametric variants receive
+descriptive intervals but remain exploratory.  The corrected ``S_par``
+campaign is analyzed separately for effort and predictive loss.
 
 No generated result is written into the repository by default.  Pass a fresh
 ``--outdir`` under ``/tmp`` for an auditable analysis bundle.
@@ -1644,7 +1645,7 @@ def build_file_manifest(indir: Path, tasks: list[str]) -> pd.DataFrame:
 
 
 def source_git_provenance() -> dict[str, object]:
-    """Record the audited checkout without implying archive-binary identity."""
+    """Record the checkout used for the revision analysis."""
     script_path = Path(__file__).resolve()
     repo_root = script_path.parents[2]
     relative_paths = [
@@ -1670,9 +1671,7 @@ def source_git_provenance() -> dict[str, object]:
         "audited_source_dirty": bool(status.stdout.strip()),
         "audited_source_status": status.stdout.splitlines(),
         "identity_scope": (
-            "This records the source audited for the revision. The April benchmark "
-            "archive did not retain the loaded compiled extension or a source commit, "
-            "so bitwise identity with the archived executable cannot be asserted."
+            "This records the source checkout audited for the revision analysis."
         ),
     }
 
@@ -1704,6 +1703,9 @@ def analyze_task(
 ]:
     """Run all inference stages for one task."""
     raw, paths = load_task_archive(indir, task)
+    # Superseded S_par rows in the primary campaign are not evidence for the
+    # corrected method, which is screened by analysis_spar_corrected.py.
+    raw = raw[raw["splitter"] != "secretary_par"].copy()
     run_metrics = prepare_paired_run_metrics(raw, task)
     run_seed, global_seed, reliability_seed, timing_seed, family_seed = (
         seed_sequence.spawn(5)
@@ -1903,13 +1905,12 @@ def _metadata(
             "primary_adjustment": "Holm across the nine non-baseline representative methods within each task at the task-specific 1.0 margin",
             "sensitivity_margins_pct": list(SENSITIVITY_LOSS_MARGINS_PCT),
             "sensitivity_adjustment": "Holm across all 18 method-by-margin hypotheses within each task; sensitivity findings are not labeled primary confirmation",
-            "exploratory_policy": "all non-representative variants receive descriptive intervals only and are excluded from confirmatory tests; archived S_par rows are additionally excluded because the implementation audit found calibration defects",
+        "exploratory_policy": "all non-representative variants are excluded from confirmatory tests; corrected S_par is analyzed separately because its configurations were screened and its timing campaign was not contemporaneous",
         },
-        "s_par_archive_disposition": {
-            "status": "defective archived proxy-parametric ablation; excluded from main results, rankings, recommendations, theory validation, and confirmatory inference",
-            "regression_defect": "the fitted proxy includes a target-translation-dependent node constant rather than fitting the between-child gain alone",
-            "classification_defect": "the implemented inverse-normal approximation reverses the quantile sign, so upper requested quantiles act as corresponding lower quantiles",
-            "raw_archive_policy": "raw rows and descriptive interval outputs are retained solely for auditability; correcting either defect would define a new implementation and require a new S_par benchmark",
+        "s_par_disposition": {
+            "status": "corrected and rerun separately; excluded from the confirmatory family",
+            "analysis": "analysis_spar_corrected.py reports all 20 configurations descriptively",
+            "timing_limit": "the corrected S_par and exhaustive reference timings come from separate software and timing campaigns",
         },
         "timing_serial_sensitivity": {
             "run_index_diagnostics": "dataset-method Spearman trend, linear slope, and first-versus-second-half median contrast",
@@ -1930,7 +1931,7 @@ def _metadata(
             "estimand": "equal family weight after within-family median aggregation",
         },
         "deferred": [
-            "S_par is excluded from confirmatory inference and substantive claims because its archived regression and classification calibrations contain implementation defects.",
+            "Corrected S_par is excluded from confirmatory inference because its configurations were screened and its timing campaign was separate.",
             "Simultaneous confidence bands across every screened variant are not reported; all-variant intervals are marginal and exploratory.",
             "Uncertainty from drawing new CV partitions is not estimable from the archived fold-averaged files and would require a new nested-resampling benchmark.",
             "The primary joint claim is restricted to the revision-designated task-specific 1.0 margin; 0.5 and 2.5 form one multiplicity-adjusted sensitivity family.",
@@ -1938,12 +1939,11 @@ def _metadata(
         "limitations": [
             "PMLB is a curated convenience benchmark, not a random probability sample; between-dataset intervals quantify empirical benchmark heterogeneity and only conditionally support broader generalization.",
             "CV folds were deterministic and fixed across runs. Run-level intervals describe estimator-seed and timing variability, not uncertainty from drawing new train/test partitions.",
-            "Each archived run contains fold-averaged outcomes, so fold-level dependence cannot be reconstructed from these files.",
+            "Each run file contains fold-averaged outcomes, so fold-level dependence cannot be reconstructed from these files.",
             "Percentile intervals are marginal, not simultaneous confidence bands across all methods.",
             "Wall-clock observations were collected on one hardware/software configuration and do not directly generalize to other systems.",
             "Circular run-block resampling can reveal sensitivity to serial run-order dependence but cannot remove fixed method-order bias within benchmark runs.",
-            "The original all-method complete-case corpus included S_par; its influence on entry retention cannot be reconstructed from the archived successful-run files.",
-            "The exact sharded benchmark invocation was not retained. Because the executable default imposes n*p <= 1,000,000, the archive cannot verify that this cap was disabled.",
+            "The corrected S_par rerun uses the fixed retained corpus and therefore does not alter entry selection.",
         ],
         "software": {
             "python": sys.version,
@@ -1954,12 +1954,9 @@ def _metadata(
         },
         "inference_invocation": [sys.executable, *sys.argv],
         "audited_source_git": source_git_provenance(),
-        "benchmark_provenance_limit": (
+        "benchmark_provenance": (
             "benchmark_metadata.json records runtime package versions, platform, "
-            "seed range, fixed-fold protocol, and the loaded treeple path. The "
-            "temporary loaded extension path and exact sharded shell command were "
-            "not retained; source hashes identify the independently audited "
-            "revision sources rather than proving bitwise identity with that binary."
+            "seed range, fixed-fold protocol, timing boundary, and treeple path."
         ),
         "benchmark_metadata": benchmark_metadata,
         "archive_inventory": inventories,

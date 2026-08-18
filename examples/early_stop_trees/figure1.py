@@ -697,7 +697,7 @@ def _save_supp_figure1_pareto_large_small(
 
 
 def _save_supp_figure1_secretary_par_triple(indir: Path):
-    """SUPP fig 2: rows all | large | small (secretary_par variants) + one legend. PNG only."""
+    """Legacy size-stratified S_par diagnostic; not used by the manuscript."""
     data = load_all(indir, exclude_secretary_par=False, by_variant=True)
     reg_summary = data.get("regression_summary")
     clf_g = data.get("classification_gini_summary")
@@ -807,7 +807,7 @@ def _save_supp_figure1_secretary_par_triple(indir: Path):
         bbox_to_anchor=(0, 0.05, 1, 0.9),
         mode="expand",
     )
-    out = SUPP_DIR / "supp_figure_02_secretary_par_all_large_small.png"
+    out = SUPP_DIR / "supp_figure_16_secretary_par_size_screening.png"
     fig.savefig(out, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved {out}")

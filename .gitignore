@@ -15,6 +15,7 @@ treeple/_lib/sklearn
 
 # Early-stopping benchmark example: large/generated artifacts
 examples/early_stop_trees/benchmark_results/
+examples/early_stop_trees/benchmark_spar_corrected_100/
 examples/early_stop_trees/figures/
 examples/early_stop_trees/analysis_additional/
 examples/early_stop_trees/analysis_gain_landscape/

@@ -20,13 +20,15 @@ python supp_plot_within_between_variability.py --task classification_entropy
 
 python analysis_gain_landscape.py
 python supp_plot_gain_landscape.py          # supp 13
+python analysis_spar_corrected.py            # corrected S_par screening
 
 python export_paper_figures.py
 ```
 
 **Supplementary figures are PNG-only** (no PDF merge). Merged layouts and single legends are produced by the scripts above.
 
-Optional: `python figure1.py --variants-of secretary_par` for standalone per-size secretary_par Pareto PDFs/PNGs (separate from the merged supp 02 PNG).
+The corrected `S_par` campaign is analyzed separately because its wall-clock
+measurements were collected later than the exhaustive reference timings.
 
 ## `MAIN_FIGURES/`
 
@@ -39,7 +41,7 @@ Optional: `python figure1.py --variants-of secretary_par` for standalone per-siz
 | File | Contents |
 |------|----------|
 | `supp_figure_01_*.png` | Pareto: large + small rows, one legend |
-| `supp_figure_02_*.png` | Secretary-par variants: all + large + small, one legend |
+| `supp_figure_02_*.png` | Complete-tree comparison |
 | `supp_figure_03` … `05` | Figure 2 ridgelines (regression, gini, entropy) |
 | `supp_figure_06_*.png` | Figure 4 joint grid: large + small, one legend |
 | `supp_figure_07_*.png` | Figure 4 loss-only CDFs: large + small, one legend |
@@ -47,6 +49,7 @@ Optional: `python figure1.py --variants-of secretary_par` for standalone per-siz
 | `supp_figure_09` … `11` | Within whiskers: speedup + loss stacked per task |
 | `supp_figure_12_*.png` | Joint success bar grid (all datasets), standalone |
 | `supp_figure_13_*.png` | Exhaustive gain-landscape diagnostics for regression vs classification |
+| `supp_figure_16_*.png` | Corrected `S_par` effort-loss screening |
 
 **MAIN** `figure4_success_combined` matches the loss-CDF row of `figure4_success_loss_only` (same panel titles) with a **single bottom legend** using **marker swatches** (not line handles). The joint 4×3 bar grid is exported separately as `supp_figure_12_success_joint_all.png`.
 

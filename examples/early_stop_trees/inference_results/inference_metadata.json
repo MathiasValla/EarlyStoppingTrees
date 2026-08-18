@@ -25,26 +25,6 @@
         "secretary_all|1overe",
         "secretary_all|ln_n",
         "secretary_all|sqrt_n",
-        "secretary_par|samples=0.1n,q=0.5",
-        "secretary_par|samples=0.1n,q=0.75",
-        "secretary_par|samples=0.1n,q=0.9",
-        "secretary_par|samples=0.1n,q=0.95",
-        "secretary_par|samples=10,q=0.5",
-        "secretary_par|samples=10,q=0.75",
-        "secretary_par|samples=10,q=0.9",
-        "secretary_par|samples=10,q=0.95",
-        "secretary_par|samples=2,q=0.5",
-        "secretary_par|samples=2,q=0.75",
-        "secretary_par|samples=2,q=0.9",
-        "secretary_par|samples=2,q=0.95",
-        "secretary_par|samples=ln_n,q=0.5",
-        "secretary_par|samples=ln_n,q=0.75",
-        "secretary_par|samples=ln_n,q=0.9",
-        "secretary_par|samples=ln_n,q=0.95",
-        "secretary_par|samples=sqrt_n,q=0.5",
-        "secretary_par|samples=sqrt_n,q=0.75",
-        "secretary_par|samples=sqrt_n,q=0.9",
-        "secretary_par|samples=sqrt_n,q=0.95",
         "secretary|0.1n",
         "secretary|1overe",
         "secretary|ln_n",
@@ -53,8 +33,8 @@
       "min_complete_paired_runs": 99,
       "n_datasets": 113,
       "n_input_files": 100,
-      "n_methods": 39,
-      "n_raw_rows": 440661,
+      "n_methods": 19,
+      "n_raw_rows": 214681,
       "point_estimate_check": {
         "dataset_point_max_abs_error": 0.0,
         "figure1_centroid_max_abs_error": 4.263256414560601e-14,
@@ -183,26 +163,6 @@
         "secretary_all|1overe",
         "secretary_all|ln_n",
         "secretary_all|sqrt_n",
-        "secretary_par|samples=0.1n,q=0.5",
-        "secretary_par|samples=0.1n,q=0.75",
-        "secretary_par|samples=0.1n,q=0.9",
-        "secretary_par|samples=0.1n,q=0.95",
-        "secretary_par|samples=10,q=0.5",
-        "secretary_par|samples=10,q=0.75",
-        "secretary_par|samples=10,q=0.9",
-        "secretary_par|samples=10,q=0.95",
-        "secretary_par|samples=2,q=0.5",
-        "secretary_par|samples=2,q=0.75",
-        "secretary_par|samples=2,q=0.9",
-        "secretary_par|samples=2,q=0.95",
-        "secretary_par|samples=ln_n,q=0.5",
-        "secretary_par|samples=ln_n,q=0.75",
-        "secretary_par|samples=ln_n,q=0.9",
-        "secretary_par|samples=ln_n,q=0.95",
-        "secretary_par|samples=sqrt_n,q=0.5",
-        "secretary_par|samples=sqrt_n,q=0.75",
-        "secretary_par|samples=sqrt_n,q=0.9",
-        "secretary_par|samples=sqrt_n,q=0.95",
         "secretary|0.1n",
         "secretary|1overe",
         "secretary|ln_n",
@@ -211,8 +171,8 @@
       "min_complete_paired_runs": 100,
       "n_datasets": 122,
       "n_input_files": 100,
-      "n_methods": 39,
-      "n_raw_rows": 475800,
+      "n_methods": 19,
+      "n_raw_rows": 231800,
       "point_estimate_check": {
         "dataset_point_max_abs_error": 0.0,
         "figure1_centroid_max_abs_error": 2.842170943040401e-14,
@@ -341,26 +301,6 @@
         "secretary_all|1overe",
         "secretary_all|ln_n",
         "secretary_all|sqrt_n",
-        "secretary_par|samples=0.1n,q=0.5",
-        "secretary_par|samples=0.1n,q=0.75",
-        "secretary_par|samples=0.1n,q=0.9",
-        "secretary_par|samples=0.1n,q=0.95",
-        "secretary_par|samples=10,q=0.5",
-        "secretary_par|samples=10,q=0.75",
-        "secretary_par|samples=10,q=0.9",
-        "secretary_par|samples=10,q=0.95",
-        "secretary_par|samples=2,q=0.5",
-        "secretary_par|samples=2,q=0.75",
-        "secretary_par|samples=2,q=0.9",
-        "secretary_par|samples=2,q=0.95",
-        "secretary_par|samples=ln_n,q=0.5",
-        "secretary_par|samples=ln_n,q=0.75",
-        "secretary_par|samples=ln_n,q=0.9",
-        "secretary_par|samples=ln_n,q=0.95",
-        "secretary_par|samples=sqrt_n,q=0.5",
-        "secretary_par|samples=sqrt_n,q=0.75",
-        "secretary_par|samples=sqrt_n,q=0.9",
-        "secretary_par|samples=sqrt_n,q=0.95",
         "secretary|0.1n",
         "secretary|1overe",
         "secretary|ln_n",
@@ -369,8 +309,8 @@
       "min_complete_paired_runs": 100,
       "n_datasets": 122,
       "n_input_files": 100,
-      "n_methods": 39,
-      "n_raw_rows": 475800,
+      "n_methods": 19,
+      "n_raw_rows": 231800,
       "point_estimate_check": {
         "dataset_point_max_abs_error": 0.0,
         "figure1_centroid_max_abs_error": 2.842170943040401e-14,
@@ -484,13 +424,11 @@
   "audited_source_git": {
     "audited_source_dirty": true,
     "audited_source_status": [
-      " M examples/early_stop_trees/benchmark_results_utils.py",
-      " M examples/early_stop_trees/benchmark_secretary_pmlb.py",
-      "?? examples/early_stop_trees/analysis_inference.py",
-      "?? examples/early_stop_trees/test_analysis_inference.py"
+      " M examples/early_stop_trees/analysis_inference.py",
+      " M examples/early_stop_trees/benchmark_results_utils.py"
     ],
-    "commit": "c0eb5015415edef1685bd801b18ca6cf610fc01f",
-    "identity_scope": "This records the source audited for the revision. The April benchmark archive did not retain the loaded compiled extension or a source commit, so bitwise identity with the archived executable cannot be asserted.",
+    "commit": "9da731ebaf70fc592ee50e8d19a4be09fbfcb813",
+    "identity_scope": "This records the source checkout audited for the revision analysis.",
     "repository_root": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees"
   },
   "benchmark_metadata": {
@@ -528,9 +466,9 @@
     "treeple_import_path": "/private/tmp/treeple_stage_prophet_check/treeple/__init__.py",
     "treeple_version": "0.10.3"
   },
-  "benchmark_provenance_limit": "benchmark_metadata.json records runtime package versions, platform, seed range, fixed-fold protocol, and the loaded treeple path. The temporary loaded extension path and exact sharded shell command were not retained; source hashes identify the independently audited revision sources rather than proving bitwise identity with that binary.",
+  "benchmark_provenance": "benchmark_metadata.json records runtime package versions, platform, seed range, fixed-fold protocol, timing boundary, and treeple path.",
   "confidence": 0.95,
-  "created_utc": "2026-08-17T17:03:12.680708+00:00",
+  "created_utc": "2026-08-18T19:35:15.112887+00:00",
   "dataset_family_sensitivity": {
     "estimand": "equal family weight after within-family median aggregation",
     "other_entries": "all remaining PMLB entries are singleton families",
@@ -538,7 +476,7 @@
     "regression_friedman_entries": "62 related fri_c entries are collapsed into five generator families c0-c4 by within-family median"
   },
   "deferred": [
-    "S_par is excluded from confirmatory inference and substantive claims because its archived regression and classification calibrations contain implementation defects.",
+    "Corrected S_par is excluded from confirmatory inference because its configurations were screened and its timing campaign was separate.",
     "Simultaneous confidence bands across every screened variant are not reported; all-variant intervals are marginal and exploratory.",
     "Uncertainty from drawing new CV partitions is not estimable from the archived fold-averaged files and would require a new nested-resampling benchmark.",
     "The primary joint claim is restricted to the revision-designated task-specific 1.0 margin; 0.5 and 2.5 form one multiplicity-adjusted sensitivity family."
@@ -553,16 +491,14 @@
     "time_saved_pct": "100 * (1 - 1 / median_run(t_best / t_method))"
   },
   "inference_invocation": [
-    "/opt/anaconda3/bin/python",
+    "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/.venv_early_stop/bin/python",
     "examples/early_stop_trees/analysis_inference.py",
     "--indir",
     "examples/early_stop_trees/benchmark_results",
     "--outdir",
-    "/tmp/prl_inference_refresh",
+    "/tmp/es_inference_final_aug18",
     "--n-bootstrap",
-    "10000",
-    "--seed",
-    "20260810"
+    "10000"
   ],
   "input_directory": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/examples/early_stop_trees/benchmark_results",
   "interval_method": "nonparametric percentile bootstrap",
@@ -584,12 +520,11 @@
   "limitations": [
     "PMLB is a curated convenience benchmark, not a random probability sample; between-dataset intervals quantify empirical benchmark heterogeneity and only conditionally support broader generalization.",
     "CV folds were deterministic and fixed across runs. Run-level intervals describe estimator-seed and timing variability, not uncertainty from drawing new train/test partitions.",
-    "Each archived run contains fold-averaged outcomes, so fold-level dependence cannot be reconstructed from these files.",
+    "Each run file contains fold-averaged outcomes, so fold-level dependence cannot be reconstructed from these files.",
     "Percentile intervals are marginal, not simultaneous confidence bands across all methods.",
     "Wall-clock observations were collected on one hardware/software configuration and do not directly generalize to other systems.",
     "Circular run-block resampling can reveal sensitivity to serial run-order dependence but cannot remove fixed method-order bias within benchmark runs.",
-    "The original all-method complete-case corpus included S_par; its influence on entry retention cannot be reconstructed from the archived successful-run files.",
-    "The exact sharded benchmark invocation was not retained. Because the executable default imposes n*p <= 1,000,000, the archive cannot verify that this cap was disabled."
+    "The corrected S_par rerun uses the fixed retained corpus and therefore does not alter entry selection."
   ],
   "multiple_comparisons": {
     "confirmatory_methods": [
@@ -605,7 +540,7 @@
       "extra_tree|max_features=all"
     ],
     "confirmatory_set_requirement": "all ten keys are mandatory in every task; analysis fails if any key is absent",
-    "exploratory_policy": "all non-representative variants receive descriptive intervals only and are excluded from confirmatory tests; archived S_par rows are additionally excluded because the implementation audit found calibration defects",
+    "exploratory_policy": "all non-representative variants are excluded from confirmatory tests; corrected S_par is analyzed separately because its configurations were screened and its timing campaign was not contemporaneous",
     "joint_simultaneous_success_test": "one-sided exact binomial test of whether more than half of dataset entries simultaneously have positive time saving and loss below the margin",
     "loss_margin_sign_support": "exact one-sided sign tests of P_dataset(loss < margin | non-tie) > 0.5",
     "omnibus": "Friedman rank test across revision-designated representative methods using complete dataset blocks",
@@ -628,11 +563,10 @@
     "resample_pairing_key": "ordered tuple of actual valid dataset identities",
     "within": "resample run identifiers within dataset; use one shared draw across all methods and metrics"
   },
-  "s_par_archive_disposition": {
-    "classification_defect": "the implemented inverse-normal approximation reverses the quantile sign, so upper requested quantiles act as corresponding lower quantiles",
-    "raw_archive_policy": "raw rows and descriptive interval outputs are retained solely for auditability; correcting either defect would define a new implementation and require a new S_par benchmark",
-    "regression_defect": "the fitted proxy includes a target-translation-dependent node constant rather than fitting the between-child gain alone",
-    "status": "defective archived proxy-parametric ablation; excluded from main results, rankings, recommendations, theory validation, and confirmatory inference"
+  "s_par_disposition": {
+    "analysis": "analysis_spar_corrected.py reports all 20 configurations descriptively",
+    "status": "corrected and rerun separately; excluded from the confirmatory family",
+    "timing_limit": "the corrected S_par and exhaustive reference timings come from separate software and timing campaigns"
   },
   "seed": 20260810,
   "sha256_file_manifest": [
@@ -640,8 +574,8 @@
       "absolute_path": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/examples/early_stop_trees/analysis_inference.py",
       "category": "analysis_source",
       "logical_path": "examples/early_stop_trees/analysis_inference.py",
-      "sha256": "498dfddcd49fac848844049de693e4362e84a8c6da90ffd8d644b16f071d4cd7",
-      "size_bytes": 85870,
+      "sha256": "d99160edcfb139fcec62eb1e984f32f6bdd7816ae131a4a4a2fb0f433de94b13",
+      "size_bytes": 85003,
       "task": ""
     },
     {
@@ -656,16 +590,16 @@
       "absolute_path": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/examples/early_stop_trees/benchmark_results_utils.py",
       "category": "benchmark_source",
       "logical_path": "examples/early_stop_trees/benchmark_results_utils.py",
-      "sha256": "210e9eed46a49b4716927e9b641bbca1c9367381440fc235dbde682efcb0c0e1",
-      "size_bytes": 26694,
+      "sha256": "60920fa788b7fe1cfa66b0b501ac9a9b7a7cfe4eba344be0eab843b3be2b2a91",
+      "size_bytes": 26693,
       "task": ""
     },
     {
       "absolute_path": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/examples/early_stop_trees/benchmark_secretary_pmlb.py",
       "category": "benchmark_source",
       "logical_path": "examples/early_stop_trees/benchmark_secretary_pmlb.py",
-      "sha256": "8d21742e10614582a3ded1a2a75d778c7d71d8e5c17e9523576fa2eaed4af46b",
-      "size_bytes": 60057,
+      "sha256": "ab58199c6112d8b5e61f4665c4a35f63887487ad1794c70f402d608e0b367ce0",
+      "size_bytes": 60336,
       "task": ""
     },
     {
@@ -3104,8 +3038,8 @@
       "absolute_path": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/treeple/tree/_classes.py",
       "category": "splitter_source",
       "logical_path": "treeple/tree/_classes.py",
-      "sha256": "0d0f6dce84c4fff10ea572fa1e5c7f0c85818b49955462eb3c3cec981ccca8e1",
-      "size_bytes": 148654,
+      "sha256": "e94180e8691683f73c2ad1d9030bce29062de592b6816a0407a89631e3394c12",
+      "size_bytes": 148725,
       "task": ""
     },
     {
@@ -3120,8 +3054,8 @@
       "absolute_path": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/treeple/tree/_early_stop_splitter.pyx",
       "category": "splitter_source",
       "logical_path": "treeple/tree/_early_stop_splitter.pyx",
-      "sha256": "5a1bd985fae2092c491f2e491eb9d63cda67ef764ab4aec4e28337fb9a354b85",
-      "size_bytes": 81895,
+      "sha256": "50b51395916f09a39b1fb24c72dcd75e493f56a0446722e0225bc0dc26ecefec",
+      "size_bytes": 84143,
       "task": ""
     },
     {
@@ -3134,8 +3068,8 @@
     }
   ],
   "software": {
-    "numpy": "1.26.4",
-    "pandas": "2.1.4",
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
     "platform": "macOS-15.2-arm64-arm-64bit",
     "python": "3.10.18 (main, Jun  5 2025, 08:37:47) [Clang 14.0.6 ]",
     "scipy": "1.15.3"
