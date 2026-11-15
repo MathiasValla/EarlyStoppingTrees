@@ -1,0 +1,18 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Classification-family sensitivity. Values are equal-family means of family-level dataset medians over 108 grouped families.}
+\label{tab:supp_class_family}
+\begin{tabular}{llrr}
+\toprule
+Task & Split search & Time saved (\%) & Weighted-F1 loss (points) \\
+\midrule
+Gini & $S_{\mathrm{all}}(1/e)$ & 12.41 & 0.10 \\
+Gini & Exact random subset ($2p/3$) & 18.73 & 0.17 \\
+Gini & ERT ($p$) & 36.60 & 0.52 \\
+Entropy & $S_{\mathrm{all}}(1/e)$ & 11.40 & 0.01 \\
+Entropy & Exact random subset ($2p/3$) & 18.44 & 0.17 \\
+Entropy & ERT ($p$) & 37.00 & 0.29 \\
+\bottomrule
+\end{tabular}
+\end{table*}

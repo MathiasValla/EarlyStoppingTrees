@@ -2,72 +2,102 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
+\emailauthor{mathias.valla@gmail.com}{Mathias Valla\corref {cor1}}
+\Newlabel{cor1}{1}
+\citation{grinsztajn2022tabular}
 \citation{breiman1984cart,quinlan1986induction}
 \citation{fayyad1992continuous}
 \citation{breiman2001rf,geurts2006extra}
-\citation{appel2013quickly,chen2016xgboost,ke2017lightgbm}
-\citation{domingos2000vfdt,bressan2024dynamic,pham2025streams,tatti2025approximating}
 \citation{gilbertmosteller1966,ferguson1989secretary}
 \citation{nuti2023single,rubinstein2020samples}
 \citation{bertsimas2017optimal,babbar2025split}
+\citation{mehta1996sliq,shafer1996sprint}
+\citation{appel2013quickly,chen2016xgboost,ke2017lightgbm}
+\citation{breiman2001rf,geurts2006extra}
+\Newlabel{inst1}{a}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:introduction}{{1}{1}{Introduction}{section.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {2}Methods}{1}{section.2}\protected@file@percent }
-\newlabel{sec:methods}{{2}{1}{Methods}{section.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Split search and stopping rules}{1}{subsection.2.1}\protected@file@percent }
-\newlabel{eq:gain}{{1}{1}{Split search and stopping rules}{equation.1}{}}
+\citation{tiwari2022mabsplit}
+\citation{domingos2000vfdt}
+\citation{bressan2024dynamic,pham2025streams,tatti2025approximating,iamoukou2026anytime,ta2026streamsplits}
+\citation{jaworski2027hoeffding}
 \citation{nuti2023single}
 \citation{geurts2006extra}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related work}{2}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{2}{2}{Related work}{section.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Methods}{2}{section.3}\protected@file@percent }
+\newlabel{sec:methods}{{3}{2}{Methods}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Split search and stopping rules}{2}{subsection.3.1}\protected@file@percent }
+\newlabel{eq:gain}{{1}{2}{Split search and stopping rules}{equation.1}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Common explore-then-select framework for \(S\), \(S_{\mathrm  {all}}\), and \(S^2\).}}{2}{algorithm.1}\protected@file@percent }
+\newlabel{alg:common}{{1}{2}{Split search and stopping rules}{algorithm.1}{}}
 \citation{romano2022pmlb}
 \citation{pedregosa2011scikit}
 \citation{demsar2006comparisons}
 \citation{efron1979bootstrap}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Common feature-ordered framework for \(S\), \(S_{\mathrm  {all}}\), and \(S^2\).}}{2}{algorithm.1}\protected@file@percent }
-\newlabel{alg:common}{{1}{2}{Split search and stopping rules}{algorithm.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Computational scope}{2}{subsection.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Experimental design}{2}{section.3}\protected@file@percent }
-\newlabel{sec:experimental}{{3}{2}{Experimental design}{section.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Benchmark and reproducibility}{2}{subsection.3.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Estimands and inference}{2}{subsection.3.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Retained PMLB datasets: Q1/median/Q3, with ranges in parentheses.}}{2}{table.1}\protected@file@percent }
-\newlabel{tab:datasets}{{1}{2}{Retained PMLB datasets: Q1/median/Q3, with ranges in parentheses}{table.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Results}{3}{section.4}\protected@file@percent }
-\newlabel{sec:results}{{4}{3}{Results}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Time--prediction trade-offs}{3}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Reliability and observed regimes}{3}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion and conclusion}{3}{section.5}\protected@file@percent }
-\newlabel{sec:discussion}{{5}{3}{Discussion and conclusion}{section.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Time saved and predictive loss relative to exhaustive CART. Small points are paired-seed entry medians; large points are equal-weight entry centroids with marginal 95\% hierarchical bootstrap intervals.}}{4}{figure.1}\protected@file@percent }
-\newlabel{fig:pareto_main}{{1}{4}{Time saved and predictive loss relative to exhaustive CART. Small points are paired-seed entry medians; large points are equal-weight entry centroids with marginal 95\% hierarchical bootstrap intervals}{figure.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Representative-method summaries with hierarchical 95\% bootstrap intervals. Centroids average entry-level run medians; classification losses are weighted-F1 percentage points and all other entries are percentages.}}{4}{table.2}\protected@file@percent }
-\newlabel{tab:summary_results}{{2}{4}{Representative-method summaries with hierarchical 95\% bootstrap intervals. Centroids average entry-level run medians; classification losses are weighted-F1 percentage points and all other entries are percentages}{table.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Entry-level reliability under specified time-saving and predictive-loss constraints. Bands show 95\% hierarchical bootstrap intervals for joint success.}}{5}{figure.2}\protected@file@percent }
-\newlabel{fig:reliability}{{2}{5}{Entry-level reliability under specified time-saving and predictive-loss constraints. Bands show 95\% hierarchical bootstrap intervals for joint success}{figure.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Tolerance-constrained regime maps. Columns show regression, Gini classification, and entropy classification; rows show margins 0.5, 1, and 2.5, measured as bounded-relative-RMSE percentages for regression and weighted-F1 percentage points for classification. Each entry is colored by its fastest admissible method; pale regions are descriptive 7-nearest-neighbor interpolation.}}{5}{figure.3}\protected@file@percent }
-\newlabel{fig:dataset_structure}{{3}{5}{Tolerance-constrained regime maps. Columns show regression, Gini classification, and entropy classification; rows show margins 0.5, 1, and 2.5, measured as bounded-relative-RMSE percentages for regression and weighted-F1 percentage points for classification. Each entry is colored by its fastest admissible method; pale regions are descriptive 7-nearest-neighbor interpolation}{figure.3}{}}
+\citation{friedman1937ranks}
+\citation{wilcoxon1945individual}
+\citation{holm1979simple}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Computational scope}{3}{subsection.3.2}\protected@file@percent }
+\newlabel{eq:cart-tree-cost}{{2}{3}{Computational scope}{equation.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experimental design}{3}{section.4}\protected@file@percent }
+\newlabel{sec:experimental}{{4}{3}{Experimental design}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Benchmark and reproducibility}{3}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Estimands and inference}{3}{subsection.4.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Retained PMLB datasets: Q1/median/Q3, with ranges in parentheses.}}{3}{table.1}\protected@file@percent }
+\newlabel{tab:datasets}{{1}{3}{Retained PMLB datasets: Q1/median/Q3, with ranges in parentheses}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Results}{4}{section.5}\protected@file@percent }
+\newlabel{sec:results}{{5}{4}{Results}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Time--prediction trade-offs}{4}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Adaptive stopping versus fixed budgets}{4}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Reliability and observed regimes}{4}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{4}{section.6}\protected@file@percent }
+\newlabel{sec:discussion}{{6}{4}{Discussion}{section.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Time saved and predictive loss relative to exhaustive CART. Small points are paired-seed entry medians; large points are equal-weight entry centroids with marginal 95\% hierarchical bootstrap intervals.}}{5}{figure.1}\protected@file@percent }
+\newlabel{fig:pareto_main}{{1}{5}{Time saved and predictive loss relative to exhaustive CART. Small points are paired-seed entry medians; large points are equal-weight entry centroids with marginal 95\% hierarchical bootstrap intervals}{figure.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Counterbalanced comparison with exact search over fixed random feature subsets. Points are equal-entry means of paired-seed medians; bars are 95\% hierarchical bootstrap intervals.}}{5}{figure.2}\protected@file@percent }
+\newlabel{fig:direct_control}{{2}{5}{Counterbalanced comparison with exact search over fixed random feature subsets. Points are equal-entry means of paired-seed medians; bars are 95\% hierarchical bootstrap intervals}{figure.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Representative-method summaries with hierarchical 95\% bootstrap intervals. Centroids average entry-level run medians; classification losses are weighted-F1 percentage points and all other entries are percentages.}}{6}{table.2}\protected@file@percent }
+\newlabel{tab:summary_results}{{2}{6}{Representative-method summaries with hierarchical 95\% bootstrap intervals. Centroids average entry-level run medians; classification losses are weighted-F1 percentage points and all other entries are percentages}{table.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Focused 25-tree bagging validation. Values are equal-entry means of paired-seed medians with 95\% hierarchical bootstrap intervals.}}{6}{table.3}\protected@file@percent }
+\newlabel{tab:ensemble_validation}{{3}{6}{Focused 25-tree bagging validation. Values are equal-entry means of paired-seed medians with 95\% hierarchical bootstrap intervals}{table.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{6}{section.7}\protected@file@percent }
+\newlabel{sec:conclusion}{{7}{6}{Conclusion}{section.7}{}}
 \bibstyle{elsarticle-num}
 \bibdata{references}
-\bibcite{breiman1984cart}{{1}{}{{}}{{}}}
-\bibcite{quinlan1986induction}{{2}{}{{}}{{}}}
-\bibcite{fayyad1992continuous}{{3}{}{{}}{{}}}
-\bibcite{breiman2001rf}{{4}{}{{}}{{}}}
-\bibcite{geurts2006extra}{{5}{}{{}}{{}}}
-\bibcite{appel2013quickly}{{6}{}{{}}{{}}}
-\bibcite{chen2016xgboost}{{7}{}{{}}{{}}}
-\bibcite{ke2017lightgbm}{{8}{}{{}}{{}}}
-\bibcite{domingos2000vfdt}{{9}{}{{}}{{}}}
-\bibcite{bressan2024dynamic}{{10}{}{{}}{{}}}
-\bibcite{pham2025streams}{{11}{}{{}}{{}}}
-\bibcite{tatti2025approximating}{{12}{}{{}}{{}}}
-\bibcite{gilbertmosteller1966}{{13}{}{{}}{{}}}
-\bibcite{ferguson1989secretary}{{14}{}{{}}{{}}}
-\bibcite{nuti2023single}{{15}{}{{}}{{}}}
-\bibcite{rubinstein2020samples}{{16}{}{{}}{{}}}
-\bibcite{bertsimas2017optimal}{{17}{}{{}}{{}}}
-\bibcite{babbar2025split}{{18}{}{{}}{{}}}
-\bibcite{romano2022pmlb}{{19}{}{{}}{{}}}
-\bibcite{pedregosa2011scikit}{{20}{}{{}}{{}}}
-\bibcite{demsar2006comparisons}{{21}{}{{}}{{}}}
-\bibcite{efron1979bootstrap}{{22}{}{{}}{{}}}
+\bibcite{grinsztajn2022tabular}{{1}{}{{}}{{}}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Tolerance-constrained regime maps. Columns show regression, Gini classification, and entropy classification; rows show margins 0.5, 1, and 2.5, measured as bounded-relative-RMSE percentages for regression and weighted-F1 percentage points for classification. Each entry is colored by its fastest admissible method; pale regions are descriptive 7-nearest-neighbor interpolation.}}{7}{figure.3}\protected@file@percent }
+\newlabel{fig:dataset_structure}{{3}{7}{Tolerance-constrained regime maps. Columns show regression, Gini classification, and entropy classification; rows show margins 0.5, 1, and 2.5, measured as bounded-relative-RMSE percentages for regression and weighted-F1 percentage points for classification. Each entry is colored by its fastest admissible method; pale regions are descriptive 7-nearest-neighbor interpolation}{figure.3}{}}
+\bibcite{breiman1984cart}{{2}{}{{}}{{}}}
+\bibcite{quinlan1986induction}{{3}{}{{}}{{}}}
+\bibcite{fayyad1992continuous}{{4}{}{{}}{{}}}
+\bibcite{breiman2001rf}{{5}{}{{}}{{}}}
+\bibcite{geurts2006extra}{{6}{}{{}}{{}}}
+\bibcite{gilbertmosteller1966}{{7}{}{{}}{{}}}
+\bibcite{ferguson1989secretary}{{8}{}{{}}{{}}}
+\bibcite{nuti2023single}{{9}{}{{}}{{}}}
+\bibcite{rubinstein2020samples}{{10}{}{{}}{{}}}
+\bibcite{bertsimas2017optimal}{{11}{}{{}}{{}}}
+\bibcite{babbar2025split}{{12}{}{{}}{{}}}
+\bibcite{mehta1996sliq}{{13}{}{{}}{{}}}
+\bibcite{shafer1996sprint}{{14}{}{{}}{{}}}
+\bibcite{appel2013quickly}{{15}{}{{}}{{}}}
+\bibcite{chen2016xgboost}{{16}{}{{}}{{}}}
+\bibcite{ke2017lightgbm}{{17}{}{{}}{{}}}
+\bibcite{tiwari2022mabsplit}{{18}{}{{}}{{}}}
+\bibcite{domingos2000vfdt}{{19}{}{{}}{{}}}
+\bibcite{bressan2024dynamic}{{20}{}{{}}{{}}}
+\bibcite{pham2025streams}{{21}{}{{}}{{}}}
+\bibcite{tatti2025approximating}{{22}{}{{}}{{}}}
+\bibcite{iamoukou2026anytime}{{23}{}{{}}{{}}}
+\bibcite{ta2026streamsplits}{{24}{}{{}}{{}}}
+\bibcite{jaworski2027hoeffding}{{25}{}{{}}{{}}}
+\bibcite{romano2022pmlb}{{26}{}{{}}{{}}}
+\bibcite{pedregosa2011scikit}{{27}{}{{}}{{}}}
+\bibcite{demsar2006comparisons}{{28}{}{{}}{{}}}
+\bibcite{efron1979bootstrap}{{29}{}{{}}{{}}}
+\bibcite{friedman1937ranks}{{30}{}{{}}{{}}}
+\bibcite{wilcoxon1945individual}{{31}{}{{}}{{}}}
+\bibcite{holm1979simple}{{32}{}{{}}{{}}}
 \providecommand\NAT@force@numbers{}\NAT@force@numbers
-\gdef \@abspage@last{6}
+\gdef \@abspage@last{9}

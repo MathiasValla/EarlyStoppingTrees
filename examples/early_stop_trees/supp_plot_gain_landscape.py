@@ -122,7 +122,7 @@ def main():
         axes[1],
         df,
         "relative_median_gap_median",
-        title="Best-vs-median random-threshold gap",
+        title="Best-vs-ERT-weighted median gap",
         ylabel="Relative gap",
     )
     _grouped_boxplot(
@@ -137,7 +137,7 @@ def main():
     handles = [
         plt.Line2D([0], [0], color=COLORS["05"], lw=8, alpha=0.75, label="within 5% of best"),
         plt.Line2D([0], [0], color=COLORS["10"], lw=8, alpha=0.75, label="within 10% of best"),
-        plt.Line2D([0], [0], color=COLORS["gap"], lw=8, alpha=0.75, label="relative median gap"),
+        plt.Line2D([0], [0], color=COLORS["gap"], lw=8, alpha=0.75, label="ERT-weighted median gap"),
     ]
     fig.subplots_adjust(left=0.07, right=0.99, top=0.92, bottom=0.29, wspace=0.32)
     fig.legend(

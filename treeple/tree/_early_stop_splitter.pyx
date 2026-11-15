@@ -278,6 +278,10 @@ cdef class BaseEarlyStopSplitter(Splitter):
         self.n_split_calls = 0
         self.n_threshold_candidates = 0
         self.n_gain_evaluations = 0
+        self.n_feature_sorts = 0
+        self.n_random_partitions = 0
+        self.n_final_partitions = 0
+        self.n_minmax_passes = 0
         self.n_parametric_gain_samples = 0
         self.n_parametric_quantile_fits = 0
 
@@ -301,6 +305,10 @@ cdef class BaseEarlyStopSplitter(Splitter):
         self.n_split_calls = 0
         self.n_threshold_candidates = 0
         self.n_gain_evaluations = 0
+        self.n_feature_sorts = 0
+        self.n_random_partitions = 0
+        self.n_final_partitions = 0
+        self.n_minmax_passes = 0
         self.n_parametric_gain_samples = 0
         self.n_parametric_quantile_fits = 0
         return 0
@@ -309,6 +317,10 @@ cdef class BaseEarlyStopSplitter(Splitter):
         split_calls = int(self.n_split_calls)
         threshold_candidates = int(self.n_threshold_candidates)
         gain_evaluations = int(self.n_gain_evaluations)
+        feature_sorts = int(self.n_feature_sorts)
+        random_partitions = int(self.n_random_partitions)
+        final_partitions = int(self.n_final_partitions)
+        minmax_passes = int(self.n_minmax_passes)
         parametric_gain_samples = int(self.n_parametric_gain_samples)
         parametric_quantile_fits = int(self.n_parametric_quantile_fits)
         denom = split_calls if split_calls > 0 else 1
@@ -316,6 +328,10 @@ cdef class BaseEarlyStopSplitter(Splitter):
             "split_calls": split_calls,
             "threshold_candidates": threshold_candidates,
             "gain_evaluations": gain_evaluations,
+            "feature_sorts": feature_sorts,
+            "random_partitions": random_partitions,
+            "final_partitions": final_partitions,
+            "minmax_passes": minmax_passes,
             "threshold_candidates_per_split": threshold_candidates / denom,
             "gain_evaluations_per_split": gain_evaluations / denom,
             "parametric_gain_samples": parametric_gain_samples,
@@ -373,6 +389,7 @@ cdef inline void _fill_and_sort_feature(
     intp_t start,
     intp_t end,
 ) noexcept nogil:
+    splitter.n_feature_sorts += 1
     splitter.partitioner.sort_samples_and_feature_values(feat)
 
 
@@ -421,6 +438,7 @@ cdef inline float64_t _draw_extratree_split_gain_from_minmax(
     if threshold == max_feature_value:
         threshold = min_feature_value
 
+    splitter.n_random_partitions += 1
     pos = splitter.partitioner.partition_samples(threshold)
     splitter.n_threshold_candidates += 1
     if (pos - start) < splitter.min_samples_leaf or (end - pos) < splitter.min_samples_leaf:
@@ -637,6 +655,7 @@ cdef inline void _finalize_selected_split(
 ) noexcept nogil:
     cdef intp_t[::1] samples = splitter.samples
 
+    splitter.n_final_partitions += 1
     splitter.partitioner.partition_samples_final(
         best_split.pos,
         best_split.threshold,
@@ -1851,6 +1870,7 @@ cdef class ProphetOneSampleSplitter(BaseEarlyStopSplitter):
                 continue
             f_j += n_found_constants
             cur_split.feature = features[f_j]
+            self.n_minmax_passes += 1
             self.partitioner.find_min_max(
                 cur_split.feature,
                 &min_feature_value,

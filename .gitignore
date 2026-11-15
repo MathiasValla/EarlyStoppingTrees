@@ -19,9 +19,18 @@ examples/early_stop_trees/benchmark_spar_corrected_100/
 examples/early_stop_trees/figures/
 examples/early_stop_trees/analysis_additional/
 examples/early_stop_trees/analysis_gain_landscape/
+examples/early_stop_trees/analysis_gain_landscape_weighted/
+examples/early_stop_trees/benchmark_random_feature_exact_100/
+examples/early_stop_trees/benchmark_revision_controls_20/
+examples/early_stop_trees/ensemble_validation/
+examples/early_stop_trees/inference_results_10pct/
+examples/early_stop_trees/revision_results/
+examples/early_stop_trees/runtime_effort_diagnostic/
 examples/early_stop_trees/__pycache__/
-RESEARCH_ARTICLE/SUPPLEMENTARY_DATA/*.tar.gz
 RESEARCH_ARTICLE/PATREC_SUBMISSION/
+RESEARCH_ARTICLE/*.log
+RESEARCH_ARTICLE/*.blg
+RESEARCH_ARTICLE/*.out
 .pymon
 .coverage.*
 

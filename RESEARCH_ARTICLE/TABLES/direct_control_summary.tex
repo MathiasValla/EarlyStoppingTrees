@@ -1,0 +1,21 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Counterbalanced fixed-budget control. Values are equal-entry means of paired-seed medians with 95\% hierarchical bootstrap intervals.}
+\label{tab:supp_direct_control}
+\begin{tabular}{llcc}
+\toprule
+Task & Split search & Time saved (\%) & Predictive loss \\
+\midrule
+Regression & $S_{\mathrm{all}}(1/e)$ & 14.72 [13.11, 16.02] & 2.79 [1.98, 3.68]\% RMSE \\
+Regression & Exact random subset ($2p/3$) & 26.42 [24.09, 27.96] & 4.66 [3.60, 5.95]\% RMSE \\
+Regression & ERT ($p$) & 53.23 [48.42, 57.68] & 8.12 [6.34, 9.57]\% RMSE \\
+Classification (Gini) & $S_{\mathrm{all}}(1/e)$ & 12.80 [11.15, 14.07] & 0.10 [-0.11, 0.35] F1 points \\
+Classification (Gini) & Exact random subset ($2p/3$) & 19.49 [17.00, 21.53] & 0.22 [-0.12, 0.62] F1 points \\
+Classification (Gini) & ERT ($p$) & 38.25 [32.37, 43.81] & 0.58 [0.07, 1.11] F1 points \\
+Classification (entropy) & $S_{\mathrm{all}}(1/e)$ & 11.84 [10.23, 13.38] & 0.06 [-0.22, 0.23] F1 points \\
+Classification (entropy) & Exact random subset ($2p/3$) & 19.14 [16.73, 21.20] & 0.26 [-0.08, 0.57] F1 points \\
+Classification (entropy) & ERT ($p$) & 38.70 [32.70, 44.14] & 0.40 [-0.04, 0.86] F1 points \\
+\bottomrule
+\end{tabular}
+\end{table*}

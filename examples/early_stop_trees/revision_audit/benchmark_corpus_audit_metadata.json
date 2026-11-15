@@ -1,0 +1,19 @@
+{
+  "benchmark_indir": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/examples/early_stop_trees/benchmark_results",
+  "explicit_skips": [
+    "192_vineyard",
+    "687_sleuth_ex1605"
+  ],
+  "max_product": 1000000,
+  "pmlb_cache_dir": "/Users/mathiasvalla/Desktop/Post-doc/Papiers/EarlyStoppingTrees/EarlyStoppingTrees/examples/early_stop_trees/benchmark_results/pmlb_cache",
+  "retained_classification_common_to_gini_entropy": 122,
+  "retained_regression": 113,
+  "status_definition": {
+    "eligible_not_retained": "Passes reconstructed filters but is absent; historical execution failure or unrecorded exclusion",
+    "explicit_skip": "Named in the benchmark driver's built-in skip list",
+    "load_error": "PMLB entry could not be loaded from the configured cache/source",
+    "non_finite_value": "Input or target contains a non-finite/missing value",
+    "over_max_product": "n_samples * n_features exceeds the active cap",
+    "retained": "Present in the 100-run result corpus"
+  }
+}

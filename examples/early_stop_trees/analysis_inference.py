@@ -124,6 +124,7 @@ PRESENTATION_METRICS = (
 TIME_SAVED_THRESHOLDS_PCT = (0.0, 10.0, 25.0, 50.0)
 LOSS_TOLERANCES_PCT = (0.5, 1.0, 2.5)
 PRIMARY_LOSS_MARGIN_PCT = 1.0
+PRIMARY_TIME_SAVED_THRESHOLD_PCT = 10.0
 SENSITIVITY_LOSS_MARGINS_PCT = (0.5, 2.5)
 TIMING_BLOCK_LENGTHS = (5, 10)
 CONFIRMATORY_METHODS = (
@@ -765,8 +766,12 @@ def family_balanced_joint_test_table(
     table["joint_test_rule"] = (
         "one-sided exact binomial test of simultaneous family-level success"
     )
-    table["joint_null"] = "P_family(time > 0 AND loss < margin) <= 0.5"
-    table["joint_alternative"] = "P_family(time > 0 AND loss < margin) > 0.5"
+    table["joint_null"] = (
+        "P_family(time >= 10% AND loss < margin) <= 0.5"
+    )
+    table["joint_alternative"] = (
+        "P_family(time >= 10% AND loss < margin) > 0.5"
+    )
     table["n_source_datasets"] = len(datasets)
     table["n_total_families"] = len(families)
     table["experimental_unit"] = "dataset_family"
@@ -1237,9 +1242,10 @@ def joint_time_loss_margin_test_table(
 ) -> pd.DataFrame:
     """Exact tests of simultaneous dataset-level runtime and loss success.
 
-    A dataset succeeds only when that same dataset has positive time saving and
-    predictive loss below the margin.  The one-sided exact binomial test asks
-    whether the simultaneous-success probability exceeds one half.
+    A dataset succeeds only when that same dataset saves at least the
+    prespecified minimum percentage of time and has predictive loss below the
+    margin.  The one-sided exact binomial test asks whether the simultaneous-
+    success probability exceeds one half.
     """
     if PRIMARY_LOSS_MARGIN_PCT not in margins_pct:
         raise ValueError(
@@ -1257,13 +1263,15 @@ def joint_time_loss_margin_test_table(
             loss = observed[:, method_index, loss_index]
             complete = np.isfinite(time_saved) & np.isfinite(loss)
             time_summary = _one_sided_sign_summary(
-                time_saved[complete], confidence=confidence
+                time_saved[complete] - PRIMARY_TIME_SAVED_THRESHOLD_PCT,
+                confidence=confidence,
             )
             loss_summary = _one_sided_sign_summary(
                 margin - loss[complete], confidence=confidence
             )
             joint_success = (
-                (time_saved[complete] > 0.0) & (loss[complete] < margin)
+                (time_saved[complete] >= PRIMARY_TIME_SAVED_THRESHOLD_PCT)
+                & (loss[complete] < margin)
             )
             joint_summary = _one_sided_sign_summary(
                 np.where(joint_success, 1.0, -1.0),
@@ -1283,6 +1291,7 @@ def joint_time_loss_margin_test_table(
                     ),
                     "loss_unit": metric_unit(task, "predictive_loss_pct"),
                     "time_unit": metric_unit(task, "time_saved_pct"),
+                    "minimum_time_saved_pct": PRIMARY_TIME_SAVED_THRESHOLD_PCT,
                     "n_complete_datasets": int(np.sum(complete)),
                     "runtime_n_non_ties": time_summary["n_non_ties"],
                     "runtime_n_positive": time_summary["n_favorable"],
@@ -1310,8 +1319,12 @@ def joint_time_loss_margin_test_table(
                         "one-sided exact binomial test of simultaneous "
                         "dataset-level success"
                     ),
-                    "joint_null": "P_dataset(time > 0 AND loss < margin) <= 0.5",
-                    "joint_alternative": "P_dataset(time > 0 AND loss < margin) > 0.5",
+                    "joint_null": (
+                        "P_dataset(time >= 10% AND loss < margin) <= 0.5"
+                    ),
+                    "joint_alternative": (
+                        "P_dataset(time >= 10% AND loss < margin) > 0.5"
+                    ),
                 }
             )
     table = _apply_margin_family_holm(
@@ -1900,8 +1913,9 @@ def _metadata(
             "post_hoc_adjustment": "Holm family-wise-error correction separately within each task and metric",
             "loss_margin_sign_support": "exact one-sided sign tests of P_dataset(loss < margin | non-tie) > 0.5",
             "runtime_superiority_support": "exact one-sided sign tests of P_dataset(time saved > 0 | non-tie) > 0.5, Holm-adjusted within task",
-            "joint_simultaneous_success_test": "one-sided exact binomial test of whether more than half of dataset entries simultaneously have positive time saving and loss below the margin",
+            "joint_simultaneous_success_test": "one-sided exact binomial test of whether more than half of dataset entries simultaneously save at least 10% training time and remain below the loss margin",
             "primary_loss_margin_pct": PRIMARY_LOSS_MARGIN_PCT,
+            "primary_time_saved_threshold_pct": PRIMARY_TIME_SAVED_THRESHOLD_PCT,
             "primary_adjustment": "Holm across the nine non-baseline representative methods within each task at the task-specific 1.0 margin",
             "sensitivity_margins_pct": list(SENSITIVITY_LOSS_MARGINS_PCT),
             "sensitivity_adjustment": "Holm across all 18 method-by-margin hypotheses within each task; sensitivity findings are not labeled primary confirmation",

@@ -368,7 +368,7 @@ def test_sign_tests_use_correct_directions_and_omit_ties():
 
 def test_joint_test_uses_same_dataset_for_time_and_loss_success():
     methods, observed = _full_confirmatory_observed(7)
-    observed[:, 1:, 0] = np.asarray([1, 1, 1, 1, 1, -1, -1])[:, None]
+    observed[:, 1:, 0] = np.asarray([11, 11, 11, 11, 11, 9, 9])[:, None]
     observed[:, 1:, 1] = np.asarray([2, 2, 0, 0, 0, 0, 0])[:, None]
     table = joint_time_loss_margin_test_table(
         task="classification_entropy",
@@ -381,6 +381,7 @@ def test_joint_test_uses_same_dataset_for_time_and_loss_success():
         & np.isclose(table["loss_margin_pct"], PRIMARY_LOSS_MARGIN_PCT)
     ].iloc[0]
     assert row["runtime_n_positive"] == 5
+    assert row["minimum_time_saved_pct"] == 10.0
     assert row["loss_n_below_margin"] == 5
     assert row["joint_n_success"] == 3
     assert row["joint_n_failure"] == 4

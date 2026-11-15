@@ -359,13 +359,14 @@ def _plot_pareto_panel(
 
     ax.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
     ax.axvline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
-    ax.set_xlabel("Training time saved (%)")
+    ax.set_xlabel("Training time saved (%)", fontsize=13)
     if str(loss_col).startswith("loss_rmse_bounded"):
-        ax.set_ylabel("Bounded RMSE loss (%)")
+        ax.set_ylabel("Bounded RMSE loss (%)", fontsize=13)
     else:
-        ax.set_ylabel("Weighted-F1 loss (percentage points)")
+        ax.set_ylabel("Weighted-F1 loss (percentage points)", fontsize=13)
     ax.set_title(title)
     ax.grid(True, alpha=0.3)
+    ax.tick_params(axis="both", labelsize=11)
     # Center on center of mass (equal weight per point)
     x_vals = df["x"].values
     y_vals = df["y"].values
@@ -517,14 +518,15 @@ def _plot_pareto_panel_centroids(
                 x_c, y_c = _pareto_envelope_smooth(cent_df["x"].to_numpy(), cent_df["y"].to_numpy())
                 ax.plot(x_c, y_c, "-", color="black", linewidth=1.8, alpha=0.30, zorder=4)
 
-    ax.set_xlabel("Training time saved (%)")
+    ax.set_xlabel("Training time saved (%)", fontsize=13)
     if str(loss_col).startswith("loss_rmse_bounded"):
-        ax.set_ylabel("Bounded RMSE loss (%)")
+        ax.set_ylabel("Bounded RMSE loss (%)", fontsize=13)
     else:
-        ax.set_ylabel("Weighted-F1 loss (percentage points)")
+        ax.set_ylabel("Weighted-F1 loss (percentage points)", fontsize=13)
     if show_title and title:
         ax.set_title(title)
     ax.grid(True, alpha=0.3)
+    ax.tick_params(axis="both", labelsize=11)
     ax.set_xlim(left=left, right=right_border)
     ax.set_ylim(bottom=bottom, top=top)
 
@@ -932,12 +934,12 @@ def main():
             continue
         if flagship_style:
             # One row of three panels + full-width variant legend below; short column titles
-            fig = plt.figure(figsize=(14, 5.6), layout="constrained")
+            fig = plt.figure(figsize=(11, 6.0), layout="constrained")
             gs = GridSpec(
                 2,
                 3,
                 figure=fig,
-                height_ratios=[1, 0.52],
+                height_ratios=[1, 0.54],
                 width_ratios=[1, 1, 1],
                 hspace=0.11,
                 wspace=0.06,
@@ -998,9 +1000,9 @@ def main():
                 (ax_r, ax_g, ax_e),
                 ("Regression", "Gini", "Entropy"),
             ):
-                ax.set_title(col_title, fontsize=10, fontweight="bold", pad=5)
+                ax.set_title(col_title, fontsize=14, fontweight="bold", pad=6)
             plot_grouped_variant_legend(
-                ax_leg, method_order, method_colors, method_labels, fontsize=7, legend_style="point"
+                ax_leg, method_order, method_colors, method_labels, fontsize=12, legend_style="point"
             )
         else:
             fig, axes = plt.subplots(2, 2, figsize=(10, 10), sharex=False, sharey=False)

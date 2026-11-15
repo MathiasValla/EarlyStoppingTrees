@@ -23,6 +23,10 @@ cdef class BaseEarlyStopSplitter(Splitter):
     cdef intp_t n_split_calls
     cdef intp_t n_threshold_candidates
     cdef intp_t n_gain_evaluations
+    cdef intp_t n_feature_sorts
+    cdef intp_t n_random_partitions
+    cdef intp_t n_final_partitions
+    cdef intp_t n_minmax_passes
     cdef intp_t n_parametric_gain_samples
     cdef intp_t n_parametric_quantile_fits
 

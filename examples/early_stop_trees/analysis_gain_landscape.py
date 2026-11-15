@@ -94,18 +94,20 @@ def _class_impurity(counts: np.ndarray, criterion: str) -> float:
     raise ValueError(f"Unsupported criterion: {criterion}")
 
 
-def _feature_gains_regression(x: np.ndarray, y: np.ndarray, min_samples_leaf: int) -> np.ndarray:
+def _feature_gains_regression(
+    x: np.ndarray, y: np.ndarray, min_samples_leaf: int
+) -> tuple[np.ndarray, np.ndarray]:
     order = np.argsort(x, kind="mergesort")
     x_sorted = x[order]
     y_sorted = y[order].astype(float)
     n = y_sorted.shape[0]
     if n < 2 * min_samples_leaf:
-        return np.empty(0, dtype=float)
+        return np.empty(0, dtype=float), np.empty(0, dtype=float)
 
     valid_pos = np.flatnonzero(np.diff(x_sorted) > 0) + 1
     valid_pos = valid_pos[(valid_pos >= min_samples_leaf) & ((n - valid_pos) >= min_samples_leaf)]
     if valid_pos.size == 0:
-        return np.empty(0, dtype=float)
+        return np.empty(0, dtype=float), np.empty(0, dtype=float)
 
     prefix_sum = np.cumsum(y_sorted)
     prefix_sq = np.cumsum(y_sorted * y_sorted)
@@ -124,7 +126,10 @@ def _feature_gains_regression(x: np.ndarray, y: np.ndarray, min_samples_leaf: in
         left_impurity = left_sq / left_n - (left_sum / left_n) ** 2
         right_impurity = right_sq / right_n - (right_sum / right_n) ** 2
         gains[idx] = parent_impurity - (left_n / n) * left_impurity - (right_n / n) * right_impurity
-    return gains
+    interval_widths = x_sorted[valid_pos] - x_sorted[valid_pos - 1]
+    interval_widths = np.asarray(interval_widths, dtype=float)
+    interval_widths /= np.sum(interval_widths)
+    return gains, interval_widths
 
 
 def _feature_gains_classification(
@@ -133,18 +138,18 @@ def _feature_gains_classification(
     n_classes: int,
     criterion: str,
     min_samples_leaf: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray]:
     order = np.argsort(x, kind="mergesort")
     x_sorted = x[order]
     y_sorted = y[order].astype(int)
     n = y_sorted.shape[0]
     if n < 2 * min_samples_leaf:
-        return np.empty(0, dtype=float)
+        return np.empty(0, dtype=float), np.empty(0, dtype=float)
 
     valid_pos = np.flatnonzero(np.diff(x_sorted) > 0) + 1
     valid_pos = valid_pos[(valid_pos >= min_samples_leaf) & ((n - valid_pos) >= min_samples_leaf)]
     if valid_pos.size == 0:
-        return np.empty(0, dtype=float)
+        return np.empty(0, dtype=float), np.empty(0, dtype=float)
 
     indicator = np.zeros((n, n_classes), dtype=np.int64)
     indicator[np.arange(n), y_sorted] = 1
@@ -161,7 +166,10 @@ def _feature_gains_classification(
         left_impurity = _class_impurity(left_counts, criterion)
         right_impurity = _class_impurity(right_counts, criterion)
         gains[idx] = parent_impurity - (left_n / n) * left_impurity - (right_n / n) * right_impurity
-    return gains
+    interval_widths = x_sorted[valid_pos] - x_sorted[valid_pos - 1]
+    interval_widths = np.asarray(interval_widths, dtype=float)
+    interval_widths /= np.sum(interval_widths)
+    return gains, interval_widths
 
 
 def _longest_true_run(mask: np.ndarray) -> int:
@@ -177,6 +185,27 @@ def _longest_true_run(mask: np.ndarray) -> int:
     return best
 
 
+def _longest_true_weight(mask: np.ndarray, weights: np.ndarray) -> float:
+    best = 0.0
+    current = 0.0
+    for flag, weight in zip(mask, weights):
+        if flag:
+            current += float(weight)
+            best = max(best, current)
+        else:
+            current = 0.0
+    return best
+
+
+def _weighted_median(values: np.ndarray, weights: np.ndarray) -> float:
+    order = np.argsort(values, kind="mergesort")
+    ordered_values = np.asarray(values, dtype=float)[order]
+    ordered_weights = np.asarray(weights, dtype=float)[order]
+    cutoff = 0.5 * float(np.sum(ordered_weights))
+    index = int(np.searchsorted(np.cumsum(ordered_weights), cutoff, side="left"))
+    return float(ordered_values[min(index, ordered_values.size - 1)])
+
+
 def _node_gain_metrics(
     X_node: np.ndarray,
     y_node: np.ndarray,
@@ -186,14 +215,17 @@ def _node_gain_metrics(
     n_classes: int | None,
 ) -> dict[str, float] | None:
     all_gains = []
+    all_weights = []
     feature_gains = []
 
     for feature_idx in range(X_node.shape[1]):
         x = X_node[:, feature_idx]
         if spec.kind == "regression":
-            gains = _feature_gains_regression(x, y_node, min_samples_leaf=min_samples_leaf)
+            gains, weights = _feature_gains_regression(
+                x, y_node, min_samples_leaf=min_samples_leaf
+            )
         else:
-            gains = _feature_gains_classification(
+            gains, weights = _feature_gains_classification(
                 x,
                 y_node,
                 n_classes=n_classes or 0,
@@ -203,19 +235,25 @@ def _node_gain_metrics(
         if gains.size == 0:
             continue
         all_gains.append(gains)
-        feature_gains.append((feature_idx, gains))
+        all_weights.append(weights)
+        feature_gains.append((feature_idx, gains, weights))
 
     if not all_gains:
         return None
 
     gain_values = np.concatenate(all_gains)
-    winner_feature_idx, winner_gains = max(feature_gains, key=lambda item: float(np.max(item[1])))
+    gain_weights = np.concatenate(all_weights)
+    winner_feature_idx, winner_gains, winner_weights = max(
+        feature_gains, key=lambda item: float(np.max(item[1]))
+    )
     best_gain = float(np.max(winner_gains))
     denom = max(best_gain, EPS)
     metrics = {
         "n_threshold_candidates": float(gain_values.size),
         "best_gain": best_gain,
-        "relative_median_gap": float((best_gain - np.median(gain_values)) / denom),
+        "relative_median_gap": float(
+            (best_gain - _weighted_median(gain_values, gain_weights)) / denom
+        ),
         "winner_feature": float(winner_feature_idx),
     }
 
@@ -224,9 +262,11 @@ def _node_gain_metrics(
         suffix = str(int(round(100 * delta))).zfill(2)
         near_optimal_mask = gain_values >= threshold
         winner_mask = winner_gains >= threshold
-        metrics[f"near_optimal_prop_{suffix}"] = float(np.mean(near_optimal_mask))
+        metrics[f"near_optimal_prop_{suffix}"] = float(
+            np.average(near_optimal_mask, weights=gain_weights)
+        )
         metrics[f"winner_width_{suffix}"] = float(
-            _longest_true_run(winner_mask) / max(winner_gains.size, 1)
+            _longest_true_weight(winner_mask, winner_weights)
         )
     return metrics
 

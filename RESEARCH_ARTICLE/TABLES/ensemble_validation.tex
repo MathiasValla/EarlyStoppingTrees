@@ -1,0 +1,18 @@
+\begin{table*}[!t]
+\centering
+\caption{Focused 25-tree bagging validation. Values are equal-entry means of paired-seed medians with 95\% hierarchical bootstrap intervals.}
+\label{tab:ensemble_validation}
+\small
+\begin{tabular}{llcc}
+\toprule
+Task & Split search & Time saved (\%) & Predictive loss \\
+\midrule
+Regression & $S_{\mathrm{all}}(1/e)$ & 10.49 [6.35, 13.65] & -0.52 [-1.48, 0.14]\% RMSE \\
+Regression & Exact random subset ($p/e$) & 38.12 [29.10, 46.61] & 5.57 [2.54, 8.56]\% RMSE \\
+Regression & ERT ($p$) & 42.78 [30.30, 55.17] & -0.57 [-2.90, 1.94]\% RMSE \\
+Classification (Gini) & $S_{\mathrm{all}}(1/e)$ & 12.73 [8.21, 16.25] & 0.25 [-0.57, 1.11] F1 points \\
+Classification (Gini) & Exact random subset ($p/e$) & 37.28 [26.33, 47.62] & 0.88 [-0.46, 2.71] F1 points \\
+Classification (Gini) & ERT ($p$) & 41.65 [27.41, 56.37] & 0.42 [-0.72, 1.68] F1 points \\
+\bottomrule
+\end{tabular}
+\end{table*}

@@ -1,5 +1,5 @@
 % !TeX program = pdflatex
-\documentclass[longtitle,final,3p,times]{elsarticle}
+\documentclass[final,5p,times,twocolumn]{elsarticle}
 
 % -------------------------------------------------
 % Packages
@@ -8,9 +8,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage{prletters}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{caption}
 \usepackage{hyperref}
 \usepackage{microtype}
 \renewcommand{\ttdefault}{cmtt}
@@ -33,18 +33,17 @@
 }{%
   \smallskip\hrule\end{minipage}\par\medskip
 }
-\newcommand{\suppabstracttext}{This supplement gives pseudocode matched to the implementation, node-level cost bounds, benchmark and dataset details, and the paired hierarchical inferential protocol. It also reports a visual comparison of fitted trees and size-stratified, reliability, regime, within-dataset, gain-landscape, and effort diagnostics. A separate corrected benchmark screens 20 configurations of the parametric rule \(S_{\mathrm{par}}\); none enters the full centroid effort--loss Pareto frontier.}
+\newcommand{\suppabstracttext}{This supplement gives implementation-matched pseudocode, node- and tree-level cost bounds, benchmark details, and the paired hierarchical inferential protocol. It reports an exact-threshold random-feature control, a focused bagging validation, complementary classification metrics, tail losses, a native operation-counter diagnostic, and the complete robustness figures. A separate benchmark screens 20 configurations of the parametric rule \(S_{\mathrm{par}}\); none enters the full centroid effort--loss Pareto frontier.}
 
 \begin{document}
 
 \begin{frontmatter}
-\patrecabstract{\suppabstracttext}
-
 \title{Supplementary material for\\
 Secretary-style split search for decision trees}
 
 \author[inst1]{Mathias Valla\corref{cor1}}
-\cortext[cor1]{Corresponding author: \href{mailto:mathias.valla@gmail.com}{mathias.valla@gmail.com}}
+\cortext[cor1]{Corresponding author}
+\ead{mathias.valla@gmail.com}
 \address[inst1]{Chaire DIALog, Institut Louis Bachelier, 28 Place de la Bourse, 75002 Paris, France}
 
 \begin{abstract}
@@ -52,7 +51,6 @@ Secretary-style split search for decision trees}
 \end{abstract}
 
 \end{frontmatter}
-\clearpage
 
 \section{Implementation scope and notation}
 \label{sec:supp_scope}
@@ -212,18 +210,6 @@ independence and irrevocability assumptions of single-sample prophet
 inequalities therefore do not apply.
 \end{suppalgorithm}
 
-\medskip
-\noindent\fbox{%
-\begin{minipage}{0.94\columnwidth}
-\small\textbf{Status of \(S_{\mathrm{par}}\).}
-The implementation now uses a translation-invariant regression gain and the
-correct normal-quantile direction for classification.  Automated checks cover
-both properties.  Results produced before these corrections are not used.  The
-corrected rule was rerun for 100 seeds on every retained entry; the screening
-below is descriptive and remains separate from the confirmatory comparison.
-\end{minipage}}
-\medskip
-
 \begin{suppalgorithm}{Algorithm S7: parametric rule \(S_{\mathrm{par}}\)}
 \begin{enumerate}
 \setlength{\itemsep}{0pt}
@@ -260,21 +246,15 @@ does not change the mathematical score.  The classification normal law is also
 a working approximation rather than a distributional theorem.
 \end{suppalgorithm}
 
-\subsection{Corrected \(S_{\mathrm{par}}\) screening}
+\subsection{\(S_{\mathrm{par}}\) screening}
 \label{sec:supp_spar_results}
 
-The corrected benchmark evaluated 20 configurations: five sampled-gain
+The benchmark evaluated 20 configurations: five sampled-gain
 budgets, \(B\in\{2,10,\operatorname{round}(\log N)\}\), or
 \(\rho\in\{0.1,1/\sqrt N\}\) with \(B=256\), crossed with
 \(q\in\{0.5,0.75,0.9,0.95\}\).  It used the same retained entries, fixed folds,
 tree constraints, and seeds 42--141 as the main benchmark.  Predictive loss
 and gain-evaluation effort are paired to exhaustive CART by entry and seed.
-
-Wall-clock measurements are not reported for this screening.  The corrected
-rule was run in August 2026 with NumPy 2.2.6, whereas the exhaustive reference
-timings were collected in April 2026 with NumPy 1.26.4.  Although the hardware,
-operating system, Python, scikit-learn, folds, and seeds match, the measurements
-are not contemporaneous and do not support a valid runtime comparison.
 
 After screening, \(S_{\mathrm{par}}(\rho=1/\sqrt N,q=0.9)\) was chosen for a
 compact display because it lies on the internal \(S_{\mathrm{par}}\)
@@ -290,7 +270,7 @@ The display configuration reduces recorded gain evaluations by 46.06\% in
 regression and about 23\% in classification, but its regression loss is
 11.19\%.  Across all 20 configurations, no point enters the full centroid
 effort--loss frontier (Figure~\ref{fig:supp_spar_screening}).  Thus the
-corrected experiment does not support \(S_{\mathrm{par}}\) as a competitive
+experiment does not support \(S_{\mathrm{par}}\) as a competitive
 effort--prediction compromise.
 
 Three limitations govern this result.  First, the fixed-split Gaussian identity
@@ -298,8 +278,7 @@ does not give a common law across candidate thresholds, so the fitted
 quantile remains heuristic.  Second, sampling, moment fitting, and exact replay
 can offset reductions in gain evaluations.  Third, the configuration grid was
 screened, so post-screening choices are not confirmatory.  Better
-distributional models or calibration schemes remain open directions, but the
-present evidence is negative.
+distributional models or calibration schemes remain open directions.
 
 \section{Node-level cost and recorded effort}
 \label{sec:supp_complexity}
@@ -320,6 +299,7 @@ upper bounds; the number of visited features is data dependent.
 Method & Proxy-gain evaluations & Sorting, scanning, and other work \\
 \midrule
 Exhaustive CART & At most \(\sum_{j=1}^{m}C_j\) & Sort and scan every visited feature: worst case \(O(mn\log n+\sum_j C_jc_G)\). \\
+Exact random subset & At most \(\sum_{j\in K}C_j\) & Draw \(k=|K|\) features without replacement, then sort and scan them exactly: \(O(kn\log n+\sum_{j\in K}C_jc_G)\). \\
 ERT & At most \(m_{\mathrm{try}}\) & No sorting; one min/max pass and partition per feature: \(O(m_{\mathrm{try}}n+m_{\mathrm{try}}c_G)\). \\
 \(S\) & \(\sum_{j\in A_E}d_j+\sum_{j\in A_S}C_j\) & Sort every inspected feature; count boundaries and batch-sort sampled thresholds in exploration; exact-scan selection features. \\
 \(S_{\mathrm{all}}\) & \(\sum_{j\in A_E\cup A_S}C_j\) & Sort and exactly scan every inspected feature; worst case matches exhaustive order. \\
@@ -345,27 +325,46 @@ full-tree totals: methods can select different splits, create different
 descendant topologies, and therefore make different numbers of later split
 calls.
 
+For a complete tree with internal nodes \(t\), exhaustive CART costs
+\(O(\sum_t m_tn_t\log n_t+\sum_{t,j}C_{tj}c_G)\) in this implementation.
+With \(p\) available features, the sorting term is \(O(pn\log^2 n)\) for a
+balanced tree and \(O(pn^2\log n)\) for a maximally unbalanced unrestricted
+tree.  At depth limit \(D\), it is bounded by \(O(pnD\log n)\).  Replacing
+\(m_t\) by a fixed exact-subset budget \(k_t\), or by the secretary rule's
+data-dependent visited-feature count \(V_t\), gives the corresponding exact
+random-subset and \(S_{\mathrm{all}}\) bounds.  Since \(V_t\) can equal
+\(m_t\), secretary stopping improves observed or expected work rather than
+the worst-case asymptotic order.
+
 \section{Benchmark corpus and protocol}
 \label{sec:supp_benchmark}
 
-Every fold-specific fit grows one complete depth-limited tree: the selected
+Every fold-specific fit in the broad benchmark grows one complete depth-limited tree: the selected
 splitter is invoked recursively at each internal node by the same depth-first
 builder, with \(\texttt{max\_depth}=20\) and common leaf and impurity settings.
 Thus, each method--seed result averages five fitted trees, one per fold.  This
 single-tree estimator design isolates within-node split search from bagging,
-aggregation, tree count, and ensemble parallelism; no forest-level behavior is
-inferred.
+aggregation, tree count, and ensemble parallelism.  A focused bagging
+experiment described below tests whether the principal trade-off survives
+bootstrap aggregation; it is not a population-wide forest benchmark.
 
 The retained PMLB corpus contains 113 regression entries and 122 classification
 entries.  Gini and entropy use the same classification corpus.
-Table~\ref{tab:supp_datasets} summarizes these entries.  The exact sharded
-benchmark command was not retained, so the surviving run metadata do not show
-whether the driver's optional \(np\) cap was disabled.  The largest retained product is
-834,870.  The complete machine-readable repository inventory is:
+Table~\ref{tab:supp_datasets} summarizes these entries.  Applying
+\(np\leq10^6\) and the recorded name exclusions exactly reconstructs the
+archived result corpus.  For regression, 113 entries were retained, five exceeded
+the cap, two were explicitly skipped by name, and two names in the installed
+PMLB registry were unavailable from its source.  For classification, 122 were
+retained, eight exceeded the cap, and 32 registry aliases were unavailable.
+No entry that passed these reconstructed filters is absent from the result
+files.  The original shell line and its product-cap setting were not logged, so
+the audit establishes the observed inclusion rule but not the historical
+command-line value.  A canonical command and the dataset manifests are now
+provided.  The complete audit is:
 \begin{center}
 \footnotesize
-\path{examples/early_stop_trees/tables/}\\[-2pt]
-\path{dataset_benchmark_inventory.csv}
+\path{examples/early_stop_trees/revision_audit/}\\[-2pt]
+\path{benchmark_corpus_audit.csv}
 \end{center}
 \noindent For classification, the
 majority-class proportions have quartiles 33.7\%, 51.4\%, and 66.4\%, with
@@ -399,6 +398,61 @@ exhaustive CART, and reconstructed as one sampled-threshold gain per selected
 non-constant feature for ERT.  Timing and recorded effort therefore measure
 different parts of the computation.
 
+The gain-landscape diagnostic follows the implemented ERT threshold law.  A
+threshold drawn uniformly between a feature's observed minimum and maximum
+induces a candidate partition with probability proportional to the adjacent
+value interval that produces it.  The diagnostic therefore weights each
+admissible boundary by that interval width and reports the resulting weighted
+median gain gap; it does not weight boundary indices uniformly.
+
+\section{Fixed-budget control and focused bagging validation}
+\label{sec:supp_controls}
+
+The direct control separates adaptive stopping from simple feature-budget
+reduction.  For every retained entry, it compares exhaustive CART,
+\(S_{\mathrm{all}}(1/e)\), exact threshold optimization over random subsets of
+\(1\), \(0.1p\), \(p/e\), \(p/2\), or \(2p/3\) features, and ERT with
+\(m_{\mathrm{try}}\in\{1,p/3,2p/3,p\}\).  All methods use the same folds and 20
+paired seeds.  Within each dataset--seed block, a SHA-256-derived rotation
+counterbalances method order.  Table~\ref{tab:supp_direct_control} reports the
+three methods needed to show the conservative-to-aggressive trade-off; the
+machine-readable output contains every budget.
+
+\input{TABLES/direct_control_summary.tex}
+
+Exact search over \(2p/3\) random features saves more time than
+\(S_{\mathrm{all}}(1/e)\) but loses more predictive performance in every task.
+The smaller fixed subsets continue the same direction.  The adaptive rule is
+therefore a conservative low-loss point, not a uniformly superior use of the
+same feature budget.  The order diagnostic finds no systematic association
+between evaluation position and \(S_{\mathrm{all}}(1/e)\) fit time.
+
+Classification runs additionally record macro-F1 and the mean recall of the
+least-recalled class in each fold.  Table~\ref{tab:supp_class_metrics} preserves
+the weighted-F1 ordering, but the recall intervals are wider.  The largest
+Gini weighted-F1 loss for \(S_{\mathrm{all}}(1/e)\) is 8.96 points on
+\texttt{analcatdata\_aids}, an entry with 50 samples.  Tail losses are reported
+in Table~\ref{tab:supp_tail_losses}.  A sensitivity analysis collapses strongly
+named classification generators and exact aliases into 108 families.  For
+\(S_{\mathrm{all}}(1/e)\), the family-weighted mean time savings are 12.41\%
+(Gini) and 11.40\% (entropy), with weighted-F1 losses of 0.10 and 0.01 points.
+
+\input{TABLES/direct_control_class_metrics.tex}
+\input{TABLES/direct_control_tail_losses.tex}
+\input{TABLES/classification_family_sensitivity.tex}
+
+The focused bagging validation uses a deterministic size-stratified selection
+of 20 regression and 20 classification entries, five seeds, the same five
+folds, and 25 bootstrap trees per ensemble.  Exhaustive CART,
+\(S_{\mathrm{all}}(1/e)\), exact search over \(p/e\) random features, and ERT
+with all features share the bootstrap sequence.  Method order is rotated within
+each dataset--seed block.  The main manuscript reports the resulting time and
+prediction intervals.  In classification, macro-F1 gives the same ordering as
+weighted F1, while worst-class recall is less stable
+(Figure~\ref{fig:supp_control_macro}).  This selected panel is consistent with
+the single-tree trade-off persisting under bagging; it does not establish
+performance for larger forests, parallel training, or other ensemble designs.
+
 \section{Statistical analysis}
 \label{sec:supp_inference}
 
@@ -425,11 +479,6 @@ reported in weighted-F1 percentage points, not as a relative percentage.  A
 centroid is the equal-weight mean of entry-level medians; the cross-entry
 median is a separate estimand.
 
-Regression dataset \texttt{564\_fried} lacks recorded run 4.  Run 4 is removed
-from the common paired block for every method and metric on that dataset, so
-its summaries use 99 seeds without imputation.  Every other retained dataset
-has 100 complete paired seeds.
-
 \subsection{Paired hierarchical bootstrap}
 
 Uncertainty is quantified by a paired two-stage nonparametric percentile
@@ -443,28 +492,28 @@ cross-dataset medians, and dataset-level reliability probabilities.  Separate
 within-dataset-only and between-dataset-only intervals are diagnostics; the
 two-stage interval is the primary uncertainty summary.
 
-The revision reanalysis designates exhaustive CART plus nine alternatives:
+The confirmatory analysis designates exhaustive CART plus nine alternatives:
 \(S(1/e)\), \(S^2(1/e)\), \(S_{\mathrm{all}}(1/e)\), the blockwise
 rank-inspired method, the prophet-style method, and ERT with
 \(m_{\mathrm{try}}\in\{1,p/3,2p/3,p\}\).  All other schedules are exploratory.
-The corrected \(S_{\mathrm{par}}\) grid is screened separately in
+The \(S_{\mathrm{par}}\) grid is screened separately in
 Section~\ref{sec:supp_spar_results}; it is excluded from confirmatory tests
 because its configurations were screened.  Its separate analysis reports only
 paired predictive loss and gain-evaluation effort.
 
 For the primary joint claim, an entry is successful only when its paired-seed
-median time saving is positive and its paired-seed median loss is below the
+median time saving is at least 10\% and its paired-seed median loss is below the
 task-specific margin: 1\% relative RMSE loss for regression and one weighted-F1
 percentage point for classification.  An exact one-sided binomial test assesses
 
 \[
-H_0:\Pr(\text{time saved}>0\ \text{and loss}<1)\leq\tfrac12.
+H_0:\Pr(\text{time saved}\geq10\%\ \text{and loss}<1)\leq\tfrac12.
 \]
 
-Holm correction is applied across the nine alternatives within each task.
+Holm correction \cite{holm1979simple} is applied across the nine alternatives within each task.
 Margins 0.5 and 2.5 in the task-specific loss units are sensitivity analyses, with Holm correction across
 all 18 method--margin hypotheses within each task; they are not labeled primary
-confirmations.  Task--metric Friedman tests and two-sided paired Wilcoxon tests
+confirmations.  Task--metric Friedman tests \cite{friedman1937ranks} and two-sided paired Wilcoxon tests \cite{wilcoxon1945individual}
 against exhaustive CART, with Holm adjustment within each task--metric family,
 provide complementary rank-based diagnostics.  Effect estimates and intervals
 lead interpretation; adjusted \(p\)-values are secondary.
@@ -472,24 +521,32 @@ lead interpretation; adjusted \(p\)-values are secondary.
 \input{TABLES/inference_friedman.tex}
 \input{TABLES/inference_joint_primary_1pct.tex}
 \input{TABLES/inference_timing_centroid_sensitivity.tex}
-\clearpage
+
+No prespecified alternative supports a claim that more than half of entries
+meet the primary joint criterion after Holm correction.  This does not negate
+the reported centroid trade-offs; it limits the stronger reliability claim.
 
 Reliability is also computed at the entry level.  An entry is successful
 only when its paired-seed median simultaneously meets a displayed time-saving
 threshold and stays within the displayed predictive-loss tolerance.  Seed rows
 are never pooled as independent entries.
 
-As a sensitivity analysis for related regression entries, the 62 Friedman
-generator variants are collapsed into five generator families and two exact
-CPU alias pairs are each collapsed into one family.  The remaining entries are
-singletons, giving 54 equally weighted regression families.  Family-balanced
-intervals and joint tests leave the primary decision unchanged.
+As a sensitivity analysis for related regression entries, names matching
+\texttt{fri\_c0} through \texttt{fri\_c4} are grouped by their generator index.
+This collapses 62 Friedman entries into five families.  The exact aliases
+\texttt{197\_cpu\_act}/\texttt{573\_cpu\_act} and
+\texttt{227\_cpu\_small}/\texttt{562\_cpu\_small} each form one additional
+family.  Every other entry is a singleton, giving 54 equally weighted
+regression families.  The revision control additionally groups only strongly
+named classification generators or aliases, including GAMETES, MFeat, Monks,
+Waveform, Hill--Valley, Wine Quality, LED, and the two Boxing entries; all other
+classification entries remain singletons.
 
-The complete machine-readable outputs are retained under:
+The complete machine-readable outputs and corpus audit are distributed in:
 \begin{center}
 \footnotesize
-\path{examples/early_stop_trees/}\\[-2pt]
-\path{inference_results/}
+\path{RESEARCH_ARTICLE/SUPPLEMENTARY_DATA/}\\[-2pt]
+\path{inference_10pct_and_corpus_audit.tar.gz}
 \end{center}
 \noindent The key files are:
 \begin{itemize}
@@ -519,22 +576,28 @@ estimator seeds.  PMLB is not a probability sample, folds were fixed, and only
 fold means were stored.  The intervals therefore do not provide universal
 coverage over all tabular problems or uncertainty over newly drawn train--test
 partitions.  Marginal intervals over the exploratory method grid are not
-simultaneous confidence bands.  The corrected \(S_{\mathrm{par}}\) rerun uses
-the fixed retained corpus and therefore does not alter entry selection.
+simultaneous confidence bands.  The \(S_{\mathrm{par}}\) screening uses the
+fixed retained corpus and therefore does not alter entry selection.
 
 \section{Reproducibility record}
 \label{sec:supp_reproducibility}
 
-The benchmark metadata record Python 3.10.18, NumPy 1.26.4,
+The historical benchmark metadata record Python 3.10.18, NumPy 1.26.4,
 scikit-learn 1.7.2, treeple 0.10.3, and macOS 15.2 on ARM64 on a machine
-reporting eight CPUs.  The benchmark host was independently verified as an
-Apple M3 MacBook Air with 16~GB memory.  The metadata record five folds, seeds 42--141, the
+reporting eight CPUs.  The benchmark host was an Apple M3 MacBook Air with
+16~GB memory.  Those metadata record five folds, seeds 42--141, the
 estimator-only timing boundary, splitter-specific effort accounting, and the
-treeple import path used during execution.  The exact sharded command was not
-recorded, so disabling of the driver's optional product cap is not asserted.
-The corrected \(S_{\mathrm{par}}\) campaign separately records NumPy 2.2.6,
+treeple import path, but not the shell invocation or product cap.  The corpus
+audit above documents that limitation and reproduces the retained universe
+exactly.  New control experiments record their complete invocation, cap,
+dataset manifest, method order, exclusions, package versions, and source path.
+The fixed-budget and bagging campaigns used NumPy 2.2.6 with the same Python,
+scikit-learn, and treeple versions on the same Apple M3 host.
+The \(S_{\mathrm{par}}\) campaign separately records NumPy 2.2.6,
 the same Python and scikit-learn versions, the same host, all 20 configurations,
 100 seeds, and complete coverage of the retained entries.
+
+\newpage
 
 The inference program validates unique dataset--seed--method rows, requires all
 ten confirmatory methods in every task, checks point estimates against the
@@ -543,11 +606,36 @@ analysis environment and estimand definitions.  It also writes SHA-256 hashes
 for every raw input CSV and for the audited benchmark, splitter, build,
 analysis, and test sources.  The repository contains the benchmark and
 analysis code, tests, dataset inventory, inferential tables, and figure and
-table generators; the per-seed outputs are the manifest-verified input to the
-revision analysis.
+table generators; the per-seed outputs are the input to the reported analysis.
+The 300 historical per-seed CSV files are distributed as three checksummed
+archives under \path{RESEARCH_ARTICLE/SUPPLEMENTARY_DATA/}, one for regression
+and one for each classification criterion.  The same directory contains
+checksummed archives for the fixed-budget and ensemble runs, the strict
+inference and corpus audit, the operation diagnostic, and the weighted
+gain-landscape summaries.  Its README lists every SHA-256 digest.
 
-\section{Additional benchmark figures}
-\label{sec:supp_figures}
+\section{Operation-counter runtime diagnostic}
+\label{sec:supp_runtime_diagnostic}
+
+To diagnose the gap between gain-evaluation savings and wall-clock savings, the
+native splitter now records feature sorts, random partitions, final partitions,
+and min/max passes in addition to gain evaluations.  A focused diagnostic uses
+five deterministically selected datasets per task, five paired seeds, five
+fixed folds, and counterbalanced method order.  It compares instrumented
+exhaustive CART with \(S(1/e)\), \(S_{\mathrm{all}}(1/e)\), and the prophet-style
+rule.  Table~\ref{tab:supp_runtime_diagnostic} reports equal-dataset means.
+
+\input{TABLES/runtime_effort_diagnostic.tex}
+
+For \(S(1/e)\), saving about 42--44\% of gain evaluations removes only 6--9\%
+of feature sorts because exploration features are sampled only after their
+values have been sorted.  The resulting time saving is therefore much smaller
+than the gain-count saving.  The prophet-style rule avoids more sorts but adds
+roughly two full-node min/max-or-partition passes for every baseline feature
+sort.  These counters identify important operations that remain, but they do
+not time each operation or close a wall-clock budget.  The panel is therefore
+a focused mechanism diagnostic, not a replacement for the all-entry timing
+estimates.
 
 \begin{figure*}[p]
 \centering
@@ -649,7 +737,7 @@ revision analysis.
 \begin{figure*}[p]
 \centering
 \suppwideimage{supp_figure_13_gain_landscape.png}
-\caption{Exhaustive gain-landscape diagnostics by task: prevalence of near-optimal thresholds, relative best-to-random gain gap, and contiguous near-optimal width on the winning feature. Boxes summarize dataset-level medians.}
+\caption{Exhaustive gain-landscape diagnostics by task: prevalence of near-optimal thresholds, the relative gap between the best gain and the median under ERT's continuous uniform threshold law, and contiguous near-optimal width on the winning feature. Boxes summarize dataset-level medians.}
 \label{fig:supp_gain_landscape}
 \end{figure*}
 
@@ -673,14 +761,26 @@ revision analysis.
 
 \clearpage
 
-\begin{figure*}[p]
+\twocolumn[
+\begin{minipage}{\textwidth}
 \centering
 \suppwideimage{supp_figure_16_secretary_par_screening.png}
-\caption{Corrected \(S_{\mathrm{par}}\) effort--loss screening over 20 configurations for the three tasks. Gray points and lines show the validated-method context and frontier. Colors encode sampled-gain budget and markers encode \(q\); the outlined point is the exploratory display configuration.}
+\captionof{figure}{\(S_{\mathrm{par}}\) effort--loss screening over 20 configurations for the three tasks. Gray points and lines show the validated-method context and frontier. Colors encode sampled-gain budget and markers encode \(q\); the outlined point is the exploratory display configuration.}
 \label{fig:supp_spar_screening}
-\end{figure*}
+\end{minipage}
+]
 
 \clearpage
+
+\twocolumn[
+\begin{minipage}{\textwidth}
+\centering
+\suppwideimage{revision_control_macro_f1_tradeoff.pdf}
+\captionof{figure}{Counterbalanced classification control using macro-F1 loss. Points are equal-entry means of paired-seed medians; bars are 95\% hierarchical bootstrap intervals.}
+\label{fig:supp_control_macro}
+\end{minipage}
+]
+
 \bibliographystyle{elsarticle-num}
 \bibliography{references}
 

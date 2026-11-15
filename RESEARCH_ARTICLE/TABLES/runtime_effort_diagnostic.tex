@@ -1,0 +1,18 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Operation-counter diagnostic on five datasets per task. Values are equal-dataset means.}
+\label{tab:supp_runtime_diagnostic}
+\begin{tabular}{llrrrr}
+\toprule
+Task & Split search & Time saved (\%) & Gains saved (\%) & Feature sorts saved (\%) & Extra passes per 100 sorts \\
+\midrule
+Regression & $S(1/e)$ & 15.17 & 44.07 & 9.29 & 0.00 \\
+Regression & $S_{\mathrm{all}}(1/e)$ & 12.44 & 11.76 & 6.08 & 0.00 \\
+Regression & Prophet-style & 27.70 & 43.14 & 44.71 & 200.13 \\
+Classification (Gini) & $S(1/e)$ & 16.85 & 41.55 & 5.55 & 0.00 \\
+Classification (Gini) & $S_{\mathrm{all}}(1/e)$ & 13.07 & 16.70 & 7.79 & 0.00 \\
+Classification (Gini) & Prophet-style & 34.31 & 50.00 & 51.18 & 241.50 \\
+\bottomrule
+\end{tabular}
+\end{table*}

@@ -55,7 +55,7 @@ except ImportError:
 from sklearn.base import is_classifier
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection._split import check_cv
-from sklearn.metrics import mean_squared_error, f1_score, make_scorer
+from sklearn.metrics import mean_squared_error, f1_score, make_scorer, recall_score
 
 import treeple
 from treeple.tree import (
@@ -68,9 +68,10 @@ from treeple.tree import (
 
 RANDOM_STATE = 42
 N_FOLDS = 5
-# Base splitter families; secretary_par and extra_tree are expanded into parameter variants.
+# Base splitter families; several entries expand into parameter variants.
 SPLITTERS = (
     "best",
+    "random_feature_exact",
     "secretary",
     "secretary_par",
     "secretary_all",
@@ -91,6 +92,10 @@ EFFORT_KEYS = (
     "gain_evaluations",
     "threshold_candidates_per_split",
     "gain_evaluations_per_split",
+    "feature_sorts",
+    "random_partitions",
+    "final_partitions",
+    "minmax_passes",
     "parametric_gain_samples",
     "parametric_quantile_fits",
 )
@@ -122,12 +127,20 @@ def _finalize_effort_stats(
     threshold_candidates,
     gain_evaluations,
     *,
+    feature_sorts=0.0,
+    random_partitions=0.0,
+    final_partitions=0.0,
+    minmax_passes=0.0,
     parametric_gain_samples=0.0,
     parametric_quantile_fits=0.0,
 ):
     split_calls = float(split_calls)
     threshold_candidates = float(threshold_candidates)
     gain_evaluations = float(gain_evaluations)
+    feature_sorts = float(feature_sorts)
+    random_partitions = float(random_partitions)
+    final_partitions = float(final_partitions)
+    minmax_passes = float(minmax_passes)
     parametric_gain_samples = float(parametric_gain_samples)
     parametric_quantile_fits = float(parametric_quantile_fits)
     denom = split_calls if split_calls > 0 else 1.0
@@ -137,6 +150,10 @@ def _finalize_effort_stats(
         "gain_evaluations": gain_evaluations,
         "threshold_candidates_per_split": threshold_candidates / denom,
         "gain_evaluations_per_split": gain_evaluations / denom,
+        "feature_sorts": feature_sorts,
+        "random_partitions": random_partitions,
+        "final_partitions": final_partitions,
+        "minmax_passes": minmax_passes,
         "parametric_gain_samples": parametric_gain_samples,
         "parametric_quantile_fits": parametric_quantile_fits,
     }
@@ -181,6 +198,7 @@ def _derive_best_effort_stats(estimator, X_train):
     min_samples_leaf = int(getattr(estimator, "min_samples_leaf_", 1))
     threshold_candidates = 0.0
     gain_evaluations = 0.0
+    feature_sorts = 0.0
     split_calls = 0.0
     max_features = int(getattr(estimator, "max_features_", X_train.shape[1]))
 
@@ -200,10 +218,17 @@ def _derive_best_effort_stats(estimator, X_train):
             node_thresholds += float(positions.size)
             valid = (positions >= min_samples_leaf) & ((sample_idx.size - positions) >= min_samples_leaf)
             node_gains += float(np.sum(valid))
+        feature_sorts += feature_scale * _count_nonconstant_features(X_node)
         threshold_candidates += feature_scale * node_thresholds
         gain_evaluations += feature_scale * node_gains
 
-    return _finalize_effort_stats(split_calls, threshold_candidates, gain_evaluations)
+    return _finalize_effort_stats(
+        split_calls,
+        threshold_candidates,
+        gain_evaluations,
+        feature_sorts=feature_sorts,
+        final_partitions=split_calls,
+    )
 
 
 def _derive_extra_tree_effort_stats(estimator, X_train):
@@ -222,7 +247,14 @@ def _derive_extra_tree_effort_stats(estimator, X_train):
         threshold_candidates += evaluated
         gain_evaluations += evaluated
 
-    return _finalize_effort_stats(split_calls, threshold_candidates, gain_evaluations)
+    return _finalize_effort_stats(
+        split_calls,
+        threshold_candidates,
+        gain_evaluations,
+        random_partitions=threshold_candidates,
+        final_partitions=split_calls,
+        minmax_passes=threshold_candidates,
+    )
 
 
 def _derive_effort_stats(estimator, X_train):
@@ -271,8 +303,8 @@ def _collect_effort_summary(estimators, *, estimator, X, y, cv):
     return summary
 
 
-def _benchmark_metadata(splitters, n_runs, random_state):
-    return {
+def _benchmark_metadata(splitters, n_runs, random_state, run_config=None):
+    metadata = {
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "python": sys.version,
         "platform": platform.platform(),
@@ -295,15 +327,25 @@ def _benchmark_metadata(splitters, n_runs, random_state):
         "effort_protocol": {
             "early_stop": "Measured directly from splitter counters across all attempted node splits, including failed calls that produce leaves.",
             "best": "Reconstructed a posteriori for successful internal-node searches from fitted trees and fold-specific training data.",
+            "random_feature_exact": "Reconstructed a posteriori for successful internal nodes, scaled by the fitted estimator's exact-search feature budget.",
             "extra_tree": "Reconstructed a posteriori for successful internal nodes as one random-threshold gain per sampled non-constant feature.",
         },
     }
+    if run_config is not None:
+        metadata["invocation"] = list(sys.argv)
+        metadata["run_config"] = run_config
+    return metadata
 
 
-def _write_benchmark_metadata(outdir, splitters, n_runs, random_state):
+def _write_benchmark_metadata(outdir, splitters, n_runs, random_state, run_config=None):
     path = Path(outdir) / "benchmark_metadata.json"
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(_benchmark_metadata(splitters, n_runs, random_state), f, indent=2, sort_keys=True)
+        json.dump(
+            _benchmark_metadata(splitters, n_runs, random_state, run_config=run_config),
+            f,
+            indent=2,
+            sort_keys=True,
+        )
     print(f"Wrote {path}")
 
 
@@ -439,6 +481,22 @@ def _extra_tree_variants():
     )
 
 
+def _random_feature_exact_variants():
+    """Exact CART scans after drawing a random feature subset at each node.
+
+    This control preserves best-split threshold optimization and changes only
+    the number of candidate features. It therefore isolates adaptive stopping
+    from the simpler strategy of evaluating fewer randomly selected features.
+    """
+    return (
+        (1, "max_features=1"),
+        (0.1, "max_features=0.1p"),
+        (1.0 / math.e, "max_features=1overe"),
+        (0.5, "max_features=0.5p"),
+        (2.0 / 3.0, "max_features=2over3"),
+    )
+
+
 def _iter_regression_estimators(n_samples: int, random_state: int, splitters=None):
     """Yield (splitter, variant, estimator) for one regression dataset."""
     splitters = splitters if splitters is not None else SPLITTERS
@@ -470,6 +528,18 @@ def _iter_regression_estimators(n_samples: int, random_state: int, splitters=Non
                         random_state=random_state,
                         max_depth=20,
                         split_search=split_search,
+                    ),
+                )
+        elif splitter == "random_feature_exact":
+            for max_features, variant_label in _random_feature_exact_variants():
+                yield (
+                    "random_feature_exact",
+                    variant_label,
+                    EarlyStopDecisionTreeRegressor(
+                        splitter="best",
+                        random_state=random_state,
+                        max_depth=20,
+                        max_features=max_features,
                     ),
                 )
         elif splitter == "extra_tree":
@@ -528,6 +598,19 @@ def _iter_classification_estimators(n_samples: int, criterion: str, random_state
                         random_state=random_state,
                         max_depth=20,
                         split_search=split_search,
+                    ),
+                )
+        elif splitter == "random_feature_exact":
+            for max_features, variant_label in _random_feature_exact_variants():
+                yield (
+                    "random_feature_exact",
+                    variant_label,
+                    EarlyStopDecisionTreeClassifier(
+                        splitter="best",
+                        criterion=criterion,
+                        random_state=random_state,
+                        max_depth=20,
+                        max_features=max_features,
                     ),
                 )
         elif splitter == "extra_tree":
@@ -594,6 +677,12 @@ def _evaluate_classification_dataset(name, X, y, criterion, random_state, splitt
     scoring = {
         "accuracy": "accuracy",
         "f1_weighted": make_scorer(f1_score, average="weighted", zero_division=0),
+        "f1_macro": make_scorer(f1_score, average="macro", zero_division=0),
+        "recall_min": make_scorer(
+            lambda y_true, y_pred: float(
+                np.min(recall_score(y_true, y_pred, average=None, zero_division=0))
+            )
+        ),
     }
     dataset_rows = []
     for splitter, variant, est in _iter_classification_estimators(
@@ -619,6 +708,10 @@ def _evaluate_classification_dataset(name, X, y, criterion, random_state, splitt
                 "accuracy_std": float(np.std(cv["test_accuracy"])),
                 "f1_weighted_mean": float(np.mean(cv["test_f1_weighted"])),
                 "f1_weighted_std": float(np.std(cv["test_f1_weighted"])),
+                "f1_macro_mean": float(np.mean(cv["test_f1_macro"])),
+                "f1_macro_std": float(np.std(cv["test_f1_macro"])),
+                "recall_min_mean": float(np.mean(cv["test_recall_min"])),
+                "recall_min_std": float(np.std(cv["test_recall_min"])),
                 "fit_time_mean": float(np.mean(cv["fit_time"])),
                 **effort,
             }
@@ -1316,7 +1409,25 @@ def main():
     isolate = args.isolate_datasets
     outdir.mkdir(parents=True, exist_ok=True)
     print(f"Using treeple from {Path(treeple.__file__).resolve()}", flush=True)
-    _write_benchmark_metadata(outdir, splitters or SPLITTERS, args.n_runs, random_state)
+    _write_benchmark_metadata(
+        outdir,
+        splitters or SPLITTERS,
+        args.n_runs,
+        random_state,
+        run_config={
+            "max_datasets": args.max_datasets,
+            "max_samples": args.max_samples,
+            "max_rows": args.max_rows,
+            "max_features": args.max_features,
+            "max_product": max_product,
+            "exclude_datasets": exclude,
+            "regression_only": bool(args.regression_only),
+            "classification_only": bool(args.classification_only),
+            "datasets_file": args.datasets_file,
+            "isolate_datasets": bool(args.isolate_datasets),
+            "run_ids": run_ids,
+        },
+    )
 
     if args.n_runs > 1:
         run_benchmark_n_times(

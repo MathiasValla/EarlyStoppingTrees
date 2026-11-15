@@ -167,6 +167,10 @@ EXPECTED_EARLY_STOP_STATS = {
     "split_calls",
     "threshold_candidates",
     "gain_evaluations",
+    "feature_sorts",
+    "random_partitions",
+    "final_partitions",
+    "minmax_passes",
     "threshold_candidates_per_split",
     "gain_evaluations_per_split",
     "parametric_gain_samples",
@@ -224,6 +228,10 @@ def test_early_stop_splitter_stats_are_recorded():
     assert EXPECTED_EARLY_STOP_STATS.issubset(stats)
     assert stats["split_calls"] >= np.sum(clf.tree_.feature >= 0)
     assert stats["threshold_candidates"] >= stats["gain_evaluations"] >= 0
+    assert stats["feature_sorts"] >= 0
+    assert stats["random_partitions"] >= 0
+    assert stats["final_partitions"] >= 0
+    assert stats["minmax_passes"] >= 0
     assert stats["threshold_candidates_per_split"] >= 0
     assert stats["gain_evaluations_per_split"] >= 0
 

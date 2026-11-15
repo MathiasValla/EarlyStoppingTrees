@@ -259,6 +259,7 @@ def _build_joint(inference_dir: Path) -> list[dict[str, object]]:
             "joint_n_failure",
             "joint_success_pvalue_holm",
             "multiplicity_family_size",
+            "minimum_time_saved_pct",
             "supports_primary_joint_claim_0.05",
         },
     )
@@ -287,6 +288,14 @@ def _build_joint(inference_dir: Path) -> list[dict[str, object]]:
                 raise InputValidationError(f"Unexpected Holm family size in {context}")
 
             n_complete = _as_int(row, "n_complete_datasets", context)
+            minimum_time_saved = _as_float(
+                row, "minimum_time_saved_pct", context
+            )
+            if not math.isclose(minimum_time_saved, 10.0):
+                raise InputValidationError(
+                    f"Unexpected minimum time saving in {context}: "
+                    f"{minimum_time_saved}"
+                )
             runtime_total = _as_int(row, "runtime_n_non_ties", context)
             runtime_positive = _as_int(row, "runtime_n_positive", context)
             loss_total = _as_int(row, "loss_n_non_ties", context)
@@ -316,6 +325,7 @@ def _build_joint(inference_dir: Path) -> list[dict[str, object]]:
                     "method_key": method_key,
                     "method": METHOD_LABELS_CSV[method_key],
                     "loss_margin_pct": 1.0,
+                    "minimum_time_saved_pct": minimum_time_saved,
                     "n_complete_datasets": n_complete,
                     "runtime_n_positive": runtime_positive,
                     "runtime_n_non_ties": runtime_total,
@@ -546,17 +556,26 @@ def _render_omnibus(rows: Sequence[Mapping[str, object]]) -> str:
 
 
 def _render_joint(rows: Sequence[Mapping[str, object]]) -> str:
+    minimum_time_saved = {
+        float(row["minimum_time_saved_pct"]) for row in rows
+    }
+    if len(minimum_time_saved) != 1:
+        raise InputValidationError(
+            "Primary joint table mixes minimum time-saving thresholds"
+        )
+    threshold = next(iter(minimum_time_saved))
     lines = _table_header(
         "Primary simultaneous-success tests at the task-specific 1-unit margin: "
         "1\% bounded-relative RMSE for regression and one weighted-F1 percentage "
-        "point for classification. $p_{\mathrm{Holm}}$ tests whether more than "
-        "half of dataset entries satisfy both conditions.",
+        f"point for classification, with at least {threshold:g}\\% time saved. "
+        "$p_{\\mathrm{Holm}}$ tests whether more than half of dataset entries "
+        "satisfy both conditions.",
         "tab:inference-joint-primary",
         "llrrrrc",
     )
     lines.extend(
         [
-            r"Task & Method & Time $>0$ & Loss $<1$ & Both & $p_{\mathrm{Holm}}$ & Support \\",
+            rf"Task & Method & Time $\geq{threshold:g}$ & Loss $<1$ & Both & $p_{{\mathrm{{Holm}}}}$ & Support \\",
             r"\midrule",
         ]
     )

@@ -39,8 +39,8 @@ DEFAULT_REGION_ALPHA = 0.18
 GRID_RESOLUTION = 150
 DEFAULT_PNG_DPI = 450
 FULL_PAGE_WIDTH_IN = 7.35
-COMBINED_HEIGHT_IN = 4.35
-POINT_SIZE = 23
+COMBINED_HEIGHT_IN = 4.5
+POINT_SIZE = 26
 
 # method_key for exhaustive baseline (must match benchmark_results_utils / summaries)
 BEST_METHOD_KEY = "best|"
@@ -309,14 +309,14 @@ def _style_panel_axes(ax, *, title: str, show_xlabel: bool, show_ylabel: bool):
     ax.set_box_aspect(0.42)
     ax.xaxis.set_major_locator(MaxNLocator(nbins=5, steps=[1, 2, 2.5, 5, 10]))
     ax.yaxis.set_major_locator(MaxNLocator(nbins=4, steps=[1, 2, 2.5, 5, 10]))
-    ax.tick_params(axis="both", labelsize=8.5, length=2.5, width=0.65, pad=1.5)
+    ax.tick_params(axis="both", labelsize=9.5, length=2.5, width=0.65, pad=1.5)
     for spine in ax.spines.values():
         spine.set_color("#404040")
         spine.set_linewidth(0.65)
-    ax.set_xlabel(r"Dataset size, $\log_{10}(n)$" if show_xlabel else "", fontsize=8.5)
-    ax.set_ylabel(r"Feature count, $\log_{10}(p)$" if show_ylabel else "", fontsize=8.5)
+    ax.set_xlabel(r"Dataset size, $\log_{10}(n)$" if show_xlabel else "", fontsize=9.5)
+    ax.set_ylabel(r"Feature count, $\log_{10}(p)$" if show_ylabel else "", fontsize=9.5)
     if title:
-        ax.set_title(title, fontsize=8.5, fontweight="bold", pad=3)
+        ax.set_title(title, fontsize=9.5, fontweight="bold", pad=3)
 
 
 def _legend_handles(method_order: list, method_colors: dict, method_labels: list):
@@ -434,7 +434,7 @@ def _combined_legend_panel(ax, method_order: list, method_colors: dict):
             headers[family],
             ha="center",
             va="top",
-            fontsize=8.5,
+            fontsize=9.5,
             fontweight="bold",
             transform=ax.transAxes,
         )
@@ -459,7 +459,7 @@ def _combined_legend_panel(ax, method_order: list, method_colors: dict):
                 _compact_legend_label(method_key),
                 ha="left",
                 va="center",
-                fontsize=8.5,
+                fontsize=9.5,
                 transform=ax.transAxes,
             )
 
@@ -644,7 +644,7 @@ def main():
                 ha="center",
                 va="center",
                 rotation=90,
-                fontsize=8.5,
+                fontsize=9.5,
                 fontweight="bold",
                 annotation_clip=False,
             )
@@ -670,7 +670,7 @@ def main():
             r"Dataset size, $\log_{10}(n)$",
             ha="center",
             va="center",
-            fontsize=8.5,
+            fontsize=9.5,
         )
         fig.text(
             0.018,
@@ -679,7 +679,7 @@ def main():
             ha="center",
             va="center",
             rotation=90,
-            fontsize=8.5,
+            fontsize=9.5,
         )
 
         pdf_path, png_path = _save_figure_pair(

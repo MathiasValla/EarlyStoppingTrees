@@ -12,4 +12,20 @@ W.~G. Cochran, The distribution of quadratic forms in a normal system, with
 \newblock \href {https://doi.org/10.1017/S0305004100016595}
   {\path{doi:10.1017/S0305004100016595}}.
 
+\bibitem{holm1979simple}
+S.~Holm, A simple sequentially rejective multiple test procedure, Scandinavian
+  Journal of Statistics 6~(2) (1979) 65--70.
+\newblock \href {https://doi.org/10.2307/4615733} {\path{doi:10.2307/4615733}}.
+
+\bibitem{friedman1937ranks}
+M.~Friedman, The use of ranks to avoid the assumption of normality implicit in
+  the analysis of variance, Journal of the American Statistical Association
+  32~(200) (1937) 675--701.
+\newblock \href {https://doi.org/10.2307/2279372} {\path{doi:10.2307/2279372}}.
+
+\bibitem{wilcoxon1945individual}
+F.~Wilcoxon, Individual comparisons by ranking methods, Biometrics Bulletin
+  1~(6) (1945) 80--83.
+\newblock \href {https://doi.org/10.2307/3001968} {\path{doi:10.2307/3001968}}.
+
 \end{thebibliography}

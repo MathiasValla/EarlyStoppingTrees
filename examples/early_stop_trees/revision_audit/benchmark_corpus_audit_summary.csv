@@ -1,0 +1,8 @@
+task,status,count
+classification,load_error,32
+classification,over_max_product,8
+classification,retained,122
+regression,explicit_skip,2
+regression,load_error,2
+regression,over_max_product,5
+regression,retained,113

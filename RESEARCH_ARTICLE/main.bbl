@@ -5,6 +5,13 @@
 \expandafter\ifx\csname href\endcsname\relax
   \def\href#1#2{#2} \def\path#1{#1}\fi
 
+\bibitem{grinsztajn2022tabular}
+L.~Grinsztajn, {\'E}.~Oyallon, G.~Varoquaux, Why do tree-based models still
+  outperform deep learning on typical tabular data?, in: Advances in Neural
+  Information Processing Systems, Vol.~35, 2022, pp. 507--520.
+\newblock \href {https://doi.org/10.5555/3600270.3600307}
+  {\path{doi:10.5555/3600270.3600307}}.
+
 \bibitem{breiman1984cart}
 L.~Breiman, J.~H. Friedman, R.~A. Olshen, C.~J. Stone, Classification and
   Regression Trees, Wadsworth, Belmont, CA, 1984.
@@ -30,51 +37,6 @@ P.~Geurts, D.~Ernst, L.~Wehenkel, Extremely randomized trees, Machine Learning
   63~(1) (2006) 3--42.
 \newblock \href {https://doi.org/10.1007/s10994-006-6226-1}
   {\path{doi:10.1007/s10994-006-6226-1}}.
-
-\bibitem{appel2013quickly}
-R.~Appel, T.~Fuchs, P.~Doll{\'a}r, P.~Perona, Quickly boosting decision
-  trees---pruning underachieving features early, in: Proceedings of the 30th
-  International Conference on Machine Learning, Vol.~28 of Proceedings of
-  Machine Learning Research, 2013, pp. 594--602.
-
-\bibitem{chen2016xgboost}
-T.~Chen, C.~Guestrin, {XGBoost}: A scalable tree boosting system, in:
-  Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
-  Discovery and Data Mining, ACM, 2016, pp. 785--794.
-\newblock \href {https://doi.org/10.1145/2939672.2939785}
-  {\path{doi:10.1145/2939672.2939785}}.
-
-\bibitem{ke2017lightgbm}
-G.~Ke, Q.~Meng, T.~Finley, T.~Wang, W.~Chen, W.~Ma, Q.~Ye, T.-Y. Liu,
-  {LightGBM}: A highly efficient gradient boosting decision tree, in: Advances
-  in Neural Information Processing Systems, Vol.~30, 2017.
-
-\bibitem{domingos2000vfdt}
-P.~Domingos, G.~Hulten, Mining high-speed data streams, in: Proceedings of the
-  Sixth ACM SIGKDD International Conference on Knowledge Discovery and Data
-  Mining, ACM, 2000, pp. 71--80.
-\newblock \href {https://doi.org/10.1145/347090.347107}
-  {\path{doi:10.1145/347090.347107}}.
-
-\bibitem{bressan2024dynamic}
-M.~Bressan, M.~Sozio, Fully-dynamic approximate decision trees with worst-case
-  update time guarantees, in: Proceedings of the 41st International Conference
-  on Machine Learning, Vol. 235 of Proceedings of Machine Learning Research,
-  2024, pp. 4517--4541.
-
-\bibitem{pham2025streams}
-H.~Pham, H.~Ta, H.~T. Vu, Constructing decision trees from data streams, in:
-  2025 IEEE International Symposium on Information Theory, IEEE, 2025, pp.
-  1--6.
-\newblock \href {https://doi.org/10.1109/ISIT63088.2025.11195218}
-  {\path{doi:10.1109/ISIT63088.2025.11195218}}.
-
-\bibitem{tatti2025approximating}
-N.~Tatti, Approximating splits for decision trees quickly in sparse data
-  streams, in: Proceedings of the 2025 SIAM International Conference on Data
-  Mining, SIAM, 2025, pp. 647--655.
-\newblock \href {https://doi.org/10.1137/1.9781611978520.69}
-  {\path{doi:10.1137/1.9781611978520.69}}.
 
 \bibitem{gilbertmosteller1966}
 J.~P. Gilbert, F.~Mosteller, Recognizing the maximum of a sequence, Journal of
@@ -115,6 +77,89 @@ V.~Babbar, H.~McTavish, C.~Rudin, M.~Seltzer, Near-optimal decision trees in a
   Machine Learning, Vol. 267 of Proceedings of Machine Learning Research, 2025,
   pp. 2114--2175.
 
+\bibitem{mehta1996sliq}
+M.~Mehta, R.~Agrawal, J.~Rissanen, {SLIQ}: A fast scalable classifier for data
+  mining, in: Advances in Database Technology -- EDBT'96, Vol. 1057 of Lecture
+  Notes in Computer Science, Springer, 1996, pp. 18--32.
+
+\bibitem{shafer1996sprint}
+J.~C. Shafer, R.~Agrawal, M.~Mehta, {SPRINT}: A scalable parallel classifier
+  for data mining, in: Proceedings of the 22nd International Conference on Very
+  Large Data Bases, Morgan Kaufmann, 1996, pp. 544--555.
+
+\bibitem{appel2013quickly}
+R.~Appel, T.~Fuchs, P.~Doll{\'a}r, P.~Perona, Quickly boosting decision
+  trees---pruning underachieving features early, in: Proceedings of the 30th
+  International Conference on Machine Learning, Vol.~28 of Proceedings of
+  Machine Learning Research, 2013, pp. 594--602.
+
+\bibitem{chen2016xgboost}
+T.~Chen, C.~Guestrin, {XGBoost}: A scalable tree boosting system, in:
+  Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
+  Discovery and Data Mining, ACM, 2016, pp. 785--794.
+\newblock \href {https://doi.org/10.1145/2939672.2939785}
+  {\path{doi:10.1145/2939672.2939785}}.
+
+\bibitem{ke2017lightgbm}
+G.~Ke, Q.~Meng, T.~Finley, T.~Wang, W.~Chen, W.~Ma, Q.~Ye, T.-Y. Liu,
+  {LightGBM}: A highly efficient gradient boosting decision tree, in: Advances
+  in Neural Information Processing Systems, Vol.~30, 2017.
+
+\bibitem{tiwari2022mabsplit}
+M.~Tiwari, R.~Kang, J.~Lee, C.~Piech, I.~Shomorony, S.~Thrun, M.~J. Zhang,
+  {MABSplit}: Faster forest training using multi-armed bandits, in: Advances in
+  Neural Information Processing Systems, Vol.~35, 2022.
+\newblock \href {https://doi.org/10.52202/068431-0090}
+  {\path{doi:10.52202/068431-0090}}.
+
+\bibitem{domingos2000vfdt}
+P.~Domingos, G.~Hulten, Mining high-speed data streams, in: Proceedings of the
+  Sixth ACM SIGKDD International Conference on Knowledge Discovery and Data
+  Mining, ACM, 2000, pp. 71--80.
+\newblock \href {https://doi.org/10.1145/347090.347107}
+  {\path{doi:10.1145/347090.347107}}.
+
+\bibitem{bressan2024dynamic}
+M.~Bressan, M.~Sozio, Fully-dynamic approximate decision trees with worst-case
+  update time guarantees, in: Proceedings of the 41st International Conference
+  on Machine Learning, Vol. 235 of Proceedings of Machine Learning Research,
+  2024, pp. 4517--4541.
+
+\bibitem{pham2025streams}
+H.~Pham, H.~Ta, H.~T. Vu, Constructing decision trees from data streams, in:
+  2025 IEEE International Symposium on Information Theory, IEEE, 2025, pp.
+  1--6.
+\newblock \href {https://doi.org/10.1109/ISIT63088.2025.11195218}
+  {\path{doi:10.1109/ISIT63088.2025.11195218}}.
+
+\bibitem{tatti2025approximating}
+N.~Tatti, Approximating splits for decision trees quickly in sparse data
+  streams, in: Proceedings of the 2025 SIAM International Conference on Data
+  Mining, SIAM, 2025, pp. 647--655.
+\newblock \href {https://doi.org/10.1137/1.9781611978520.69}
+  {\path{doi:10.1137/1.9781611978520.69}}.
+
+\bibitem{iamoukou2026anytime}
+S.~I. Amoukou, S.~Mishra, M.~Veloso, Correcting split selection in online
+  decision trees via anytime-valid inference, in: Proceedings of the 43rd
+  International Conference on Machine Learning, Vol. 306 of Proceedings of
+  Machine Learning Research, 2026, pp. 49354--49386.
+
+\bibitem{ta2026streamsplits}
+H.~Ta, H.~T. Vu, Nearly optimal bounds for computing decision tree splits in
+  data streams, in: 34th Annual European Symposium on Algorithms, Vol. 388 of
+  Leibniz International Proceedings in Informatics, 2026, pp. 42:1--42:20.
+\newblock \href {https://doi.org/10.4230/LIPIcs.ESA.2026.42}
+  {\path{doi:10.4230/LIPIcs.ESA.2026.42}}.
+
+\bibitem{jaworski2027hoeffding}
+M.~Jaworski, D.~Rutkowska, P.~Duda, W.~Wang, X.~Geng, L.~Rutkowski, Towards
+  faster and deeper {Hoeffding} trees: Fractional bounds and
+  correlation-preserving multi-index statistics, Information Sciences 758
+  (2027) 123949, available online in 2026.
+\newblock \href {https://doi.org/10.1016/j.ins.2026.123949}
+  {\path{doi:10.1016/j.ins.2026.123949}}.
+
 \bibitem{romano2022pmlb}
 J.~D. Romano, T.~T. Le, W.~L. Cava, J.~T. Gregg, D.~J. Goldberg,
   P.~Chakraborty, N.~L. Ray, D.~Himmelstein, W.~Fu, J.~H. Moore, Pmlb v1.0: an
@@ -139,5 +184,21 @@ B.~Efron, Bootstrap methods: Another look at the jackknife, The Annals of
   Statistics 7~(1) (1979) 1--26.
 \newblock \href {https://doi.org/10.1214/aos/1176344552}
   {\path{doi:10.1214/aos/1176344552}}.
+
+\bibitem{friedman1937ranks}
+M.~Friedman, The use of ranks to avoid the assumption of normality implicit in
+  the analysis of variance, Journal of the American Statistical Association
+  32~(200) (1937) 675--701.
+\newblock \href {https://doi.org/10.2307/2279372} {\path{doi:10.2307/2279372}}.
+
+\bibitem{wilcoxon1945individual}
+F.~Wilcoxon, Individual comparisons by ranking methods, Biometrics Bulletin
+  1~(6) (1945) 80--83.
+\newblock \href {https://doi.org/10.2307/3001968} {\path{doi:10.2307/3001968}}.
+
+\bibitem{holm1979simple}
+S.~Holm, A simple sequentially rejective multiple test procedure, Scandinavian
+  Journal of Statistics 6~(2) (1979) 65--70.
+\newblock \href {https://doi.org/10.2307/4615733} {\path{doi:10.2307/4615733}}.
 
 \end{thebibliography}
