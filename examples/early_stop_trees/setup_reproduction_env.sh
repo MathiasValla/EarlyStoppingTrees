@@ -27,7 +27,6 @@ if [ "${SKIP_INSTALL:-0}" = "1" ]; then
     exit 0
 fi
 
-"$python_bin" -m pip install --upgrade pip
 "$python_bin" -m pip install -r "$requirements"
 "$python_bin" -m pip install "$repo_root"
 
