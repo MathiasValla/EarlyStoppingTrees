@@ -642,9 +642,13 @@ def test_actual_564_fried_archive_is_missing_only_run_4():
         )
         with tarfile.open(tar_path, "r:gz") as bundle:
             members = sorted(
-                member
-                for member in bundle.getmembers()
-                if member.name.startswith("regression_run") and member.name.endswith(".csv")
+                [
+                    member
+                    for member in bundle.getmembers()
+                    if member.name.startswith("regression_run")
+                    and member.name.endswith(".csv")
+                ],
+                key=lambda member: member.name,
             )
             assert len(members) == 100
             for member in members:
