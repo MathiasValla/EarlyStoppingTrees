@@ -95,8 +95,10 @@ and numerical outputs are the reproducibility checks.
 ## 5. Run the focused analysis tests
 
 ```bash
-pytest -q examples/early_stop_trees/test_analysis_inference.py
+python examples/early_stop_trees/run_analysis_tests.py
 ```
+
+The same tests can also be collected with `pytest` in the isolated environment.
 
 ## 6. Rerun benchmarks
 

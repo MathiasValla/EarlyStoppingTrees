@@ -24,5 +24,5 @@ Do not use an untracked demonstration script as an installation check. Run the
 focused analysis test instead:
 
 ```bash
-pytest -q examples/early_stop_trees/test_analysis_inference.py
+python examples/early_stop_trees/run_analysis_tests.py
 ```

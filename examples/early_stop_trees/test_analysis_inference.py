@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import sys
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -625,10 +626,32 @@ def test_timing_block_outputs_are_paired_reproducible_and_correct():
 def test_actual_564_fried_archive_is_missing_only_run_4():
     archive = Path(__file__).resolve().parent / "benchmark_results"
     paths = sorted(archive.glob("regression_run*.csv"))
-    assert len(paths) == 100
     missing = []
-    for path in paths:
-        datasets = pd.read_csv(path, usecols=["dataset"])["dataset"].astype(str)
-        if not np.any(datasets == "564_fried"):
-            missing.append(_run_number(path))
+    if paths:
+        assert len(paths) == 100
+        for path in paths:
+            datasets = pd.read_csv(path, usecols=["dataset"])["dataset"].astype(str)
+            if not np.any(datasets == "564_fried"):
+                missing.append(_run_number(path))
+    else:
+        tar_path = (
+            Path(__file__).resolve().parents[2]
+            / "RESEARCH_ARTICLE"
+            / "SUPPLEMENTARY_DATA"
+            / "benchmark_regression_runs.tar.gz"
+        )
+        with tarfile.open(tar_path, "r:gz") as bundle:
+            members = sorted(
+                member
+                for member in bundle.getmembers()
+                if member.name.startswith("regression_run") and member.name.endswith(".csv")
+            )
+            assert len(members) == 100
+            for member in members:
+                fileobj = bundle.extractfile(member)
+                assert fileobj is not None
+                datasets = pd.read_csv(fileobj, usecols=["dataset"])["dataset"].astype(str)
+                run = _run_number(Path(member.name))
+                if not np.any(datasets == "564_fried"):
+                    missing.append(run)
     assert missing == [4]
