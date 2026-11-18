@@ -83,6 +83,6 @@ for the previous review history.
 3. Confirm the author details, funding, competing-interest, CRediT, data/code
    availability, and generative-AI disclosure.
 4. Upload the editable LaTeX sources, both PDFs, all figure and table inputs,
-   the bibliography, highlights, and the seven supplementary-data archives.
+   the bibliography, highlights, and the eight supplementary-data archives.
 5. Use a new cover letter for Information Sciences. Do not reuse the PRL
    point-by-point response as a submission document.

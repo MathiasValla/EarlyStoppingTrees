@@ -1,12 +1,13 @@
 # Raw benchmark and revision data
 
 These archives are versioned with the repository and can also be uploaded as
-separate supplementary-data files. The three historical benchmark archives
-contain 100 per-seed CSV files, the corresponding aggregate CSV, and benchmark
-metadata. The revision archives contain the raw fixed-budget control, focused
-bagging validation, operation-counter diagnostic, strict reliability analysis,
-corpus audit, and ERT-weighted gain-landscape summaries. AppleDouble metadata
-files are excluded.
+separate supplementary-data files. The three broad-benchmark archives and the
+S_par screening archive contain the complete per-seed CSV files and metadata.
+The revision archives contain the raw fixed-budget control, focused bagging
+validation, operation-counter diagnostic, strict reliability analysis, corpus
+audit, and ERT-weighted gain-landscape summaries. AppleDouble metadata files
+are excluded. See `REPRODUCIBILITY.md` at the repository root for the exact
+extraction, analysis, testing, and manuscript-build commands.
 
 | Archive | SHA-256 |
 |---|---|
@@ -17,10 +18,13 @@ files are excluded.
 | `runtime_effort_diagnostic.tar.gz` | `f198901f564ef4ec6e6b8eef3382b75117cf136957f0ad62c6ac5a5a39ca2648` |
 | `inference_10pct_and_corpus_audit.tar.gz` | `1aa2ba4f0a869d10e45e503a6a46fe6b0f10abc85eff7ba8e1d8a14ff47263a3` |
 | `gain_landscape_ert_weighted.tar.gz` | `15070df21c8e0d56b7ce4a8f23e446bc944ea7b0e399939f55524e27510391b0` |
+| `spar_screening_runs.tar.gz` | `89c5ba1d75600af74ad558e9576f076bdeaea20a0037836d8ebab53809327664` |
 
 The fixed-budget archive includes all 20 paired seeds for every retained entry,
 the ensemble raw outputs, and the CSV summaries used in the new figures and
 tables. The inference archive includes the 10,000-replicate outputs for the
 10% minimum-time-saving criterion, the retained-entry manifests, and the
-complete corpus inclusion audit. Every new campaign also stores its exact
-invocation, software versions, method-order rule, and exclusions in JSON.
+complete corpus inclusion audit. The S_par archive contains all 100 seeds for
+the six screening shards, their manifests, metadata, and validation report.
+Every new campaign also stores its exact invocation, software versions,
+method-order rule, and exclusions in JSON.

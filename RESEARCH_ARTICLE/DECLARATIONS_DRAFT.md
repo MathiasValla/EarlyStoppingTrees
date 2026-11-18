@@ -19,10 +19,11 @@ paper.
 ## Data and code availability
 
 The source datasets are publicly available through PMLB. The retained-entry
-inventory, inferential summaries, implemented methods, and scripts used to run
-the benchmark and generate every reported figure and table are available at
-https://github.com/MathiasValla/EarlyStoppingTrees. The archived per-seed
-benchmark outputs accompany the revision as supplementary data.
+inventory, complete per-seed benchmark outputs, inferential summaries,
+implemented methods, and scripts used to run the benchmark and generate every
+reported figure and table are available as checksummed archives at
+https://github.com/MathiasValla/EarlyStoppingTrees, together with clean-clone
+reproduction instructions.
 
 ## CRediT authorship contribution statement
 

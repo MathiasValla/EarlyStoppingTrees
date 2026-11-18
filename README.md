@@ -1,3 +1,13 @@
+# Secretary-style split search for decision trees
+
+This fork contains the splitters, benchmark data, analysis code, and manuscript
+sources for *Secretary-style split search for decision trees*. Start with the
+[reproduction guide](REPRODUCIBILITY.md). The raw per-seed outputs and their
+checksums are in `RESEARCH_ARTICLE/SUPPLEMENTARY_DATA`.
+
+The implementation extends treeple 0.10.3. The upstream project description is
+retained below for dependency and licensing context.
+
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CircleCI](https://circleci.com/gh/neurodata/treeple/tree/main.svg?style=svg)](https://circleci.com/gh/neurodata/treeple/tree/main)
 [![Main](https://github.com/neurodata/treeple/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/neurodata/treeple/actions/workflows/main.yml)

@@ -1,0 +1,14 @@
+diff --git a/sklearn/tree/_splitter.pyx b/sklearn/tree/_splitter.pyx
+index d69bfa067..fe7233ade 100644
+--- a/sklearn/tree/_splitter.pyx
++++ b/sklearn/tree/_splitter.pyx
+@@ -151,7 +151,8 @@ cdef class Splitter(BaseSplitter):
+         float64_t min_weight_leaf,
+         object random_state,
+         const int8_t[:] monotonic_cst,
+-        *argv
++        *argv,
++        **kwargs
+     ):
+         """
+         Parameters

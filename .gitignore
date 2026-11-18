@@ -28,6 +28,7 @@ examples/early_stop_trees/revision_results/
 examples/early_stop_trees/runtime_effort_diagnostic/
 examples/early_stop_trees/__pycache__/
 RESEARCH_ARTICLE/PATREC_SUBMISSION/
+RESEARCH_ARTICLE/INFORMATION_SCIENCES_SUBMISSION/
 RESEARCH_ARTICLE/*.log
 RESEARCH_ARTICLE/*.blg
 RESEARCH_ARTICLE/*.out
